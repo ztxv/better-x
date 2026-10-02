@@ -1,0 +1,29 @@
+{
+  "name": "x-bookmarker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "check": "wxt prepare && tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.9",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.3",
+    "wxt": "^0.21.4"
+  }
+}
