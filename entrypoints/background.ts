@@ -14,6 +14,12 @@ export default defineBackground(() => {
             if (windowId === undefined) throw new Error('Could not find this window.');
             return chrome.sidePanel.open({ windowId });
           }
+          case 'bulk':
+            return repository.bulk(message.ids, message.action);
+          case 'restore':
+            return repository.restore(message.bookmarks);
+          case 'clearBookmarks':
+            return repository.clearBookmarks();
           case 'list':
             return repository.list();
           case 'get':

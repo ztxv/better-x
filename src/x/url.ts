@@ -30,3 +30,14 @@ export function parsePostUrl(input: string): PostIdentity | null {
   if (!handle || !/^[A-Za-z0-9_]{1,15}$/.test(handle)) return null;
   return { tweetId: id, url: `https://x.com/${handle}/status/${id}`, handle };
 }
+
+const TWITTER_EPOCH = 1288834974657n;
+
+/** Post IDs are Snowflakes, so the creation time is encoded in the ID itself. */
+export function postDateFromId(tweetId: string): string | null {
+  if (!/^\d{15,20}$/.test(tweetId)) return null;
+  const ms = Number((BigInt(tweetId) >> 22n) + TWITTER_EPOCH);
+  return ms > Number(TWITTER_EPOCH) && ms < Date.now() + 86_400_000
+    ? new Date(ms).toISOString()
+    : null;
+}

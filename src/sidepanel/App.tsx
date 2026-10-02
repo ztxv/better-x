@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Bookmark as BookmarkIcon,
+  Layers2 as BookmarkIcon,
   Check,
   ChevronDown,
   Download,
@@ -10,6 +10,7 @@ import {
   Pencil,
   Search,
   Settings2,
+  Trash,
   Trash2,
   Upload,
   X,
@@ -17,8 +18,19 @@ import {
 import { request } from '../lib/api';
 import { validateExport } from '../lib/validation';
 import { BookmarkItem } from './BookmarkItem';
+import { SelectionBar } from './SelectionBar';
+import { ClearAllDialog } from './ClearAllDialog';
 import { BookmarkEditor } from './BookmarkEditor';
-import type { Bookmark, Collection, ExportData, Library } from '../types/model';
+import {
+  EXPORT_VERSION,
+  type Bookmark,
+  type BulkAction,
+  type BulkResult,
+  type ClearResult,
+  type Collection,
+  type ExportData,
+  type Library,
+} from '../types/model';
 
 const emptyLibrary: Library = { bookmarks: [], collections: [] };
 type View = { kind: 'all' } | { kind: 'collection'; id: string } | { kind: 'tag'; name: string };
@@ -56,7 +68,20 @@ export function App() {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
   const [author, setAuthor] = useState('');
   const [editing, setEditing] = useState<Bookmark | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [undo, setUndo] = useState<Bookmark[]>([]);
+  useEffect(() => {
+    setSelected(new Set());
+  }, [query, view, author]);
+  useEffect(() => {
+    if (!undo.length) return;
+    const timer = setTimeout(() => setUndo([]), 10000);
+    return () => clearTimeout(timer);
+  }, [undo]);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const [newCollection, setNewCollection] = useState(false);
   const [collectionMenu, setCollectionMenu] = useState<string | null>(null);
   const [collectionName, setCollectionName] = useState('');
@@ -101,6 +126,13 @@ export function App() {
           bookmark.authorHandle,
           bookmark.authorDisplayName,
           bookmark.note,
+          bookmark.quote?.text,
+          bookmark.quote?.authorHandle,
+          bookmark.quote?.authorDisplayName,
+          bookmark.replyTo?.authorHandle,
+          bookmark.card?.title,
+          bookmark.card?.domain,
+          ...bookmark.media.map((item) => item.alt),
           collectionById.get(bookmark.collectionId || '')?.name,
           ...bookmark.tags,
         ].some((value) => value?.toLowerCase().includes(needle));
@@ -143,20 +175,65 @@ export function App() {
       showNotice(cause instanceof Error ? cause.message : 'Could not delete collection.');
     }
   };
-  const removeBookmark = async (bookmark: Bookmark) => {
-    if (!confirm('Delete this bookmark?')) return;
+  const performBulk = async (ids: string[], action: BulkAction) => {
+    if (!ids.length || bulkBusy) return;
+    setBulkBusy(true);
     try {
-      await request({ type: 'delete', id: bookmark.id });
+      const result = await request<BulkResult>({ type: 'bulk', ids, action });
+      setSelected(new Set());
+      if (action.type === 'delete') {
+        setUndo(result.deleted);
+        setNotice('');
+      } else
+        showNotice(
+          `Updated ${result.affected} ${result.affected === 1 ? 'bookmark' : 'bookmarks'}.`,
+        );
       await refresh();
-      showNotice('Bookmark removed.');
     } catch (cause) {
-      showNotice(cause instanceof Error ? cause.message : 'Could not delete bookmark.');
+      showNotice(cause instanceof Error ? cause.message : 'Could not update bookmarks.');
+    } finally {
+      setBulkBusy(false);
     }
   };
+  const removeBookmark = (bookmark: Bookmark) => performBulk([bookmark.id], { type: 'delete' });
+  const undoDelete = async () => {
+    setBulkBusy(true);
+    try {
+      await request({ type: 'restore', bookmarks: undo });
+      setUndo([]);
+      await refresh();
+      showNotice('Bookmarks restored.');
+    } catch (cause) {
+      showNotice(cause instanceof Error ? cause.message : 'Could not restore bookmarks.');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+  const clearAll = async () => {
+    const result = await request<ClearResult>({ type: 'clearBookmarks' });
+    setClearOpen(false);
+    setSelecting(false);
+    setSelected(new Set());
+    setView({ kind: 'all' });
+    setNotice('');
+    setUndo(result.deleted);
+    if (!result.deleted.length) showNotice('There were no bookmarks to delete.');
+    await refresh();
+  };
+  const selectedIds = filtered
+    .filter((bookmark) => selected.has(bookmark.id))
+    .map((bookmark) => bookmark.id);
+  const toggleSelected = (id: string) =>
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   const exportJson = () => {
     const data: ExportData = {
       format: 'saved-for-x',
-      version: 1,
+      version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       ...library,
     };
@@ -198,7 +275,7 @@ export function App() {
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark">
-            <BookmarkIcon size={18} strokeWidth={2.3} />
+            <BookmarkIcon className="brand-glyph" size={22} strokeWidth={1.8} />
           </span>
           <div>
             <strong>Saved</strong>
@@ -244,6 +321,18 @@ export function App() {
             hidden
             onChange={(event) => void importJson(event.target.files?.[0])}
           />
+          <div className="menu-divider" />
+          <button
+            className="danger"
+            disabled={!library.bookmarks.length}
+            onClick={() => {
+              setSettingsOpen(false);
+              setClearOpen(true);
+            }}
+          >
+            <Trash size={15} />
+            Clear all bookmarks…
+          </button>
         </div>
       )}
       <div className="search-wrap">
@@ -408,6 +497,37 @@ export function App() {
             </label>
           </div>
         </div>
+        {selecting ? (
+          <SelectionBar
+            count={selectedIds.length}
+            total={filtered.length}
+            collections={library.collections}
+            tags={tags}
+            busy={bulkBusy}
+            onToggleAll={() =>
+              setSelected(
+                selectedIds.length === filtered.length
+                  ? new Set()
+                  : new Set(filtered.map((bookmark) => bookmark.id)),
+              )
+            }
+            onExit={() => {
+              setSelecting(false);
+              setSelected(new Set());
+            }}
+            onAction={(action) => void performBulk(selectedIds, action)}
+          />
+        ) : (
+          <div className="selection-entry">
+            <button
+              className="text-button"
+              disabled={!filtered.length}
+              onClick={() => setSelecting(true)}
+            >
+              Select bookmarks
+            </button>
+          </div>
+        )}
         {error ? (
           <div className="empty-state">
             <strong>Could not load your library</strong>
@@ -444,6 +564,10 @@ export function App() {
               <BookmarkItem
                 key={bookmark.id}
                 bookmark={bookmark}
+                selecting={selecting}
+                selected={selected.has(bookmark.id)}
+                busy={bulkBusy}
+                onToggle={() => toggleSelected(bookmark.id)}
                 collection={collectionById.get(bookmark.collectionId || '')}
                 onEdit={() => setEditing(bookmark)}
                 onDelete={() => void removeBookmark(bookmark)}
@@ -452,10 +576,32 @@ export function App() {
           </div>
         )}
       </main>
+      {undo.length > 0 && !notice && (
+        <div className="toast undo-toast" role="status">
+          <span>
+            {undo.length} {undo.length === 1 ? 'bookmark' : 'bookmarks'} deleted
+          </span>
+          <button disabled={bulkBusy} onClick={() => void undoDelete()}>
+            Undo
+          </button>
+          <button aria-label="Dismiss undo" onClick={() => setUndo([])}>
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {notice && (
         <div className="toast" role="status">
           {notice}
         </div>
+      )}
+      {clearOpen && (
+        <ClearAllDialog
+          bookmarkCount={library.bookmarks.length}
+          collectionCount={library.collections.length}
+          onExport={exportJson}
+          onCancel={() => setClearOpen(false)}
+          onConfirm={clearAll}
+        />
       )}
       {editing && (
         <BookmarkEditor

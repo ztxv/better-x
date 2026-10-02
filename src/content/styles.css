@@ -1,42 +1,96 @@
+/*
+ * Injected save control. Everything is scoped to `sfx-` classes; X's own controls are untouched.
+ * #1d9bf0 is X's current brand token (--x-fg-brand / --color-blue-500, hsl(204 88% 53%)).
+ * The content script sets --sfx-icon and --sfx-box from X's Share icon in the same row, and
+ * --sfx-dy from a measured centre offset, so the control lines up in every X layout.
+ */
 .sfx-control {
-  display: flex;
+  --sfx-blue: #1d9bf0;
+  --sfx-icon: 18.75px;
+  --sfx-box: 34px;
+  --sfx-dy: 0px;
+  --sfx-circle: calc(var(--sfx-icon) + 16px);
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  align-self: center;
+  flex: 0 0 var(--sfx-circle);
+  width: var(--sfx-circle);
+  height: var(--sfx-box);
   padding: 0;
-  margin: 0 2px;
+  margin: 0 0 0 4px;
   border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--sfx-blue);
+  cursor: pointer;
+  translate: 0 var(--sfx-dy);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 150ms ease,
+    transform 150ms ease,
+    opacity 150ms ease;
+}
+/* The circular hover/hit area, like X's own icon buttons; it may extend past a short row. */
+.sfx-control::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--sfx-circle);
+  height: var(--sfx-circle);
+  margin: calc(var(--sfx-circle) / -2) 0 0 calc(var(--sfx-circle) / -2);
   border-radius: 50%;
   background: transparent;
-  color: rgb(113, 118, 123);
-  cursor: pointer;
-  flex: 0 0 32px;
   transition:
-    background 150ms,
-    color 150ms;
-}
-.sfx-control:hover {
-  background: rgba(29, 155, 240, 0.12);
-  color: rgb(29, 155, 240);
-}
-.sfx-control[data-saved='true'] {
-  color: rgb(29, 155, 240);
-}
-.sfx-control:focus-visible,
-.sfx-menu button:focus-visible {
-  outline: 2px solid rgb(29, 155, 240);
-  outline-offset: 2px;
+    background-color 150ms ease,
+    box-shadow 150ms ease;
 }
 .sfx-control svg {
-  width: 18px;
-  height: 18px;
+  position: relative;
+  flex: none;
+  width: var(--sfx-icon);
+  height: var(--sfx-icon);
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
+  pointer-events: none;
 }
+.sfx-control svg path:last-child {
+  fill: currentColor;
+  fill-opacity: 0;
+  transition: fill-opacity 150ms ease;
+}
+.sfx-control[data-saved='true'] svg path:last-child {
+  fill-opacity: 1;
+}
+.sfx-control:hover:not(:disabled)::before,
+.sfx-control[data-saved='true']::before {
+  background: rgba(29, 155, 240, 0.1);
+}
+.sfx-control[data-saved='true']:hover:not(:disabled)::before {
+  background: rgba(29, 155, 240, 0.18);
+}
+.sfx-control:focus-visible::before {
+  box-shadow: 0 0 0 2px var(--sfx-blue);
+}
+.sfx-control:active:not(:disabled) {
+  transform: scale(0.88);
+}
+.sfx-control:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.sfx-control[data-feedback='saved'] svg {
+  animation: sfx-save-confirm 240ms ease-out;
+}
+.sfx-control[data-feedback='error'] {
+  color: #f4212e;
+}
+
 .sfx-menu {
   position: fixed;
   z-index: 2147483647;
@@ -44,14 +98,22 @@
   padding: 5px;
   border: 1px solid rgba(128, 128, 128, 0.32);
   border-radius: 10px;
-  background: var(--sfx-bg, #fff);
-  color: var(--sfx-fg, #0f1419);
+  background: #fff;
+  color: #0f1419;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   font:
     13px -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
+  animation: sfx-menu-enter 140ms ease-out;
+}
+.sfx-menu[data-theme='dark'] {
+  background: #16181c;
+  color: #e7e9ea;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 8px 28px rgba(0, 0, 0, 0.5);
 }
 .sfx-menu button {
   display: block;
@@ -64,13 +126,47 @@
   text-align: left;
   cursor: pointer;
   font: inherit;
+  transition: background-color 140ms ease;
 }
 .sfx-menu button:hover {
   background: rgba(128, 128, 128, 0.12);
 }
-@media (prefers-color-scheme: dark) {
-  .sfx-menu {
-    --sfx-bg: #16181c;
-    --sfx-fg: #e7e9ea;
+.sfx-menu button:focus-visible {
+  outline: 2px solid #1d9bf0;
+  outline-offset: -2px;
+}
+@keyframes sfx-save-confirm {
+  0% {
+    transform: scale(0.78);
+  }
+  55% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes sfx-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sfx-control,
+  .sfx-control::before,
+  .sfx-control svg,
+  .sfx-control svg path,
+  .sfx-menu,
+  .sfx-menu button {
+    animation: none !important;
+    transition: none !important;
+  }
+  .sfx-control:active:not(:disabled) {
+    transform: none;
   }
 }

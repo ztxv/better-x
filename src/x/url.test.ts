@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePostUrl } from './url';
+import { parsePostUrl, postDateFromId } from './url';
 
 describe('parsePostUrl', () => {
   it('normalizes X and Twitter links and removes tracking', () => {
@@ -20,5 +20,13 @@ describe('parsePostUrl', () => {
     ]) {
       expect(parsePostUrl(url)).toBeNull();
     }
+  });
+});
+
+describe('postDateFromId', () => {
+  it('reads the creation time encoded in post IDs', () => {
+    expect(postDateFromId('1770825760162353449')?.slice(0, 10)).toBe('2024-03-21');
+    expect(postDateFromId('20')).toBeNull();
+    expect(postDateFromId('not-an-id')).toBeNull();
   });
 });

@@ -1,12 +1,16 @@
 import {
   SCHEMA_VERSION,
+  type BulkAction,
+  type BulkResult,
   type Bookmark,
   type BookmarkDraft,
   type BookmarkPatch,
+  type ClearResult,
   type Collection,
   type ExportData,
   type Library,
 } from '../types/model';
+import { cleanContext, withContext } from '../lib/context';
 import { normalizeTag, validateExport } from '../lib/validation';
 import { parsePostUrl } from '../x/url';
 
@@ -52,22 +56,102 @@ async function changed(): Promise<void> {
 }
 
 export class BookmarkRepository {
+  async bulk(ids: string[], action: BulkAction): Promise<BulkResult> {
+    const wanted = new Set(ids);
+    const tag = action.type === 'addTag' ? normalizeTag(action.tag) : '';
+    if (action.type === 'addTag' && !tag) throw new Error('Enter a tag.');
+    const transaction = (await database()).transaction(['bookmarks', 'collections'], 'readwrite');
+    const completion = done(transaction);
+    const output: BulkResult = { affected: 0, deleted: [] };
+    let failure = '';
+    const run = () => {
+      const cursorRequest = transaction.objectStore('bookmarks').openCursor();
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return;
+        const bookmark = cursor.value as Bookmark;
+        if (wanted.has(bookmark.id)) {
+          if (action.type === 'delete') {
+            output.deleted.push(bookmark);
+            cursor.delete();
+          } else if (action.type === 'move') {
+            cursor.update({ ...bookmark, collectionId: action.collectionId });
+          } else {
+            if (!bookmark.tags.includes(tag) && bookmark.tags.length >= 50) {
+              failure = 'A selected bookmark already has 50 tags. No changes were made.';
+              transaction.abort();
+              return;
+            }
+            cursor.update({ ...bookmark, tags: [...new Set([...bookmark.tags, tag])] });
+          }
+          output.affected++;
+        }
+        cursor.continue();
+      };
+    };
+    if (action.type === 'move' && action.collectionId) {
+      const collection = transaction.objectStore('collections').get(action.collectionId);
+      collection.onsuccess = () => {
+        if (!collection.result) {
+          failure = 'Collection no longer exists.';
+          transaction.abort();
+        } else run();
+      };
+    } else run();
+    try {
+      await completion;
+    } catch (error) {
+      throw failure ? new Error(failure) : error;
+    }
+    if (output.affected) await changed();
+    return output;
+  }
+
+  async restore(bookmarks: Bookmark[]): Promise<void> {
+    const transaction = (await database()).transaction(['bookmarks', 'collections'], 'readwrite');
+    const completion = done(transaction);
+    const store = transaction.objectStore('bookmarks');
+    for (const input of bookmarks) {
+      const bookmark: Bookmark = {
+        ...input,
+        ...cleanContext(input as unknown as Record<string, unknown>),
+      };
+      const existing = store.get(bookmark.id);
+      existing.onsuccess = () => {
+        if (existing.result) return;
+        if (!bookmark.collectionId) {
+          store.put(bookmark);
+          return;
+        }
+        const collection = transaction.objectStore('collections').get(bookmark.collectionId);
+        collection.onsuccess = () =>
+          store.put({
+            ...bookmark,
+            collectionId: collection.result ? bookmark.collectionId : null,
+          });
+      };
+    }
+    await completion;
+    await changed();
+  }
+
   async list(): Promise<Library> {
     const db = await database();
     const transaction = db.transaction(['bookmarks', 'collections'], 'readonly');
     const bookmarks = await result<Bookmark[]>(transaction.objectStore('bookmarks').getAll());
     const collections = await result<Collection[]>(transaction.objectStore('collections').getAll());
     return {
-      bookmarks: bookmarks.sort((a, b) => b.savedAt.localeCompare(a.savedAt)),
+      bookmarks: bookmarks.map(withContext).sort((a, b) => b.savedAt.localeCompare(a.savedAt)),
       collections: collections.sort((a, b) => a.name.localeCompare(b.name)),
     };
   }
 
   async get(id: string): Promise<Bookmark | null> {
     const transaction = (await database()).transaction('bookmarks', 'readonly');
-    return (
-      (await result<Bookmark | undefined>(transaction.objectStore('bookmarks').get(id))) ?? null
+    const bookmark = await result<Bookmark | undefined>(
+      transaction.objectStore('bookmarks').get(id),
     );
+    return bookmark ? withContext(bookmark) : null;
   }
 
   async save(draft: BookmarkDraft): Promise<Bookmark> {
@@ -77,6 +161,7 @@ export class BookmarkRepository {
     if (existing) return existing;
     const bookmark: Bookmark = {
       ...draft,
+      ...cleanContext(draft as unknown as Record<string, unknown>),
       id: identity.tweetId,
       tweetId: identity.tweetId,
       url: identity.url,
@@ -119,6 +204,25 @@ export class BookmarkRepository {
     await done(transaction);
     await changed();
     return bookmark;
+  }
+
+  /**
+   * Deletes every bookmark in one transaction and publishes one revision. Collections and
+   * settings are kept. Returns the removed rows so the panel can offer a short Undo.
+   */
+  async clearBookmarks(): Promise<ClearResult> {
+    const transaction = (await database()).transaction('bookmarks', 'readwrite');
+    const completion = done(transaction);
+    const store = transaction.objectStore('bookmarks');
+    const all = store.getAll();
+    let deleted: Bookmark[] = [];
+    all.onsuccess = () => {
+      deleted = all.result as Bookmark[];
+      store.clear();
+    };
+    await completion;
+    if (deleted.length) await changed();
+    return { deleted };
   }
 
   async delete(id: string): Promise<void> {

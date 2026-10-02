@@ -1,5 +1,12 @@
-import { SCHEMA_VERSION, type Bookmark, type Collection, type ExportData } from '../types/model';
+import {
+  EXPORT_VERSION,
+  SCHEMA_VERSION,
+  type Bookmark,
+  type Collection,
+  type ExportData,
+} from '../types/model';
 import { parsePostUrl } from '../x/url';
+import { cleanContext } from './context';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -17,7 +24,8 @@ export function validateExport(input: unknown): ExportData {
   if (
     !isRecord(input) ||
     input.format !== 'saved-for-x' ||
-    input.version !== 1 ||
+    // Version 1 files predate post context; their bookmarks import with empty context.
+    (input.version !== 1 && input.version !== EXPORT_VERSION) ||
     !Array.isArray(input.bookmarks) ||
     !Array.isArray(input.collections) ||
     input.bookmarks.length > 100000 ||
@@ -74,6 +82,7 @@ export function validateExport(input: unknown): ExportData {
       collectionId: value.collectionId as string | null,
       tags: [...new Set((value.tags as string[]).map(normalizeTag).filter(Boolean))],
       note: value.note as string,
+      ...cleanContext(value),
       schemaVersion: SCHEMA_VERSION,
     };
   });
@@ -82,7 +91,7 @@ export function validateExport(input: unknown): ExportData {
     if (bookmark.collectionId && !known.has(bookmark.collectionId)) bookmark.collectionId = null;
   return {
     format: 'saved-for-x',
-    version: 1,
+    version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     bookmarks,
     collections,
