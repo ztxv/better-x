@@ -7,7 +7,7 @@ export default defineConfig({
   manifest: {
     name: 'Saved for X',
     description: 'A private, organized library for posts you save on X.',
-    version: '0.1.0',
+    version: '0.2.0',
     minimum_chrome_version: '116',
     // `downloads` saves media through the browser's own downloader. The host permissions are
     // only for the background worker's media checks: X's photo/video CDNs and the public

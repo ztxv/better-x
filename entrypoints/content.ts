@@ -58,7 +58,9 @@ interface Overlay {
   cleanup: Array<() => void>;
 }
 
+/** With a Download to reach for, the chip stays; a plain "Saved" confirmation leaves sooner. */
 const IDLE_MS = 3000;
+const PLAIN_IDLE_MS = 1600;
 const ERROR_IDLE_MS = 8000;
 
 /** Media the page shows for a post: its own first, then quoted media, labelled as such. */
@@ -497,11 +499,12 @@ export default defineContentScript({
       const label = el('span', 'sfx-chip-label', 'Saved', { role: 'status' });
       label.insertAdjacentHTML('afterbegin', ICONS.check);
       node.append(label);
+      if (!offer) node.dataset.plain = '';
       const status = el('div', 'sfx-status', '', { role: 'status', 'aria-live': 'polite' });
       status.hidden = true;
       if (offer) {
         const own = choices.filter((choice) => !choice.quoted);
-        const dot = el('span', 'sfx-dot', '·', { 'aria-hidden': 'true' });
+        const dot = el('span', 'sfx-dot', '', { 'aria-hidden': 'true' });
         const action = button('sfx-chip-action', 'Download', ICONS.download);
         action.dataset.download = '';
         action.setAttribute(
@@ -527,7 +530,10 @@ export default defineContentScript({
       node.append(status);
       const current = openOverlay('chip', node, control, draft.tweetId, 'above');
       // Keyboard users get longer to reach the offer with Tab; focus inside pauses it entirely.
-      const timer = idleTimer(current, viaKeyboard && offer ? ERROR_IDLE_MS : IDLE_MS);
+      const timer = idleTimer(
+        current,
+        !offer ? PLAIN_IDLE_MS : viaKeyboard ? ERROR_IDLE_MS : IDLE_MS,
+      );
     }
 
     function showSaveError(control: HTMLButtonElement, draft: BookmarkDraft, article: HTMLElement) {
@@ -541,7 +547,7 @@ export default defineContentScript({
         closeOverlay();
         void savePost(control, article, draft);
       });
-      node.append(label, el('span', 'sfx-dot', '·', { 'aria-hidden': 'true' }), retry);
+      node.append(label, el('span', 'sfx-dot', '', { 'aria-hidden': 'true' }), retry);
       idleTimer(openOverlay('chip', node, control, draft.tweetId, 'above'), ERROR_IDLE_MS);
     }
 

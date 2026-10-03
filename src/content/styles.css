@@ -190,6 +190,11 @@
   border-radius: 999px;
   white-space: nowrap;
 }
+/* "Saved" alone: equal padding so the check and word sit centred in the pill. */
+.sfx-chip[data-plain] {
+  justify-content: center;
+  padding: 3px 13px;
+}
 .sfx-chip-label {
   display: inline-flex;
   align-items: center;
@@ -202,9 +207,14 @@
 .sfx-chip[data-tone='error'] .sfx-chip-label svg {
   color: var(--sfx-danger);
 }
+/* A drawn dot, centred on the chip's midline (a "·" glyph sits on the text baseline). */
 .sfx-dot {
-  padding: 0 2px;
-  color: var(--sfx-muted);
+  flex: none;
+  width: 3px;
+  height: 3px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background: var(--sfx-muted);
 }
 .sfx-chip-action {
   display: inline-flex;

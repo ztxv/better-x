@@ -158,15 +158,15 @@ check(
   (await page.$eval(sel('1100000000000000001'), (n) => n.dataset.saved)) === 'true',
 );
 await page.screenshot({ captureBeyondViewport: false, path: `${OUT}/01-text-saved.png` });
-await sleep(3400);
-check('chip dismisses itself after ~3s idle', !(await page.$('#sfx-chip')));
+await sleep(2200);
+check('plain Saved chip dismisses after ~1.6s', !(await page.$('#sfx-chip')));
 
 // --- photo: save, chip with Download, single click downloads original
 await clickPost(page, '440322224407314432');
 await page.waitForSelector('#sfx-chip .sfx-chip-action', { timeout: 5000 });
 check(
-  'media save shows "Saved · Download"',
-  /Saved · Download/.test(await text(page, '#sfx-chip')),
+  'media save shows "Saved" and "Download"',
+  /Saved\s+Download/.test(await text(page, '#sfx-chip')),
   await text(page, '#sfx-chip'),
 );
 await page.hover('#sfx-chip');
