@@ -20,7 +20,7 @@ export const X_SELECTORS = {
   time: 'time',
   text: '[data-testid="tweetText"]',
   author: '[data-testid="User-Name"]',
-  avatar: '[data-testid="Tweet-User-Avatar"] img',
+  avatar: '[data-testid="Tweet-User-Avatar"] img, [data-testid^="UserAvatar-Container-"] img',
   actionRow: '[role="group"]',
   reply: '[data-testid="reply"]',
   card: '[data-testid="card.wrapper"]',
@@ -34,7 +34,10 @@ const VIDEO_THUMB = /\/(amplify_video_thumb|ext_tw_video_thumb|tweet_video_thumb
 function isQuoteBlock(element: Element): boolean {
   return (
     element.matches('[role="link"]') &&
-    !!element.querySelector(`article, ${X_SELECTORS.author}, ${X_SELECTORS.profileImage}`)
+    !(element.matches('a[href]') && profileHandle(element as HTMLAnchorElement)) &&
+    (!!element.querySelector(`article, ${X_SELECTORS.author}`) ||
+      (!!element.querySelector(X_SELECTORS.profileImage) &&
+        !!element.querySelector(X_SELECTORS.postLink)))
   );
 }
 
@@ -169,7 +172,11 @@ function authorIn(root: Element, knownHandle: string | null): Author {
   const avatar =
     own<HTMLImageElement>(root, X_SELECTORS.avatar)[0] ??
     own<HTMLImageElement>(root, X_SELECTORS.profileImage)[0];
-  return { handle, displayName, avatarUrl: safeTwimg(avatar?.src) };
+  return {
+    handle,
+    displayName,
+    avatarUrl: safeTwimg(avatar?.currentSrc || avatar?.src),
+  };
 }
 
 function textIn(root: Element): string | null {
@@ -203,7 +210,10 @@ function mediaIn(root: Element, exclude: Element | null): PostMedia[] {
     const source = video.currentSrc || video.src || video.querySelector('source')?.src || '';
     const thumb = video.poster || poster?.src || null;
     const kind: MediaKind = /\/tweet_video(_thumb)?\//.test(`${thumb} ${source}`) ? 'gif' : 'video';
-    found.push({ node: video, item: { kind, thumbnailUrl: thumbnail(thumb), alt: null } });
+    found.push({
+      node: video,
+      item: { kind, thumbnailUrl: thumbnail(thumb), alt: null },
+    });
     used.add(video);
   }
   for (const image of own<HTMLImageElement>(root, 'img[src*="twimg.com"]')) {

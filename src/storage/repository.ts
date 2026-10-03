@@ -10,7 +10,7 @@ import {
   type ExportData,
   type Library,
 } from '../types/model';
-import { cleanContext, withContext } from '../lib/context';
+import { cleanContext, cleanText, safeImageUrl, withContext } from '../lib/context';
 import { normalizeTag, validateExport } from '../lib/validation';
 import { parsePostUrl } from '../x/url';
 
@@ -52,7 +52,9 @@ function done(transaction: IDBTransaction): Promise<void> {
 }
 
 async function changed(): Promise<void> {
-  await chrome.storage.local.set({ libraryRevision: Date.now() + Math.random() });
+  await chrome.storage.local.set({
+    libraryRevision: Date.now() + Math.random(),
+  });
 }
 
 export class BookmarkRepository {
@@ -82,7 +84,10 @@ export class BookmarkRepository {
               transaction.abort();
               return;
             }
-            cursor.update({ ...bookmark, tags: [...new Set([...bookmark.tags, tag])] });
+            cursor.update({
+              ...bookmark,
+              tags: [...new Set([...bookmark.tags, tag])],
+            });
           }
           output.affected++;
         }
@@ -158,7 +163,37 @@ export class BookmarkRepository {
     const identity = parsePostUrl(draft.url);
     if (!identity || identity.tweetId !== draft.tweetId) throw new Error('Invalid post URL.');
     const existing = await this.get(identity.tweetId);
-    if (existing) return existing;
+    if (existing) {
+      const avatar = safeImageUrl(draft.authorAvatarUrl);
+      const name = cleanText(draft.authorDisplayName, 160);
+      if ((!existing.authorAvatarUrl && avatar) || (!existing.authorDisplayName && name)) {
+        const transaction = (await database()).transaction('bookmarks', 'readwrite');
+        const completion = done(transaction);
+        const store = transaction.objectStore('bookmarks');
+        const request = store.get(identity.tweetId);
+        let updated = existing;
+        let modified = false;
+        request.onsuccess = () => {
+          const current = request.result as Bookmark | undefined;
+          // Read and patch in one transaction so concurrent edits are never overwritten.
+          if (!current) return;
+          updated = current;
+          if ((!current.authorAvatarUrl && avatar) || (!current.authorDisplayName && name)) {
+            updated = {
+              ...current,
+              authorAvatarUrl: current.authorAvatarUrl || avatar,
+              authorDisplayName: current.authorDisplayName || name,
+            };
+            store.put(updated);
+            modified = true;
+          }
+        };
+        await completion;
+        if (modified) await changed();
+        return updated;
+      }
+      return existing;
+    }
     const bookmark: Bookmark = {
       ...draft,
       ...cleanContext(draft as unknown as Record<string, unknown>),

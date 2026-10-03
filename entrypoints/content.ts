@@ -166,6 +166,8 @@ export default defineContentScript({
         const draft = extractPost(article);
         if (!draft) return;
         if (saved.has(draft.tweetId)) {
+          // Re-capture missing author metadata without changing bookmark organization.
+          void request<Bookmark>({ type: 'save', draft }).catch(() => {});
           showMenu(button, draft.tweetId);
           return;
         }

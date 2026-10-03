@@ -49,6 +49,7 @@ export function BookmarkItem({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
   const open = () => void chrome.tabs.create({ url: bookmark.url });
   const copy = async () => {
     await navigator.clipboard.writeText(bookmark.url);
@@ -83,10 +84,11 @@ export function BookmarkItem({
           .join(', ')}
       >
         <span className="item-head">
-          {bookmark.authorAvatarUrl ? (
+          {bookmark.authorAvatarUrl && failedAvatar !== bookmark.authorAvatarUrl ? (
             <img
               className="avatar"
               src={bookmark.authorAvatarUrl}
+              onError={() => setFailedAvatar(bookmark.authorAvatarUrl)}
               alt=""
               referrerPolicy="no-referrer"
             />
