@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { request } from '../lib/api';
 import { validateExport } from '../lib/validation';
+import { exportDownloads } from '../downloads/history';
 import { BookmarkItem } from './BookmarkItem';
 import { SelectionBar } from './SelectionBar';
 import { ClearAllDialog } from './ClearAllDialog';
@@ -28,6 +29,7 @@ import {
   type BulkResult,
   type ClearResult,
   type Collection,
+  type DownloadRecord,
   type ExportData,
   type Library,
 } from '../types/model';
@@ -230,12 +232,14 @@ export function App() {
       else next.add(id);
       return next;
     });
-  const exportJson = () => {
+  const exportJson = async () => {
+    const records = await request<DownloadRecord[]>({ type: 'downloads' }).catch(() => []);
     const data: ExportData = {
       format: 'saved-for-x',
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       ...library,
+      downloads: exportDownloads(records),
     };
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
@@ -306,7 +310,7 @@ export function App() {
             ))}
           </div>
           <div className="menu-divider" />
-          <button onClick={exportJson}>
+          <button onClick={() => void exportJson()}>
             <Download size={15} />
             Export JSON
           </button>
@@ -598,7 +602,7 @@ export function App() {
         <ClearAllDialog
           bookmarkCount={library.bookmarks.length}
           collectionCount={library.collections.length}
-          onExport={exportJson}
+          onExport={() => void exportJson()}
           onCancel={() => setClearOpen(false)}
           onConfirm={clearAll}
         />

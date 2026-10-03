@@ -7,55 +7,14 @@ import {
   type BookmarkPatch,
   type ClearResult,
   type Collection,
+  type DownloadRecord,
   type ExportData,
   type Library,
 } from '../types/model';
 import { cleanContext, cleanText, safeImageUrl, withContext } from '../lib/context';
 import { normalizeTag, validateExport } from '../lib/validation';
 import { parsePostUrl } from '../x/url';
-
-const DB_NAME = 'saved-for-x';
-const DB_VERSION = 1;
-let opening: Promise<IDBDatabase> | null = null;
-
-function database(): Promise<IDBDatabase> {
-  if (!opening)
-    opening = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains('bookmarks'))
-          db.createObjectStore('bookmarks', { keyPath: 'id' });
-        if (!db.objectStoreNames.contains('collections'))
-          db.createObjectStore('collections', { keyPath: 'id' });
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  return opening;
-}
-
-function result<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function done(transaction: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error('Database transaction aborted.'));
-  });
-}
-
-async function changed(): Promise<void> {
-  await chrome.storage.local.set({
-    libraryRevision: Date.now() + Math.random(),
-  });
-}
+import { database, done, downloadsChanged, libraryChanged as changed, result } from './db';
 
 export class BookmarkRepository {
   async bulk(ids: string[], action: BulkAction): Promise<BulkResult> {
@@ -159,47 +118,26 @@ export class BookmarkRepository {
     return bookmark ? withContext(bookmark) : null;
   }
 
+  /**
+   * Saves a post, or returns the existing bookmark. Reading and writing happen in one
+   * transaction, so a duplicate save from another tab can never replace a bookmark (and its
+   * notes, tags, collection, or save date). An existing bookmark only gains author details
+   * that were missing when it was first saved.
+   */
   async save(draft: BookmarkDraft): Promise<Bookmark> {
     const identity = parsePostUrl(draft.url);
     if (!identity || identity.tweetId !== draft.tweetId) throw new Error('Invalid post URL.');
-    const existing = await this.get(identity.tweetId);
-    if (existing) {
-      const avatar = safeImageUrl(draft.authorAvatarUrl);
-      const name = cleanText(draft.authorDisplayName, 160);
-      if ((!existing.authorAvatarUrl && avatar) || (!existing.authorDisplayName && name)) {
-        const transaction = (await database()).transaction('bookmarks', 'readwrite');
-        const completion = done(transaction);
-        const store = transaction.objectStore('bookmarks');
-        const request = store.get(identity.tweetId);
-        let updated = existing;
-        let modified = false;
-        request.onsuccess = () => {
-          const current = request.result as Bookmark | undefined;
-          // Read and patch in one transaction so concurrent edits are never overwritten.
-          if (!current) return;
-          updated = current;
-          if ((!current.authorAvatarUrl && avatar) || (!current.authorDisplayName && name)) {
-            updated = {
-              ...current,
-              authorAvatarUrl: current.authorAvatarUrl || avatar,
-              authorDisplayName: current.authorDisplayName || name,
-            };
-            store.put(updated);
-            modified = true;
-          }
-        };
-        await completion;
-        if (modified) await changed();
-        return updated;
-      }
-      return existing;
-    }
-    const bookmark: Bookmark = {
+    const fresh: Bookmark = {
       ...draft,
       ...cleanContext(draft as unknown as Record<string, unknown>),
       id: identity.tweetId,
       tweetId: identity.tweetId,
       url: identity.url,
+      authorHandle: identity.handle,
+      authorDisplayName: cleanText(draft.authorDisplayName, 160),
+      authorAvatarUrl: safeImageUrl(draft.authorAvatarUrl),
+      text: cleanText(draft.text, 20000),
+      createdAt: typeof draft.createdAt === 'string' ? draft.createdAt.slice(0, 40) : null,
       savedAt: new Date().toISOString(),
       collectionId: null,
       tags: [],
@@ -207,10 +145,40 @@ export class BookmarkRepository {
       schemaVersion: SCHEMA_VERSION,
     };
     const transaction = (await database()).transaction('bookmarks', 'readwrite');
-    transaction.objectStore('bookmarks').put(bookmark);
-    await done(transaction);
-    await changed();
-    return bookmark;
+    const completion = done(transaction);
+    const store = transaction.objectStore('bookmarks');
+    const request = store.get(identity.tweetId);
+    let saved = fresh;
+    let modified = false;
+    request.onsuccess = () => {
+      const current = request.result as Bookmark | undefined;
+      if (!current) {
+        store.put(fresh);
+        modified = true;
+        return;
+      }
+      saved = withContext(current);
+      const avatar = fresh.authorAvatarUrl;
+      const name = fresh.authorDisplayName;
+      if ((!current.authorAvatarUrl && avatar) || (!current.authorDisplayName && name)) {
+        saved = {
+          ...saved,
+          authorAvatarUrl: current.authorAvatarUrl || avatar,
+          authorDisplayName: current.authorDisplayName || name,
+        };
+        store.put(saved);
+        modified = true;
+      }
+    };
+    await completion;
+    if (modified) await changed();
+    return saved;
+  }
+
+  /** Just the saved post IDs: what the X page needs, without transferring the whole library. */
+  async savedIds(): Promise<string[]> {
+    const transaction = (await database()).transaction('bookmarks', 'readonly');
+    return (await result(transaction.objectStore('bookmarks').getAllKeys())).map(String);
   }
 
   async update(id: string, patch: BookmarkPatch): Promise<Bookmark> {
@@ -310,7 +278,12 @@ export class BookmarkRepository {
     await changed();
   }
 
-  async import(data: ExportData): Promise<{ imported: number }> {
+  /**
+   * Adds what the backup has and this browser does not. Existing bookmarks win entirely: an
+   * imported duplicate never changes local notes, tags, or collection placement. Imported
+   * download history becomes `historical` (no local file), and is skipped if already present.
+   */
+  async import(data: ExportData): Promise<{ imported: number; downloads: number }> {
     const safe = validateExport(data);
     const current = await this.list();
     const bookmarkIds = new Set(current.bookmarks.map((bookmark) => bookmark.id));
@@ -325,12 +298,34 @@ export class BookmarkRepository {
       collectionIds.add(collection.id);
       return true;
     });
-    if (newBookmarks.length === 0 && newCollections.length === 0) return { imported: 0 };
-    const transaction = (await database()).transaction(['bookmarks', 'collections'], 'readwrite');
+    const transaction = (await database()).transaction(
+      ['bookmarks', 'collections', 'downloads'],
+      'readwrite',
+    );
+    const completion = done(transaction);
     for (const collection of newCollections) transaction.objectStore('collections').put(collection);
     for (const bookmark of newBookmarks) transaction.objectStore('bookmarks').put(bookmark);
-    await done(transaction);
-    await changed();
-    return { imported: newBookmarks.length };
+    const downloads = transaction.objectStore('downloads');
+    const now = new Date().toISOString();
+    let importedDownloads = 0;
+    for (const record of safe.downloads) {
+      const existing = downloads.getKey(record.id);
+      existing.onsuccess = () => {
+        if (existing.result !== undefined) return;
+        importedDownloads++;
+        downloads.put({
+          ...record,
+          status: 'historical',
+          chromeId: null,
+          url: null,
+          error: null,
+          updatedAt: now,
+        } satisfies DownloadRecord);
+      };
+    }
+    await completion;
+    if (newBookmarks.length || newCollections.length) await changed();
+    if (importedDownloads) await downloadsChanged();
+    return { imported: newBookmarks.length, downloads: importedDownloads };
   }
 }

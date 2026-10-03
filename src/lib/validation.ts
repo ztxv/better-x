@@ -4,9 +4,13 @@ import {
   type Bookmark,
   type Collection,
   type ExportData,
+  type ExportedDownload,
+  type MediaKind,
 } from '../types/model';
+import { displayName } from '../downloads/filename';
+import { isMediaKey } from '../media/urls';
 import { parsePostUrl } from '../x/url';
-import { cleanContext } from './context';
+import { cleanContext, cleanSnapshot, safeImageUrl } from './context';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -25,7 +29,8 @@ export function validateExport(input: unknown): ExportData {
     !isRecord(input) ||
     input.format !== 'saved-for-x' ||
     // Version 1 files predate post context; their bookmarks import with empty context.
-    (input.version !== 1 && input.version !== EXPORT_VERSION) ||
+    // Versions 1 and 2 predate download history.
+    (input.version !== 1 && input.version !== 2 && input.version !== EXPORT_VERSION) ||
     !Array.isArray(input.bookmarks) ||
     !Array.isArray(input.collections) ||
     input.bookmarks.length > 100000 ||
@@ -95,5 +100,60 @@ export function validateExport(input: unknown): ExportData {
     exportedAt: new Date().toISOString(),
     bookmarks,
     collections,
+    downloads: cleanDownloads(input.downloads),
   };
+}
+
+const KINDS = new Set<MediaKind>(['image', 'video', 'gif']);
+const POST_ID = /^\d{1,32}$/;
+
+/**
+ * Download history is metadata about files in another browser, so it is lenient: an invalid
+ * entry is skipped instead of rejecting the backup. Only completed downloads are accepted.
+ */
+export function cleanDownloads(input: unknown): ExportedDownload[] {
+  if (!Array.isArray(input)) return [];
+  const output: ExportedDownload[] = [];
+  for (const value of input.slice(0, 100000)) {
+    if (!isRecord(value)) continue;
+    const snapshot = cleanSnapshot(value.snapshot);
+    const sourceTweetId = value.sourceTweetId;
+    const key = typeof value.mediaKey === 'string' ? value.mediaKey : '';
+    const separator = key.indexOf(':');
+    if (
+      !snapshot ||
+      !validText(value.id, 100) ||
+      !validText(value.batchId, 100) ||
+      value.tweetId !== snapshot.tweetId ||
+      typeof sourceTweetId !== 'string' ||
+      !POST_ID.test(sourceTweetId) ||
+      (value.scope !== 'post' && value.scope !== 'quote') ||
+      !Number.isInteger(value.mediaIndex) ||
+      (value.mediaIndex as number) < 0 ||
+      (value.mediaIndex as number) > 3 ||
+      !KINDS.has(value.mediaKind as MediaKind) ||
+      key.slice(0, separator) !== sourceTweetId ||
+      !isMediaKey(key.slice(separator + 1)) ||
+      !validDate(value.createdAt) ||
+      !validDate(value.completedAt) ||
+      !validText(value.filename, 1000)
+    )
+      continue;
+    output.push({
+      id: value.id as string,
+      batchId: value.batchId as string,
+      tweetId: snapshot.tweetId,
+      sourceTweetId,
+      scope: value.scope,
+      mediaIndex: value.mediaIndex as number,
+      mediaKind: value.mediaKind as MediaKind,
+      mediaKey: key,
+      previewUrl: safeImageUrl(value.previewUrl),
+      snapshot,
+      createdAt: value.createdAt as string,
+      completedAt: value.completedAt as string,
+      filename: displayName(value.filename as string),
+    });
+  }
+  return output;
 }

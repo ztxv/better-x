@@ -1,12 +1,17 @@
-export const SCHEMA_VERSION = 2;
-export const EXPORT_VERSION = 2;
+export const SCHEMA_VERSION = 3;
+export const EXPORT_VERSION = 3;
 
 export type MediaKind = 'image' | 'video' | 'gif';
 
-/** One visible photo, video, or GIF. `thumbnailUrl` is null when X showed no preview. */
+/**
+ * One visible photo, video, or GIF. `thumbnailUrl` is a small preview and is null when X
+ * showed none. `sourceUrl` is the original file when X exposed one: the full-size photo, or a
+ * direct MP4 for a GIF or video (never a `blob:` player URL or a poster image).
+ */
 export interface PostMedia {
   kind: MediaKind;
   thumbnailUrl: string | null;
+  sourceUrl: string | null;
   alt: string | null;
 }
 
@@ -83,6 +88,98 @@ export interface ExportData extends Library {
   format: 'saved-for-x';
   version: typeof EXPORT_VERSION;
   exportedAt: string;
+  /** Completed download history (metadata only, never files or local file paths). */
+  downloads: ExportedDownload[];
+}
+
+/* ------------------------------------------------------------------------- downloads */
+
+/** Which media list a download target comes from: the saved post itself, or its quoted post. */
+export type MediaScope = 'post' | 'quote';
+
+/** A media item identified by its saved post, never by an arbitrary URL. */
+export interface MediaTarget {
+  tweetId: string;
+  scope: MediaScope;
+  index: number;
+  /** Stable media key (see `mediaKey`); used to find the item if the list order changed. */
+  key: string | null;
+}
+
+/**
+ * `historical` records come from an import: they were completed in another browser or
+ * profile, so there is no local file binding.
+ */
+export type DownloadStatus =
+  'resolving' | 'starting' | 'inProgress' | 'complete' | 'interrupted' | 'cancelled' | 'historical';
+
+export type DownloadError =
+  | 'unavailable'
+  | 'unsupported'
+  | 'needsPost'
+  | 'network'
+  | 'permission'
+  | 'interrupted'
+  | 'unknown';
+
+export interface DownloadRecord {
+  id: string;
+  batchId: string;
+  /** The saved post the download was started from. */
+  tweetId: string;
+  /** The post that owns the media: the saved post, or the quoted post for `scope: 'quote'`. */
+  sourceTweetId: string;
+  scope: MediaScope;
+  mediaIndex: number;
+  mediaKind: MediaKind;
+  /** `${sourceTweetId}:${mediaKey}`, stable across preview and source quality changes. */
+  mediaKey: string;
+  previewUrl: string | null;
+  /** Enough of the post to show it in Downloaded after the bookmark itself is removed. */
+  snapshot: BookmarkDraft;
+  /** Chrome's download ID, only while bound to a download in this browser profile. */
+  chromeId: number | null;
+  status: DownloadStatus;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  /** File name only (no folders or absolute path). */
+  filename: string;
+  /** The resolved file URL, kept locally to reconcile after a restart. Never exported. */
+  url: string | null;
+  error: DownloadError | null;
+}
+
+export type ExportedDownload = Pick<
+  DownloadRecord,
+  | 'id'
+  | 'batchId'
+  | 'tweetId'
+  | 'sourceTweetId'
+  | 'scope'
+  | 'mediaIndex'
+  | 'mediaKind'
+  | 'mediaKey'
+  | 'previewUrl'
+  | 'snapshot'
+  | 'createdAt'
+  | 'completedAt'
+  | 'filename'
+>;
+
+/** The outcome of asking to download one target. */
+export type StartOutcome =
+  | { target: MediaTarget; status: 'started'; recordId: string }
+  | { target: MediaTarget; status: 'pending'; recordId: string }
+  | { target: MediaTarget; status: 'failed'; error: DownloadError; recordId: string | null };
+
+export interface StartResult {
+  batchId: string;
+  outcomes: StartOutcome[];
+}
+
+export interface ClearDownloadsResult {
+  deleted: DownloadRecord[];
 }
 
 export type BulkAction =
@@ -98,6 +195,14 @@ export interface ClearResult {
 }
 
 export type Request =
+  | { type: 'savedIds' }
+  | { type: 'downloads' }
+  | { type: 'downloadsFor'; tweetId: string }
+  | { type: 'startDownload'; targets: MediaTarget[] }
+  | { type: 'cancelDownload'; recordId: string }
+  | { type: 'reconcileDownloads' }
+  | { type: 'clearDownloads' }
+  | { type: 'restoreDownloads'; records: DownloadRecord[] }
   | { type: 'bulk'; ids: string[]; action: BulkAction }
   | { type: 'restore'; bookmarks: Bookmark[] }
   | { type: 'clearBookmarks' }

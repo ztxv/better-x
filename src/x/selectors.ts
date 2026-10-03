@@ -6,6 +6,7 @@ import type {
   QuotedPost,
   ReplyContext,
 } from '../types/model';
+import { originalPhotoUrl, safeVideoUrl } from '../media/urls';
 import { parsePostUrl, postDateFromId, type PostIdentity } from './url';
 
 /**
@@ -210,9 +211,10 @@ function mediaIn(root: Element, exclude: Element | null): PostMedia[] {
     const source = video.currentSrc || video.src || video.querySelector('source')?.src || '';
     const thumb = video.poster || poster?.src || null;
     const kind: MediaKind = /\/tweet_video(_thumb)?\//.test(`${thumb} ${source}`) ? 'gif' : 'video';
+    // Only a direct MP4 is portable; X's video player normally exposes a `blob:` URL instead.
     found.push({
       node: video,
-      item: { kind, thumbnailUrl: thumbnail(thumb), alt: null },
+      item: { kind, thumbnailUrl: thumbnail(thumb), sourceUrl: safeVideoUrl(source), alt: null },
     });
     used.add(video);
   }
@@ -228,7 +230,12 @@ function mediaIn(root: Element, exclude: Element | null): PostMedia[] {
         : 'video';
     found.push({
       node: image,
-      item: { kind, thumbnailUrl: thumbnail(src), alt: genericAlt(image.alt) },
+      item: {
+        kind,
+        thumbnailUrl: thumbnail(src),
+        sourceUrl: kind === 'image' ? originalPhotoUrl(src) : null,
+        alt: genericAlt(image.alt),
+      },
     });
     used.add(image);
   }
@@ -239,7 +246,7 @@ function mediaIn(root: Element, exclude: Element | null): PostMedia[] {
     seen.add(link.href);
     if ([...used].some((node) => link.contains(node) || node.contains(link))) continue;
     const kind: MediaKind = link.href.includes('/video/') ? 'video' : 'image';
-    found.push({ node: link, item: { kind, thumbnailUrl: null, alt: null } });
+    found.push({ node: link, item: { kind, thumbnailUrl: null, sourceUrl: null, alt: null } });
   }
   return found
     .sort((a, b) =>

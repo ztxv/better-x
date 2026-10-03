@@ -1,5 +1,6 @@
 import type {
   Bookmark,
+  BookmarkDraft,
   LinkCard,
   MediaKind,
   PostContext,
@@ -7,6 +8,7 @@ import type {
   QuotedPost,
   ReplyContext,
 } from '../types/model';
+import { safeMediaSource } from '../media/urls';
 import { parsePostUrl } from '../x/url';
 
 /**
@@ -61,6 +63,8 @@ export function cleanMedia(value: unknown): PostMedia[] {
     .map((item) => ({
       kind: item.kind as MediaKind,
       thumbnailUrl: safeImageUrl(item.thumbnailUrl),
+      // Rows saved before schema 3 have no source; downloads derive it from the preview.
+      sourceUrl: safeMediaSource(item.kind as MediaKind, item.sourceUrl),
       alt: cleanText(item.alt, 1000),
     }));
 }
@@ -126,8 +130,28 @@ export function cleanContext(value: Record<string, unknown>): PostContext {
   };
 }
 
-/** Gives rows saved before schema 2 (no context fields) safe defaults on read. */
+/** Gives rows saved before schema 3 (no context fields or media sources) safe defaults on read. */
 export function withContext(bookmark: Bookmark): Bookmark {
-  if (bookmark.schemaVersion >= 2 && Array.isArray(bookmark.media)) return bookmark;
+  if (bookmark.schemaVersion >= 3 && Array.isArray(bookmark.media)) return bookmark;
   return { ...bookmark, ...cleanContext(bookmark as unknown as Record<string, unknown>) };
+}
+
+/**
+ * A sanitized copy of a post's visible content, kept with download history so Downloaded can
+ * still show a post after its bookmark is removed. Returns null without a valid post URL.
+ */
+export function cleanSnapshot(value: unknown): BookmarkDraft | null {
+  if (!isRecord(value) || typeof value.url !== 'string') return null;
+  const identity = parsePostUrl(value.url);
+  if (!identity || (value.tweetId != null && value.tweetId !== identity.tweetId)) return null;
+  return {
+    tweetId: identity.tweetId,
+    url: identity.url,
+    authorHandle: identity.handle,
+    authorDisplayName: cleanText(value.authorDisplayName, 160),
+    authorAvatarUrl: safeImageUrl(value.authorAvatarUrl),
+    text: cleanText(value.text, 20000),
+    createdAt: cleanDate(value.createdAt),
+    ...cleanContext(value),
+  };
 }
