@@ -89,6 +89,16 @@ A separate feature from saving: hide promoted posts (the "Ad"/"Promoted" tag), W
 - Match structure and accessible labels rather than generated class names, as `src/x/selectors.ts` does. Ads need the most care: a false positive hides a real post, so match the promoted label on the post itself and cover it with tests against recorded markup fixtures.
 - No new host permissions are needed beyond the existing x.com content script.
 
+## Planned: page cleanup (not started)
+
+A separate feature from saving: hide promoted posts (the "Ad"/"Promoted" tag), Who to follow, Premium upsells, and the Grok and Messages entry points. Design constraints so it can be added without touching the bookmark/download code:
+
+- Its own settings under a distinct key, with a section in the Settings sheet separate from Appearance and Downloads. Each rule is an independent toggle; defaults are the user's call.
+- Its own content script (`entrypoints/cleanup.content.ts`) and selector module (`src/x/cleanup.ts`), so a markup change there cannot break saving.
+- Hide with a stylesheet toggled by `data-sfx-hide-*` attributes on `<html>` where possible (instant on/off, easy to inspect), and a small observer only for rules that need text matching (for example an "Ad" label inside a timeline cell). Hide, never delete, X's nodes.
+- Match structure and accessible labels rather than generated class names. Ads need the most care: a false positive hides a real post, so match the promoted label on the post itself and cover it with tests against recorded markup fixtures.
+- No new permissions are needed beyond the existing x.com content script.
+
 ## Future work
 
 Add a small content-script organization popover, optional favorites, and indexed search after the core save flow is stable. Cloud sync should remain opt-in and should not replace local storage.
