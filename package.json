@@ -9,7 +9,8 @@
     "check": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "format": "prettier --write \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore"
+    "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
+    "smoke": "wxt build && node scripts/smoke/run.mjs && node scripts/smoke/restart.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -24,6 +25,7 @@
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.14.5",
     "prettier": "^3.9.9",
+    "puppeteer-core": "^25.12.0",
     "typescript": "^5.7.2",
     "vitest": "^5.0.3",
     "wxt": "^0.21.4"
