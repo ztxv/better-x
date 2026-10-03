@@ -13,11 +13,17 @@
   --text: #0f1419;
   --muted: #6b747d;
   --border: #e7e9eb;
-  /* X's brand blue (--x-fg-brand, hsl(204 88% 53%)) for marks, fills, and focus rings. Small
-     text on light surfaces uses X's own light accent-foreground (blue-700) for 4.5:1 contrast. */
+  /* The accent comes from settings (src/lib/settings.ts ACCENTS); the panel sets these five
+     tokens on :root. Defaults are X's brand blue (--x-fg-brand, hsl(204 88% 53%)) for marks
+     and fills, with X's light accent-foreground (blue-700) for 4.5:1 small text. */
   --brand: #1d9bf0;
-  --accent: #006fd6;
-  --accent-soft: #eef7fe;
+  --accent-light: #006fd6;
+  --accent-dark: #1d9bf0;
+  --accent-soft-light: #eef7fe;
+  --accent-soft-dark: #0a1f30;
+  --accent: var(--accent-light);
+  --accent-soft: var(--accent-soft-light);
+  --success: #00875a;
   --on-accent: #fff;
   --danger: #d9304f;
   --radius: 10px;
@@ -31,10 +37,11 @@
     --text: #e7e9ea;
     --muted: #8b98a5;
     --border: #2f3336;
-    --accent: #1d9bf0;
-    --accent-soft: #0a1f30;
+    --accent: var(--accent-dark);
+    --accent-soft: var(--accent-soft-dark);
     --on-accent: #0f1419;
     --danger: #f25e70;
+    --success: #2fd18f;
   }
 }
 :root[data-theme='dark'] {
@@ -45,10 +52,11 @@
   --text: #e7e9ea;
   --muted: #8b98a5;
   --border: #2f3336;
-  --accent: #1d9bf0;
-  --accent-soft: #0a1f30;
+  --accent: var(--accent-dark);
+  --accent-soft: var(--accent-soft-dark);
   --on-accent: #0f1419;
   --danger: #f25e70;
+  --success: #2fd18f;
   color-scheme: dark;
 }
 :root[data-theme='light'] {
@@ -497,7 +505,6 @@ textarea:focus-visible {
   height: 25px;
 }
 .item-menu,
-.settings-menu,
 .collection-menu {
   position: absolute;
   z-index: 10;
@@ -517,7 +524,6 @@ textarea:focus-visible {
   top: 29px;
 }
 .item-menu button,
-.settings-menu > button,
 .collection-menu button {
   width: 100%;
   display: flex;
@@ -532,37 +538,16 @@ textarea:focus-visible {
   font-size: 12px;
 }
 .item-menu button:hover,
-.settings-menu > button:hover,
 .collection-menu button:hover {
   background: var(--hover);
 }
 .item-menu button.danger,
-.settings-menu > button.danger,
 .collection-menu button.danger {
   color: var(--danger);
 }
-.settings-menu > button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.settings-menu > button:disabled:hover {
-  background: transparent;
-}
-.settings-menu {
-  top: 55px;
-  right: 10px;
-  width: 210px;
-}
-.menu-title {
-  padding: 6px 8px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
-}
 .theme-switch {
   display: flex;
-  gap: 3px;
-  padding: 2px 4px 6px;
+  gap: 4px;
 }
 .theme-switch button {
   flex: 1;
@@ -577,11 +562,6 @@ textarea:focus-visible {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent);
-}
-.menu-divider {
-  height: 1px;
-  margin: 2px 0 4px;
-  background: var(--border);
 }
 .empty-state {
   padding: 60px 28px;
@@ -822,7 +802,6 @@ button:disabled {
   background: var(--accent);
   color: var(--on-accent);
 }
-.settings-menu,
 .item-menu,
 .collection-menu {
   animation: sfx-panel-enter 140ms ease-out;
@@ -1287,4 +1266,366 @@ button:disabled {
   :root:not([data-theme='light']) .danger-button {
     color: #0f1419;
   }
+}
+
+/* ------------------------------------------------------------------ downloads */
+.nav-downloaded {
+  margin-top: 1px;
+}
+.view-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px 10px 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.view-note .text-button {
+  flex: none;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--accent);
+}
+.download-chip {
+  max-width: 150px;
+}
+.download-chip.is-done {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.download-chip.is-active {
+  color: var(--text);
+}
+.removed-chip {
+  border: 1px dashed var(--border);
+  background: transparent;
+}
+.bookmark-item.is-removed .bookmark-main {
+  opacity: 0.85;
+}
+.download-dialog code {
+  font-size: 11px;
+}
+.download-rows {
+  margin: 0 -6px;
+  padding: 0;
+  list-style: none;
+}
+.download-group {
+  padding: 10px 6px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.download-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 8px;
+}
+.download-row:hover {
+  background: var(--hover);
+}
+.download-row .media-tile {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+}
+.download-meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.download-meta strong {
+  font-size: 12px;
+}
+.download-detail {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+.download-detail.is-error {
+  color: var(--danger);
+}
+.download-detail.is-done {
+  color: var(--success);
+}
+.download-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+.download-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  color: var(--accent);
+  font-size: 11px;
+  text-decoration: none;
+}
+.footer-note {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* -------------------------------------------------------------------- settings */
+.settings-backdrop {
+  align-items: stretch;
+  justify-content: flex-end;
+  padding: 0;
+}
+.settings-sheet {
+  max-width: 420px;
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+}
+.settings-sheet .editor-head {
+  align-items: center;
+  margin-bottom: 4px;
+}
+.settings-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.settings-section h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.settings-section .field-label {
+  margin: 12px 0 7px;
+  color: var(--muted);
+}
+.setting-hint {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  cursor: pointer;
+}
+.setting-toggle > span,
+.radio-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setting-toggle strong,
+.radio-option strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.setting-toggle small,
+.radio-option small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.setting-toggle.is-disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.setting-toggle input {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: inherit;
+  transition: background-color 140ms ease;
+}
+.setting-toggle input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 140ms ease;
+}
+.setting-toggle input:checked {
+  background: var(--brand);
+}
+.setting-toggle input:checked::after {
+  transform: translateX(14px);
+}
+.radio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.radio-option:hover {
+  background: var(--hover);
+}
+.radio-option input {
+  margin: 2px 0 0;
+  accent-color: var(--brand);
+}
+.accent-swatches {
+  display: flex;
+  gap: 10px;
+}
+.swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 2px var(--surface);
+  color: #fff;
+}
+.swatch.active {
+  border-color: var(--swatch);
+}
+.settings-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.preview-icon svg path:last-child {
+  fill: currentColor;
+}
+.preview-chip,
+.preview-menu {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.preview-chip > svg {
+  color: var(--brand);
+}
+.preview-dot {
+  color: var(--muted);
+}
+.preview-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--accent);
+}
+.preview-menu {
+  display: flex;
+  flex-direction: column;
+  align-self: flex-end;
+  width: 168px;
+  padding: 4px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+.preview-menu span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+}
+.preview-menu svg {
+  color: var(--accent);
+}
+.preview-danger {
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
+  color: var(--danger);
+}
+.reset-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.data-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.data-section > button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+}
+.data-section > button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.data-section > button.danger {
+  color: var(--danger);
+}
+.data-section > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.data-section .setting-hint {
+  margin: 2px 9px 8px;
 }

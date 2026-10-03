@@ -404,4 +404,10 @@ describe('saving', () => {
       note: 'mine',
     });
   });
+
+  it('fills media that was missing when an old bookmark was saved, never replacing any', async () => {
+    await bookmarks.save(draft([]));
+    expect((await bookmarks.save(draft([photo('P1')]))).media).toHaveLength(1);
+    expect((await bookmarks.save(draft([photo('P2'), photo('P3')]))).media).toEqual([photo('P1')]);
+  });
 });

@@ -15,8 +15,9 @@ const CONTENT_REQUESTS = new Set<Request['type']>([
   'cancelDownload',
 ]);
 
+/** The side panel, or the same page opened in a tab. Content scripts report the page's URL. */
 function isExtensionPage(sender: chrome.runtime.MessageSender): boolean {
-  return !sender.tab && !!sender.url?.startsWith(chrome.runtime.getURL(''));
+  return !!sender.url?.startsWith(chrome.runtime.getURL(''));
 }
 
 function isXPage(sender: chrome.runtime.MessageSender): boolean {

@@ -1,11 +1,12 @@
 /*
  * Injected save control. Everything is scoped to `sfx-` classes; X's own controls are untouched.
- * #1d9bf0 is X's current brand token (--x-fg-brand / --color-blue-500, hsl(204 88% 53%)).
+ * The accent comes from the user's setting as --sfx-accent (set on :root by the content script);
+ * the default #1d9bf0 is X's brand blue (--x-fg-brand, hsl(204 88% 53%)). Tints are mixed from it.
  * The content script sets --sfx-icon and --sfx-box from X's Share icon in the same row, and
  * --sfx-dy from a measured centre offset, so the control lines up in every X layout.
  */
 .sfx-control {
-  --sfx-blue: #1d9bf0;
+  --sfx-color: var(--sfx-accent, #1d9bf0);
   --sfx-icon: 18.75px;
   --sfx-box: 34px;
   --sfx-dy: 0px;
@@ -23,7 +24,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: var(--sfx-blue);
+  color: var(--sfx-color);
   cursor: pointer;
   translate: 0 var(--sfx-dy);
   -webkit-tap-highlight-color: transparent;
@@ -69,13 +70,13 @@
 }
 .sfx-control:hover:not(:disabled)::before,
 .sfx-control[data-saved='true']::before {
-  background: rgba(29, 155, 240, 0.1);
+  background: color-mix(in srgb, var(--sfx-color) 10%, transparent);
 }
 .sfx-control[data-saved='true']:hover:not(:disabled)::before {
-  background: rgba(29, 155, 240, 0.18);
+  background: color-mix(in srgb, var(--sfx-color) 18%, transparent);
 }
 .sfx-control:focus-visible::before {
-  box-shadow: 0 0 0 2px var(--sfx-blue);
+  box-shadow: 0 0 0 2px var(--sfx-color);
 }
 .sfx-control:active:not(:disabled) {
   transform: scale(0.88);
@@ -91,50 +92,309 @@
   color: #f4212e;
 }
 
+/* ----------------------------------------------------------------------------- overlays */
+/* The post-save chip and the saved-post menu share one surface that follows X's own theme
+   (Default, or Dim/Lights out via data-theme="dark"), never the OS theme. */
+.sfx-chip,
 .sfx-menu {
+  --sfx-color: var(--sfx-accent, #1d9bf0);
+  --sfx-surface: #fff;
+  --sfx-text: #0f1419;
+  --sfx-muted: #536471;
+  --sfx-line: rgba(15, 20, 25, 0.12);
+  --sfx-hover: rgba(15, 20, 25, 0.06);
+  --sfx-danger: #d0142a;
+  --sfx-success: #00875a;
+  /* Accent as text: mixed toward the text colour so small labels stay readable. */
+  --sfx-accent-text: color-mix(in srgb, var(--sfx-color) 65%, #000);
   position: fixed;
   z-index: 2147483647;
-  width: 192px;
-  padding: 5px;
-  border: 1px solid rgba(128, 128, 128, 0.32);
-  border-radius: 10px;
-  background: #fff;
-  color: #0f1419;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  border: 1px solid var(--sfx-line);
+  background: var(--sfx-surface);
+  color: var(--sfx-text);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.14);
   font:
-    13px -apple-system,
+    13px/1.3 -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
+    Roboto,
     sans-serif;
-  animation: sfx-menu-enter 140ms ease-out;
+  letter-spacing: normal;
+  text-align: left;
+  animation: sfx-overlay-enter 140ms ease-out;
 }
+.sfx-chip[data-theme='dark'],
 .sfx-menu[data-theme='dark'] {
-  background: #16181c;
-  color: #e7e9ea;
+  --sfx-surface: #16181c;
+  --sfx-text: #e7e9ea;
+  --sfx-muted: #8b98a5;
+  --sfx-line: rgba(255, 255, 255, 0.14);
+  --sfx-hover: rgba(255, 255, 255, 0.07);
+  --sfx-danger: #ff5c6c;
+  --sfx-success: #2fd18f;
+  --sfx-accent-text: color-mix(in srgb, var(--sfx-color) 80%, #fff);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 8px 28px rgba(0, 0, 0, 0.5);
+    0 8px 28px rgba(0, 0, 0, 0.55);
 }
+.sfx-chip *,
+.sfx-menu * {
+  box-sizing: border-box;
+}
+.sfx-chip svg,
+.sfx-menu svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sfx-chip button,
 .sfx-menu button {
-  display: block;
-  width: 100%;
-  padding: 9px 10px;
+  margin: 0;
   border: 0;
-  border-radius: 6px;
   background: transparent;
   color: inherit;
-  text-align: left;
-  cursor: pointer;
   font: inherit;
-  transition: background-color 140ms ease;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
-.sfx-menu button:hover {
-  background: rgba(128, 128, 128, 0.12);
-}
-.sfx-menu button:focus-visible {
-  outline: 2px solid #1d9bf0;
+.sfx-chip button:focus-visible,
+.sfx-menu button:focus-visible,
+.sfx-chip a:focus-visible,
+.sfx-menu a:focus-visible,
+.sfx-status:focus-visible {
+  outline: 2px solid var(--sfx-color);
   outline-offset: -2px;
 }
+.sfx-status:focus {
+  outline: none;
+}
+
+/* Post-save chip: "✓ Saved · ↓ Download". Compact, beside the control, never in the row. */
+.sfx-chip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: min(320px, calc(100vw - 16px));
+  min-height: 32px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.sfx-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.sfx-chip-label svg {
+  color: var(--sfx-color);
+}
+.sfx-chip[data-tone='error'] .sfx-chip-label svg {
+  color: var(--sfx-danger);
+}
+.sfx-dot {
+  padding: 0 2px;
+  color: var(--sfx-muted);
+}
+.sfx-chip-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--sfx-accent-text) !important;
+  font-weight: 600 !important;
+}
+.sfx-chip-action:hover {
+  background: color-mix(in srgb, var(--sfx-color) 12%, transparent) !important;
+}
+.sfx-chip .sfx-status {
+  padding: 2px 6px 2px 0;
+  border: 0;
+  white-space: normal;
+}
+
+/* Saved-post menu: Download / Open bookmark library / Remove bookmark. */
+.sfx-menu {
+  width: 232px;
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 5px;
+  border-radius: 12px;
+}
+.sfx-menu-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sfx-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px !important;
+  border-radius: 8px;
+  text-align: left;
+}
+.sfx-item:hover:not(:disabled),
+.sfx-choice:hover:not(:disabled) {
+  background: var(--sfx-hover) !important;
+}
+.sfx-item svg {
+  color: var(--sfx-accent-text);
+}
+.sfx-item:disabled,
+.sfx-choice:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.sfx-danger {
+  color: var(--sfx-danger) !important;
+}
+.sfx-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--sfx-line);
+}
+.sfx-menu-heading {
+  padding: 6px 8px 4px;
+  color: var(--sfx-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sfx-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sfx-group {
+  padding: 8px 8px 3px;
+  color: var(--sfx-muted);
+  font-size: 11px;
+}
+.sfx-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 5px 8px !important;
+  border-radius: 8px;
+  text-align: left;
+}
+.sfx-thumb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--sfx-hover);
+  color: #fff;
+}
+.sfx-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sfx-thumb svg {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  stroke: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+.sfx-badge {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.72);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+}
+.sfx-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: calc(100% - 8px);
+  min-height: 34px;
+  margin: 6px 4px 3px !important;
+  border-radius: 999px;
+  /* The darker accent shade keeps white text at 4.5:1 or better for every accent. */
+  background: color-mix(in srgb, var(--sfx-color) 65%, #000) !important;
+  color: #fff !important;
+  font-weight: 650 !important;
+}
+.sfx-primary:hover {
+  background: color-mix(in srgb, var(--sfx-color) 55%, #000) !important;
+}
+
+/* Download progress and outcome, inside the chip or the menu. */
+.sfx-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 4px;
+  padding: 8px 10px 6px;
+  border-top: 1px solid var(--sfx-line);
+  color: var(--sfx-muted);
+  font-size: 12px;
+}
+.sfx-status[hidden] {
+  display: none;
+}
+.sfx-status-text {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.sfx-status-text svg {
+  margin-top: 0.5px;
+}
+.sfx-status[data-tone='done'] .sfx-status-text {
+  color: var(--sfx-text);
+}
+.sfx-status[data-tone='done'] svg {
+  color: var(--sfx-success);
+}
+.sfx-status[data-tone='error'] .sfx-status-text {
+  color: var(--sfx-text);
+}
+.sfx-status[data-tone='error'] svg {
+  color: var(--sfx-danger);
+}
+.sfx-link {
+  padding: 2px 0 !important;
+  color: var(--sfx-accent-text) !important;
+  font-weight: 600 !important;
+  text-decoration: none;
+  cursor: pointer;
+}
+.sfx-link:hover {
+  text-decoration: underline;
+}
+
 @keyframes sfx-save-confirm {
   0% {
     transform: scale(0.78);
@@ -146,23 +406,33 @@
     transform: scale(1);
   }
 }
-@keyframes sfx-menu-enter {
+@keyframes sfx-overlay-enter {
   from {
     opacity: 0;
-    transform: translateY(-3px);
+    transform: translateY(var(--sfx-enter, 3px)) scale(0.98);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
+.sfx-chip[data-side='above'],
+.sfx-menu[data-side='above'] {
+  --sfx-enter: 3px;
+}
+.sfx-chip[data-side='below'],
+.sfx-menu[data-side='below'] {
+  --sfx-enter: -3px;
+}
 @media (prefers-reduced-motion: reduce) {
   .sfx-control,
   .sfx-control::before,
   .sfx-control svg,
   .sfx-control svg path,
+  .sfx-chip,
+  .sfx-chip *,
   .sfx-menu,
-  .sfx-menu button {
+  .sfx-menu * {
     animation: none !important;
     transition: none !important;
   }

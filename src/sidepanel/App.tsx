@@ -10,33 +10,86 @@ import {
   Pencil,
   Search,
   Settings2,
-  Trash,
   Trash2,
-  Upload,
   X,
 } from 'lucide-react';
 import { request } from '../lib/api';
+import { resetSettings } from '../lib/settings';
 import { validateExport } from '../lib/validation';
-import { exportDownloads } from '../downloads/history';
-import { BookmarkItem } from './BookmarkItem';
+import { exportDownloads, groupByPost, type PostDownloads } from '../downloads/history';
+import { downloadLabel, errorMessage } from '../downloads/messages';
+import { BookmarkItem, type DownloadBadge } from './BookmarkItem';
 import { SelectionBar } from './SelectionBar';
 import { ClearAllDialog } from './ClearAllDialog';
+import { ClearDownloadsDialog } from './ClearDownloadsDialog';
 import { BookmarkEditor } from './BookmarkEditor';
+import { DownloadDialog, downloadRows } from './DownloadDialog';
+import { SettingsDialog } from './SettingsDialog';
+import { useDownloads, useSettings } from './hooks';
 import {
   EXPORT_VERSION,
+  SCHEMA_VERSION,
   type Bookmark,
+  type BookmarkDraft,
   type BulkAction,
   type BulkResult,
+  type ClearDownloadsResult,
   type ClearResult,
   type Collection,
   type DownloadRecord,
   type ExportData,
   type Library,
+  type StartResult,
 } from '../types/model';
 
 const emptyLibrary: Library = { bookmarks: [], collections: [] };
-type View = { kind: 'all' } | { kind: 'collection'; id: string } | { kind: 'tag'; name: string };
-type Theme = 'auto' | 'light' | 'dark';
+type View =
+  | { kind: 'all' }
+  | { kind: 'downloaded' }
+  | { kind: 'collection'; id: string }
+  | { kind: 'tag'; name: string };
+
+/** One card in the list: a bookmark, or (in Downloaded) a removed post kept by its history. */
+interface Entry {
+  bookmark: Bookmark;
+  removed: boolean;
+  downloads?: PostDownloads;
+  /** Sort key: when it was saved, or in Downloaded, when it was last downloaded. */
+  sortAt: string;
+}
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+/** A card for a post that is only in download history (its bookmark was removed). */
+function fromSnapshot(snapshot: BookmarkDraft, at: string): Bookmark {
+  return {
+    ...snapshot,
+    id: snapshot.tweetId,
+    savedAt: at,
+    collectionId: null,
+    tags: [],
+    note: '',
+    schemaVersion: SCHEMA_VERSION,
+  };
+}
+
+/** "Downloaded", "2 of 4 downloaded", or "Downloading…" for a card. */
+function badgeFor(
+  post: BookmarkDraft,
+  group: PostDownloads | undefined,
+): DownloadBadge | undefined {
+  if (!group) return undefined;
+  const done = group.done.size;
+  if (!done) return group.active.length ? { text: 'Downloading…', tone: 'active' } : undefined;
+  // Quoted media counts toward the total only once some of it has been downloaded.
+  const quoteTried = group.records.some((record) => record.scope === 'quote');
+  const total = post.media.length + (quoteTried ? (post.quote?.media.length ?? 0) : 0);
+  if (group.active.length) return { text: 'Downloading…', tone: 'active' };
+  if (total > done) return { text: `${done} of ${total} downloaded`, tone: 'partial' };
+  return group.historicalOnly
+    ? { text: 'Downloaded previously', tone: 'historical' }
+    : { text: 'Downloaded', tone: 'done' };
+}
 
 function useLibrary() {
   const [library, setLibrary] = useState<Library>(emptyLibrary);
@@ -65,37 +118,61 @@ function useLibrary() {
 
 export function App() {
   const { library, loading, error, refresh } = useLibrary();
+  const { settings, update: updateSettings } = useSettings();
+  const { records, refresh: refreshDownloads } = useDownloads();
   const [view, setView] = useState<View>({ kind: 'all' });
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
   const [author, setAuthor] = useState('');
   const [editing, setEditing] = useState<Bookmark | null>(null);
+  const [downloading, setDownloading] = useState<BookmarkDraft | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [undo, setUndo] = useState<Bookmark[]>([]);
+  const [undoDownloads, setUndoDownloads] = useState<DownloadRecord[]>([]);
   useEffect(() => {
     setSelected(new Set());
   }, [query, view, author]);
   useEffect(() => {
-    if (!undo.length) return;
-    const timer = setTimeout(() => setUndo([]), 10000);
+    if (!undo.length && !undoDownloads.length) return;
+    const timer = setTimeout(() => {
+      setUndo([]);
+      setUndoDownloads([]);
+    }, 10000);
     return () => clearTimeout(timer);
-  }, [undo]);
+  }, [undo, undoDownloads]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
+  const [clearDownloadsOpen, setClearDownloadsOpen] = useState(false);
   const [newCollection, setNewCollection] = useState(false);
   const [collectionMenu, setCollectionMenu] = useState<string | null>(null);
   const [collectionName, setCollectionName] = useState('');
   const [notice, setNotice] = useState('');
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem('theme') as Theme) || 'auto',
-  );
   const importRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+
+  const groups = useMemo(() => groupByPost(records), [records]);
+  const bookmarkById = useMemo(
+    () => new Map(library.bookmarks.map((bookmark) => [bookmark.id, bookmark])),
+    [library],
+  );
+  /** Posts with at least one completed download, newest completion first. */
+  const downloaded = useMemo(
+    () =>
+      [...groups.values()]
+        .filter((group) => group.done.size > 0)
+        .map((group): Entry => {
+          const bookmark = bookmarkById.get(group.tweetId);
+          return {
+            bookmark: bookmark ?? fromSnapshot(group.snapshot, group.lastCompletedAt!),
+            removed: !bookmark,
+            downloads: group,
+            sortAt: group.lastCompletedAt!,
+          };
+        }),
+    [groups, bookmarkById],
+  );
   const tags = useMemo(
     () => [...new Set(library.bookmarks.flatMap((bookmark) => bookmark.tags))].sort(),
     [library],
@@ -117,8 +194,17 @@ export function App() {
   );
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return library.bookmarks
-      .filter((bookmark) => {
+    const source: Entry[] =
+      view.kind === 'downloaded'
+        ? downloaded
+        : library.bookmarks.map((bookmark) => ({
+            bookmark,
+            removed: false,
+            downloads: groups.get(bookmark.id),
+            sortAt: bookmark.savedAt,
+          }));
+    return source
+      .filter(({ bookmark }) => {
         if (view.kind === 'collection' && bookmark.collectionId !== view.id) return false;
         if (view.kind === 'tag' && !bookmark.tags.includes(view.name)) return false;
         if (author && bookmark.authorHandle !== author) return false;
@@ -140,9 +226,9 @@ export function App() {
         ].some((value) => value?.toLowerCase().includes(needle));
       })
       .sort((a, b) =>
-        sort === 'newest' ? b.savedAt.localeCompare(a.savedAt) : a.savedAt.localeCompare(b.savedAt),
+        sort === 'newest' ? b.sortAt.localeCompare(a.sortAt) : a.sortAt.localeCompare(b.sortAt),
       );
-  }, [library, query, view, author, sort, collectionById]);
+  }, [library, downloaded, groups, query, view, author, sort, collectionById]);
   const showNotice = (value: string) => {
     setNotice(value);
     setTimeout(() => setNotice(''), 3500);
@@ -184,6 +270,7 @@ export function App() {
       const result = await request<BulkResult>({ type: 'bulk', ids, action });
       setSelected(new Set());
       if (action.type === 'delete') {
+        setUndoDownloads([]);
         setUndo(result.deleted);
         setNotice('');
       } else
@@ -201,12 +288,15 @@ export function App() {
   const undoDelete = async () => {
     setBulkBusy(true);
     try {
-      await request({ type: 'restore', bookmarks: undo });
+      if (undo.length) await request({ type: 'restore', bookmarks: undo });
+      if (undoDownloads.length) await request({ type: 'restoreDownloads', records: undoDownloads });
+      const restored = undo.length ? 'Bookmarks restored.' : 'Download history restored.';
       setUndo([]);
-      await refresh();
-      showNotice('Bookmarks restored.');
+      setUndoDownloads([]);
+      await Promise.all([refresh(), refreshDownloads()]);
+      showNotice(restored);
     } catch (cause) {
-      showNotice(cause instanceof Error ? cause.message : 'Could not restore bookmarks.');
+      showNotice(cause instanceof Error ? cause.message : 'Could not restore.');
     } finally {
       setBulkBusy(false);
     }
@@ -218,13 +308,53 @@ export function App() {
     setSelected(new Set());
     setView({ kind: 'all' });
     setNotice('');
+    setUndoDownloads([]);
     setUndo(result.deleted);
     if (!result.deleted.length) showNotice('There were no bookmarks to delete.');
     await refresh();
   };
+  const clearDownloads = async () => {
+    const result = await request<ClearDownloadsResult>({ type: 'clearDownloads' });
+    setClearDownloadsOpen(false);
+    setNotice('');
+    setUndo([]);
+    setUndoDownloads(result.deleted);
+    if (view.kind === 'downloaded') setView({ kind: 'all' });
+    await refreshDownloads();
+  };
+  /** One item starts immediately; several open the chooser. */
+  const startDownload = async (bookmark: Bookmark) => {
+    const rows = downloadRows(bookmark);
+    if (rows.length !== 1 || rows[0]!.quoted) {
+      setDownloading(bookmark);
+      return;
+    }
+    const row = rows[0]!;
+    try {
+      const result = await request<StartResult>({ type: 'startDownload', targets: [row.target] });
+      const outcome = result.outcomes[0];
+      if (outcome?.status === 'failed') {
+        showNotice(errorMessage(outcome.error, row.item.kind));
+        // The dialog offers the next step (open the post, or retry).
+        setDownloading(bookmark);
+      } else showNotice(outcome?.status === 'pending' ? 'Already downloading.' : 'Downloading…');
+    } catch (cause) {
+      showNotice(cause instanceof Error ? cause.message : 'Could not start the download.');
+    }
+  };
+  const saveFromHistory = async (bookmark: Bookmark) => {
+    try {
+      await request({ type: 'save', draft: bookmark });
+      await refresh();
+      showNotice('Saved to your bookmarks.');
+    } catch (cause) {
+      showNotice(cause instanceof Error ? cause.message : 'Could not save this post.');
+    }
+  };
   const selectedIds = filtered
-    .filter((bookmark) => selected.has(bookmark.id))
-    .map((bookmark) => bookmark.id);
+    .filter((entry) => !entry.removed && selected.has(entry.bookmark.id))
+    .map((entry) => entry.bookmark.id);
+  const selectable = filtered.filter((entry) => !entry.removed);
   const toggleSelected = (id: string) =>
     setSelected((previous) => {
       const next = new Set(previous);
@@ -233,13 +363,13 @@ export function App() {
       return next;
     });
   const exportJson = async () => {
-    const records = await request<DownloadRecord[]>({ type: 'downloads' }).catch(() => []);
+    const history = await request<DownloadRecord[]>({ type: 'downloads' }).catch(() => []);
     const data: ExportData = {
       format: 'saved-for-x',
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       ...library,
-      downloads: exportDownloads(records),
+      downloads: exportDownloads(history),
     };
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
@@ -249,17 +379,20 @@ export function App() {
     link.download = `saved-for-x-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setSettingsOpen(false);
   };
   const importJson = async (file?: File) => {
     if (!file) return;
     try {
       if (file.size > 50_000_000) throw new Error('Import file is too large.');
       const data = validateExport(JSON.parse(await file.text()) as unknown);
-      const result = await request<{ imported: number }>({ type: 'import', data });
-      await refresh();
+      const result = await request<{ imported: number; downloads: number }>({
+        type: 'import',
+        data,
+      });
+      await Promise.all([refresh(), refreshDownloads()]);
       showNotice(
-        `Imported ${result.imported} ${result.imported === 1 ? 'bookmark' : 'bookmarks'}.`,
+        `Imported ${plural(result.imported, 'bookmark')}` +
+          (result.downloads ? ` and ${plural(result.downloads, 'download record')}.` : '.'),
       );
       setSettingsOpen(false);
     } catch (cause) {
@@ -267,12 +400,26 @@ export function App() {
     }
     if (importRef.current) importRef.current.value = '';
   };
+  const closeSettings = useCallback(() => {
+    setSettingsOpen(false);
+    settingsButtonRef.current?.focus();
+  }, []);
+  const downloadsOn = settings.downloadsEnabled;
+  const activeDownloads = records.filter((record) =>
+    ['resolving', 'starting', 'inProgress'].includes(record.status),
+  ).length;
   const title =
     view.kind === 'all'
       ? 'All Bookmarks'
-      : view.kind === 'tag'
-        ? `#${view.name}`
-        : collectionById.get(view.id)?.name || 'Collection';
+      : view.kind === 'downloaded'
+        ? 'Downloaded'
+        : view.kind === 'tag'
+          ? `#${view.name}`
+          : collectionById.get(view.id)?.name || 'Collection';
+  const countLabel =
+    view.kind === 'downloaded'
+      ? plural(filtered.length, 'post')
+      : `${filtered.length} ${filtered.length === 1 ? 'bookmark' : 'bookmarks'}`;
 
   return (
     <div className="app-shell">
@@ -287,58 +434,23 @@ export function App() {
           </div>
         </div>
         <button
+          ref={settingsButtonRef}
           className="icon-button settings-button"
           aria-label="Settings and data"
           title="Settings and data"
-          onClick={() => setSettingsOpen(!settingsOpen)}
+          aria-haspopup="dialog"
+          onClick={() => setSettingsOpen(true)}
         >
           <Settings2 size={18} />
         </button>
       </header>
-      {settingsOpen && (
-        <div className="settings-menu">
-          <div className="menu-title">Appearance</div>
-          <div className="theme-switch">
-            {(['auto', 'light', 'dark'] as Theme[]).map((value) => (
-              <button
-                className={theme === value ? 'active' : ''}
-                key={value}
-                onClick={() => setTheme(value)}
-              >
-                {value.charAt(0).toUpperCase() + value.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="menu-divider" />
-          <button onClick={() => void exportJson()}>
-            <Download size={15} />
-            Export JSON
-          </button>
-          <button onClick={() => importRef.current?.click()}>
-            <Upload size={15} />
-            Import JSON
-          </button>
-          <input
-            ref={importRef}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(event) => void importJson(event.target.files?.[0])}
-          />
-          <div className="menu-divider" />
-          <button
-            className="danger"
-            disabled={!library.bookmarks.length}
-            onClick={() => {
-              setSettingsOpen(false);
-              setClearOpen(true);
-            }}
-          >
-            <Trash size={15} />
-            Clear all bookmarks…
-          </button>
-        </div>
-      )}
+      <input
+        ref={importRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={(event) => void importJson(event.target.files?.[0])}
+      />
       <div className="search-wrap">
         <Search size={17} />
         <input
@@ -357,11 +469,22 @@ export function App() {
       <nav className="library-nav" aria-label="Library">
         <button
           className={`nav-all ${view.kind === 'all' ? 'selected' : ''}`}
+          aria-current={view.kind === 'all' ? 'page' : undefined}
           onClick={() => setView({ kind: 'all' })}
         >
           <BookmarkIcon size={16} />
           <span>All Bookmarks</span>
           <small>{library.bookmarks.length}</small>
+        </button>
+        {/* Built in: membership comes from completed downloads, never from collectionId. */}
+        <button
+          className={`nav-all nav-downloaded ${view.kind === 'downloaded' ? 'selected' : ''}`}
+          aria-current={view.kind === 'downloaded' ? 'page' : undefined}
+          onClick={() => setView({ kind: 'downloaded' })}
+        >
+          <Download size={16} />
+          <span>Downloaded</span>
+          <small>{downloaded.length}</small>
         </button>
         <div className="nav-heading">
           <span>COLLECTIONS</span>
@@ -471,9 +594,7 @@ export function App() {
         <div className="list-head">
           <div>
             <h1>{title}</h1>
-            <span>
-              {filtered.length} {filtered.length === 1 ? 'bookmark' : 'bookmarks'}
-            </span>
+            <span>{countLabel}</span>
           </div>
           <div className="filters">
             <label>
@@ -501,18 +622,31 @@ export function App() {
             </label>
           </div>
         </div>
-        {selecting ? (
+        {view.kind === 'downloaded' ? (
+          <div className="view-note">
+            <span>
+              Posts with media downloaded from this extension. Files stay where you saved them.
+            </span>
+            <button
+              className="text-button"
+              disabled={!records.length}
+              onClick={() => setClearDownloadsOpen(true)}
+            >
+              Clear history…
+            </button>
+          </div>
+        ) : selecting ? (
           <SelectionBar
             count={selectedIds.length}
-            total={filtered.length}
+            total={selectable.length}
             collections={library.collections}
             tags={tags}
             busy={bulkBusy}
             onToggleAll={() =>
               setSelected(
-                selectedIds.length === filtered.length
+                selectedIds.length === selectable.length
                   ? new Set()
-                  : new Set(filtered.map((bookmark) => bookmark.id)),
+                  : new Set(selectable.map((entry) => entry.bookmark.id)),
               )
             }
             onExit={() => {
@@ -525,7 +659,7 @@ export function App() {
           <div className="selection-entry">
             <button
               className="text-button"
-              disabled={!filtered.length}
+              disabled={!selectable.length}
               onClick={() => setSelecting(true)}
             >
               Select bookmarks
@@ -545,50 +679,80 @@ export function App() {
         ) : filtered.length === 0 ? (
           <div className="empty-state">
             <span className="empty-icon">
-              {query ? <Search size={23} /> : <BookmarkIcon size={23} />}
+              {query ? (
+                <Search size={23} />
+              ) : view.kind === 'downloaded' ? (
+                <Download size={23} />
+              ) : (
+                <BookmarkIcon size={23} />
+              )}
             </span>
             <strong>
               {query
                 ? `No results for “${query}”`
-                : library.bookmarks.length
-                  ? 'Nothing here yet'
-                  : 'No bookmarks yet'}
+                : view.kind === 'downloaded'
+                  ? 'No downloads yet'
+                  : library.bookmarks.length
+                    ? 'Nothing here yet'
+                    : 'No bookmarks yet'}
             </strong>
             <p>
               {query
                 ? 'Try another search term or filter.'
-                : library.bookmarks.length
-                  ? 'Save a bookmark to this collection or tag.'
-                  : 'Save a post on X and it will appear here.'}
+                : view.kind === 'downloaded'
+                  ? 'Download media from a saved post and it appears here once the download completes.'
+                  : library.bookmarks.length
+                    ? 'Save a bookmark to this collection or tag.'
+                    : 'Save a post on X and it will appear here.'}
             </p>
           </div>
         ) : (
           <div className="bookmark-list">
-            {filtered.map((bookmark) => (
-              <BookmarkItem
-                key={bookmark.id}
-                bookmark={bookmark}
-                selecting={selecting}
-                selected={selected.has(bookmark.id)}
-                busy={bulkBusy}
-                onToggle={() => toggleSelected(bookmark.id)}
-                collection={collectionById.get(bookmark.collectionId || '')}
-                onEdit={() => setEditing(bookmark)}
-                onDelete={() => void removeBookmark(bookmark)}
-              />
-            ))}
+            {filtered.map(({ bookmark, removed, downloads }) => {
+              const own = bookmark.media;
+              const quoted = bookmark.quote?.tweetId ? (bookmark.quote.media ?? []) : [];
+              const canDownload = downloadsOn && (own.length > 0 || quoted.length > 0);
+              return (
+                <BookmarkItem
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  removed={removed}
+                  selecting={selecting && view.kind !== 'downloaded' && !removed}
+                  selected={selected.has(bookmark.id)}
+                  busy={bulkBusy}
+                  onToggle={() => toggleSelected(bookmark.id)}
+                  collection={collectionById.get(bookmark.collectionId || '')}
+                  badge={badgeFor(bookmark, downloads)}
+                  downloadLabel={
+                    canDownload ? downloadLabel(own.length ? own : quoted, !own.length) : undefined
+                  }
+                  onDownload={() => void startDownload(bookmark)}
+                  onEdit={() => setEditing(bookmark)}
+                  onDelete={() => void removeBookmark(bookmark)}
+                  onSave={() => void saveFromHistory(bookmark)}
+                />
+              );
+            })}
           </div>
         )}
       </main>
-      {undo.length > 0 && !notice && (
+      {(undo.length > 0 || undoDownloads.length > 0) && !notice && (
         <div className="toast undo-toast" role="status">
           <span>
-            {undo.length} {undo.length === 1 ? 'bookmark' : 'bookmarks'} deleted
+            {undo.length
+              ? `${undo.length} ${undo.length === 1 ? 'bookmark' : 'bookmarks'} deleted`
+              : 'Download history cleared'}
           </span>
           <button disabled={bulkBusy} onClick={() => void undoDelete()}>
             Undo
           </button>
-          <button aria-label="Dismiss undo" onClick={() => setUndo([])}>
+          <button
+            aria-label="Dismiss undo"
+            onClick={() => {
+              setUndo([]);
+              setUndoDownloads([]);
+            }}
+          >
             <X size={14} />
           </button>
         </div>
@@ -598,6 +762,30 @@ export function App() {
           {notice}
         </div>
       )}
+      {settingsOpen && (
+        <SettingsDialog
+          settings={settings}
+          onChange={(patch) => void updateSettings(patch)}
+          onReset={() =>
+            void resetSettings().then(() =>
+              showNotice('Customization reset. Your data was not changed.'),
+            )
+          }
+          onClose={closeSettings}
+          onExport={() => void exportJson()}
+          onImport={() => importRef.current?.click()}
+          onClearBookmarks={() => {
+            setSettingsOpen(false);
+            setClearOpen(true);
+          }}
+          onClearDownloads={() => {
+            setSettingsOpen(false);
+            setClearDownloadsOpen(true);
+          }}
+          bookmarkCount={library.bookmarks.length}
+          downloadCount={records.length - activeDownloads}
+        />
+      )}
       {clearOpen && (
         <ClearAllDialog
           bookmarkCount={library.bookmarks.length}
@@ -605,6 +793,21 @@ export function App() {
           onExport={() => void exportJson()}
           onCancel={() => setClearOpen(false)}
           onConfirm={clearAll}
+        />
+      )}
+      {clearDownloadsOpen && (
+        <ClearDownloadsDialog
+          postCount={downloaded.length}
+          activeCount={activeDownloads}
+          onCancel={() => setClearDownloadsOpen(false)}
+          onConfirm={clearDownloads}
+        />
+      )}
+      {downloading && (
+        <DownloadDialog
+          post={downloading}
+          records={groups.get(downloading.tweetId)?.records ?? []}
+          onClose={() => setDownloading(null)}
         />
       )}
       {editing && (

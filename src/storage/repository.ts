@@ -121,8 +121,8 @@ export class BookmarkRepository {
   /**
    * Saves a post, or returns the existing bookmark. Reading and writing happen in one
    * transaction, so a duplicate save from another tab can never replace a bookmark (and its
-   * notes, tags, collection, or save date). An existing bookmark only gains author details
-   * that were missing when it was first saved.
+   * notes, tags, collection, or save date). An existing bookmark only gains author details,
+   * media, or a quote that were missing when it was first saved; nothing present is replaced.
    */
   async save(draft: BookmarkDraft): Promise<Bookmark> {
     const identity = parsePostUrl(draft.url);
@@ -158,14 +158,16 @@ export class BookmarkRepository {
         return;
       }
       saved = withContext(current);
-      const avatar = fresh.authorAvatarUrl;
-      const name = fresh.authorDisplayName;
-      if ((!current.authorAvatarUrl && avatar) || (!current.authorDisplayName && name)) {
-        saved = {
-          ...saved,
-          authorAvatarUrl: current.authorAvatarUrl || avatar,
-          authorDisplayName: current.authorDisplayName || name,
-        };
+      const repair: Partial<Bookmark> = {};
+      if (!saved.authorAvatarUrl && fresh.authorAvatarUrl)
+        repair.authorAvatarUrl = fresh.authorAvatarUrl;
+      if (!saved.authorDisplayName && fresh.authorDisplayName)
+        repair.authorDisplayName = fresh.authorDisplayName;
+      // Older saves can lack media that had not loaded yet; that is needed to download it.
+      if (!saved.media.length && fresh.media.length) repair.media = fresh.media;
+      if (!saved.quote && fresh.quote) repair.quote = fresh.quote;
+      if (Object.keys(repair).length) {
+        saved = { ...saved, ...repair, schemaVersion: SCHEMA_VERSION };
         store.put(saved);
         modified = true;
       }

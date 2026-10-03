@@ -38,7 +38,7 @@ export function hasContext(bookmark: Bookmark): boolean {
   return !!(bookmark.media.length || bookmark.quote || bookmark.card);
 }
 
-function Thumb({ item, compact = false }: { item: PostMedia; compact?: boolean }) {
+export function Thumb({ item, compact = false }: { item: PostMedia; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
   const Icon = item.kind === 'image' ? ImageIcon : Film;
   return (
