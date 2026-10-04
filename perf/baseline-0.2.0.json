@@ -1,0 +1,314 @@
+{
+  "extension": {
+    "name": "Saved for X",
+    "version": "0.2.0"
+  },
+  "recordedAt": "2026-10-04T05:43:26.491Z",
+  "environment": {
+    "chrome": "Chrome/154.0.8037.93",
+    "platform": "darwin 25.3.0 arm64",
+    "cpus": "Apple M4",
+    "node": "v22.17.0"
+  },
+  "fixture": {
+    "posts": 200,
+    "initial": 20,
+    "batch": 20,
+    "batches": 9,
+    "photoEvery": 3
+  },
+  "runsPerMode": 5,
+  "units": {
+    "initialMs": "navigation start to load (+ all initial save controls when on)",
+    "scrollMs": "append 9 batches and scroll (+ controls for each batch when on)",
+    "durations": "ms (CDP Performance.getMetrics, whole page lifetime)",
+    "JSHeapUsedSize": "MB (page main world; content script worlds share the heap)"
+  },
+  "summary": {
+    "off": {
+      "initialMs": {
+        "median": 27,
+        "min": 24,
+        "max": 27,
+        "cvPercent": 4.5
+      },
+      "scrollMs": {
+        "median": 301,
+        "min": 298,
+        "max": 302,
+        "cvPercent": 0.5
+      },
+      "controls": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "cvPercent": 0
+      },
+      "longTaskCount": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "cvPercent": 0
+      },
+      "longTaskTotalMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "cvPercent": 0
+      },
+      "ScriptDuration": {
+        "median": 0.2,
+        "min": 0.1,
+        "max": 0.2,
+        "cvPercent": 22.2
+      },
+      "TaskDuration": {
+        "median": 52.5,
+        "min": 51.7,
+        "max": 54.9,
+        "cvPercent": 2.2
+      },
+      "RecalcStyleDuration": {
+        "median": 5,
+        "min": 4.8,
+        "max": 5.2,
+        "cvPercent": 2.6
+      },
+      "LayoutDuration": {
+        "median": 11.4,
+        "min": 11,
+        "max": 12,
+        "cvPercent": 3
+      },
+      "JSHeapUsedSize": {
+        "median": 1.37,
+        "min": 1.37,
+        "max": 1.37,
+        "cvPercent": 0
+      },
+      "Nodes": {
+        "median": 8648,
+        "min": 8648,
+        "max": 8648,
+        "cvPercent": 0
+      }
+    },
+    "on": {
+      "initialMs": {
+        "median": 32,
+        "min": 31,
+        "max": 36,
+        "cvPercent": 5.4
+      },
+      "scrollMs": {
+        "median": 443,
+        "min": 436,
+        "max": 447,
+        "cvPercent": 0.8
+      },
+      "controls": {
+        "median": 200,
+        "min": 200,
+        "max": 200,
+        "cvPercent": 0
+      },
+      "longTaskCount": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "cvPercent": 0
+      },
+      "longTaskTotalMs": {
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "cvPercent": 0
+      },
+      "ScriptDuration": {
+        "median": 12.9,
+        "min": 12.6,
+        "max": 13.1,
+        "cvPercent": 1.2
+      },
+      "TaskDuration": {
+        "median": 97.4,
+        "min": 92.6,
+        "max": 98.9,
+        "cvPercent": 2.3
+      },
+      "RecalcStyleDuration": {
+        "median": 13.6,
+        "min": 13,
+        "max": 14,
+        "cvPercent": 2.7
+      },
+      "LayoutDuration": {
+        "median": 12.9,
+        "min": 12.6,
+        "max": 13.2,
+        "cvPercent": 1.6
+      },
+      "JSHeapUsedSize": {
+        "median": 2.37,
+        "min": 2.37,
+        "max": 2.39,
+        "cvPercent": 0.3
+      },
+      "Nodes": {
+        "median": 10051,
+        "min": 10051,
+        "max": 10051,
+        "cvPercent": 0
+      }
+    },
+    "deltaOfMedians": {
+      "initialMs": 5,
+      "scrollMs": 142,
+      "controls": 200,
+      "longTaskCount": 0,
+      "longTaskTotalMs": 0,
+      "ScriptDuration": 12.7,
+      "TaskDuration": 44.9,
+      "RecalcStyleDuration": 8.6,
+      "LayoutDuration": 1.5,
+      "JSHeapUsedSize": 1,
+      "Nodes": 1403
+    }
+  },
+  "runs": {
+    "off": [
+      {
+        "initialMs": 27,
+        "scrollMs": 302,
+        "controls": 0,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 0.2,
+        "TaskDuration": 54.9,
+        "RecalcStyleDuration": 5,
+        "LayoutDuration": 12,
+        "JSHeapUsedSize": 1.37,
+        "Nodes": 8648
+      },
+      {
+        "initialMs": 24,
+        "scrollMs": 299,
+        "controls": 0,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 0.2,
+        "TaskDuration": 51.7,
+        "RecalcStyleDuration": 5.1,
+        "LayoutDuration": 11,
+        "JSHeapUsedSize": 1.37,
+        "Nodes": 8648
+      },
+      {
+        "initialMs": 26,
+        "scrollMs": 301,
+        "controls": 0,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 0.2,
+        "TaskDuration": 53.3,
+        "RecalcStyleDuration": 5.2,
+        "LayoutDuration": 11.7,
+        "JSHeapUsedSize": 1.37,
+        "Nodes": 8648
+      },
+      {
+        "initialMs": 27,
+        "scrollMs": 302,
+        "controls": 0,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 0.2,
+        "TaskDuration": 51.9,
+        "RecalcStyleDuration": 4.8,
+        "LayoutDuration": 11.4,
+        "JSHeapUsedSize": 1.37,
+        "Nodes": 8648
+      },
+      {
+        "initialMs": 27,
+        "scrollMs": 298,
+        "controls": 0,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 0.1,
+        "TaskDuration": 52.5,
+        "RecalcStyleDuration": 5,
+        "LayoutDuration": 11.3,
+        "JSHeapUsedSize": 1.37,
+        "Nodes": 8648
+      }
+    ],
+    "on": [
+      {
+        "initialMs": 32,
+        "scrollMs": 447,
+        "controls": 200,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 13.1,
+        "TaskDuration": 98.9,
+        "RecalcStyleDuration": 14,
+        "LayoutDuration": 12.9,
+        "JSHeapUsedSize": 2.37,
+        "Nodes": 10051
+      },
+      {
+        "initialMs": 31,
+        "scrollMs": 443,
+        "controls": 200,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 12.9,
+        "TaskDuration": 97.8,
+        "RecalcStyleDuration": 14,
+        "LayoutDuration": 13.2,
+        "JSHeapUsedSize": 2.37,
+        "Nodes": 10051
+      },
+      {
+        "initialMs": 36,
+        "scrollMs": 443,
+        "controls": 200,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 12.9,
+        "TaskDuration": 97.4,
+        "RecalcStyleDuration": 13.6,
+        "LayoutDuration": 13.1,
+        "JSHeapUsedSize": 2.37,
+        "Nodes": 10051
+      },
+      {
+        "initialMs": 32,
+        "scrollMs": 445,
+        "controls": 200,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 12.6,
+        "TaskDuration": 92.6,
+        "RecalcStyleDuration": 13,
+        "LayoutDuration": 12.6,
+        "JSHeapUsedSize": 2.37,
+        "Nodes": 10051
+      },
+      {
+        "initialMs": 34,
+        "scrollMs": 436,
+        "controls": 200,
+        "longTaskCount": 0,
+        "longTaskTotalMs": 0,
+        "ScriptDuration": 12.9,
+        "TaskDuration": 95.6,
+        "RecalcStyleDuration": 13.6,
+        "LayoutDuration": 12.9,
+        "JSHeapUsedSize": 2.39,
+        "Nodes": 10051
+      }
+    ]
+  }
+}

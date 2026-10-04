@@ -50,3 +50,5 @@ Saved and customization features consume these services; neither keeps its own c
 ## Baselines
 
 **Functional baseline (Stage 0, 2026-10-04).** On the bootstrapped 0.2.0 source: `npm run check` passes, `npm test` 8 files / 60 tests pass, `npm run format:check` passes, `npm run smoke` 66 checks pass (65 in `run.mjs`, 1 in `restart.mjs`), and `npm run build` output is byte-identical to the shipped Saved for X 0.2.0 build.
+
+**Performance baseline is a measurement, not a contract.** `npm run perf` loads the same offline X-shaped timeline with and without the built extension, alternating modes across repeated fresh-browser runs, and records medians and spread. The 0.2.0 result is `perf/baseline-0.2.0.json`; method and limits are in `perf/README.md`. Later stages compare against it, and a change is worth investigating when it falls outside the baseline's own run-to-run spread. There are no fixed pass/fail thresholds, and the harness never gates the functional checks.
