@@ -74,12 +74,12 @@ async function openX() {
     req.continue();
   });
   await page.goto('https://x.com/home', { waitUntil: 'networkidle2' });
-  await page.waitForFunction(() => document.querySelectorAll('.sfx-control').length === 7, {
+  await page.waitForFunction(() => document.querySelectorAll('.bx-control').length === 7, {
     timeout: 15000,
   });
   return { page, errors };
 }
-const sel = (id) => `article[data-post="${id}"] .sfx-control`;
+const sel = (id) => `article[data-post="${id}"] .bx-control`;
 async function clickPost(page, id) {
   await page.evaluate((s) => {
     const r = document.querySelector(s).getBoundingClientRect();
@@ -132,7 +132,7 @@ const waitFile = async (name, ms = 60000) => {
 const { page, errors } = await openX();
 check(
   'one control per top-level post (quote gets none)',
-  (await page.$$('.sfx-control')).length === 7,
+  (await page.$$('.bx-control')).length === 7,
 );
 
 // --- text-only post: one click saves, brief Saved confirmation, no Download
@@ -140,11 +140,11 @@ const rowBefore = await page.$eval('article[data-post="1100000000000000001"] [ro
   n.getBoundingClientRect().toJSON(),
 );
 await clickPost(page, '1100000000000000001');
-await page.waitForSelector('#sfx-chip', { timeout: 5000 });
+await page.waitForSelector('#bx-chip', { timeout: 5000 });
 check(
   'text-only save shows "Saved" without Download',
-  (await text(page, '#sfx-chip')) === 'Saved',
-  await text(page, '#sfx-chip'),
+  (await text(page, '#bx-chip')) === 'Saved',
+  await text(page, '#bx-chip'),
 );
 const rowAfter = await page.$eval('article[data-post="1100000000000000001"] [role=group]', (n) =>
   n.getBoundingClientRect().toJSON(),
@@ -159,25 +159,25 @@ check(
 );
 await page.screenshot({ captureBeyondViewport: false, path: `${OUT}/01-text-saved.png` });
 await sleep(2200);
-check('plain Saved chip dismisses after ~1.6s', !(await page.$('#sfx-chip')));
+check('plain Saved chip dismisses after ~1.6s', !(await page.$('#bx-chip')));
 
 // --- photo: save, chip with Download, single click downloads original
 await clickPost(page, '440322224407314432');
-await page.waitForSelector('#sfx-chip .sfx-chip-action', { timeout: 5000 });
+await page.waitForSelector('#bx-chip .bx-chip-action', { timeout: 5000 });
 check(
   'media save shows "Saved" and "Download"',
-  /Saved\s+Download/.test(await text(page, '#sfx-chip')),
-  await text(page, '#sfx-chip'),
+  /Saved\s+Download/.test(await text(page, '#bx-chip')),
+  await text(page, '#bx-chip'),
 );
-await page.hover('#sfx-chip');
+await page.hover('#bx-chip');
 await sleep(3500);
-check('hovering the chip pauses dismissal', !!(await page.$('#sfx-chip')));
+check('hovering the chip pauses dismissal', !!(await page.$('#bx-chip')));
 await page.screenshot({ captureBeyondViewport: false, path: `${OUT}/02-photo-chip.png` });
-await page.click('#sfx-chip .sfx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
 check(
   'photo download reports Downloaded',
-  await waitText(page, '#sfx-chip', /Downloaded/),
-  await text(page, '#sfx-chip'),
+  await waitText(page, '#bx-chip', /Downloaded/),
+  await text(page, '#bx-chip'),
 );
 const photoName = 'TheEllenShow_440322224407314432_1.jpg';
 check(
@@ -190,70 +190,61 @@ await page.keyboard.press('Escape');
 
 // --- GIF: saved as MP4
 await clickPost(page, '1100000000000000003');
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
-await page.click('#sfx-chip .sfx-chip-action');
+await page.waitForSelector('#bx-chip .bx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
 check(
   'GIF download reports Downloaded',
-  await waitText(page, '#sfx-chip', /Downloaded/),
-  await text(page, '#sfx-chip'),
+  await waitText(page, '#bx-chip', /Downloaded/),
+  await text(page, '#bx-chip'),
 );
 const gifName = 'gifposter_1100000000000000003_1.mp4';
 check(
   'GIF saved as a real MP4',
   (await waitFile(gifName)) && fileInfo(gifName).mp4,
-  fs.existsSync(path.join(DL, 'Better-X', gifName))
-    ? JSON.stringify(fileInfo(gifName))
-    : 'missing',
+  fs.existsSync(path.join(DL, 'Better-X', gifName)) ? JSON.stringify(fileInfo(gifName)) : 'missing',
 );
 await page.keyboard.press('Escape');
 
 // --- real video behind a blob: player
 await clickPost(page, ELON);
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
-await page.click('#sfx-chip .sfx-chip-action');
+await page.waitForSelector('#bx-chip .bx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
 check(
   'video download reports Downloaded',
-  await waitText(page, '#sfx-chip', /Downloaded/, 90000),
-  await text(page, '#sfx-chip'),
+  await waitText(page, '#bx-chip', /Downloaded/, 90000),
+  await text(page, '#bx-chip'),
 );
 const vidName = `elonmusk_${ELON}_1.mp4`;
 check(
   'video saved as an MP4 file (not the poster)',
   (await waitFile(vidName, 90000)) && fileInfo(vidName).mp4 && fileInfo(vidName).size > 1_000_000,
-  fs.existsSync(path.join(DL, 'Better-X', vidName))
-    ? JSON.stringify(fileInfo(vidName))
-    : 'missing',
+  fs.existsSync(path.join(DL, 'Better-X', vidName)) ? JSON.stringify(fileInfo(vidName)) : 'missing',
 );
 await page.keyboard.press('Escape');
 
 // --- two photos, one missing: chooser, Download all, partial result
 await clickPost(page, '1100000000000000005');
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
-await page.click('#sfx-chip .sfx-chip-action');
-await page.waitForSelector('#sfx-menu .sfx-choice', { timeout: 5000 });
-const choices = await page.$$eval('#sfx-menu .sfx-choice', (ns) =>
-  ns.map((n) => n.innerText.trim()),
-);
+await page.waitForSelector('#bx-chip .bx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
+await page.waitForSelector('#bx-menu .bx-choice', { timeout: 5000 });
+const choices = await page.$$eval('#bx-menu .bx-choice', (ns) => ns.map((n) => n.innerText.trim()));
 check(
   'multi-media opens chooser with previews',
-  choices.join('|') === 'Image 1|Image 2' &&
-    (await page.$$('#sfx-menu .sfx-thumb img')).length >= 1,
+  choices.join('|') === 'Image 1|Image 2' && (await page.$$('#bx-menu .bx-thumb img')).length >= 1,
   choices.join('|'),
 );
 await page.screenshot({ path: `${OUT}/04-chooser.png` });
-const allLabel = await text(page, '#sfx-menu .sfx-primary');
+const allLabel = await text(page, '#bx-menu .bx-primary');
 check('chooser offers "Download all (2)"', allLabel === 'Download all (2)', allLabel);
-await page.click('#sfx-menu .sfx-primary');
+await page.click('#bx-menu .bx-primary');
 check(
   'partial batch reports 1 of 2 and why',
-  await waitText(page, '#sfx-menu .sfx-status', /1 of 2 downloaded/),
-  await text(page, '#sfx-menu .sfx-status'),
+  await waitText(page, '#bx-menu .bx-status', /1 of 2 downloaded/),
+  await text(page, '#bx-menu .bx-status'),
 );
 check(
   'unavailable item offers Open post on X',
-  !!(await page.$(
-    '#sfx-menu .sfx-status a[href="https://x.com/batch/status/1100000000000000005"]',
-  )),
+  !!(await page.$('#bx-menu .bx-status a[href="https://x.com/batch/status/1100000000000000005"]')),
 );
 await page.screenshot({ path: `${OUT}/05-partial.png` });
 await page.keyboard.press('Escape');
@@ -261,27 +252,25 @@ await page.keyboard.press('Escape');
 // --- parent photo quoting a video: quoted media only when chosen
 const before = files().length;
 await clickPost(page, '1100000000000000006');
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
-await page.click('#sfx-chip .sfx-chip-action');
-await page.waitForSelector('#sfx-menu .sfx-choice');
-const quoteChoices = await page.$$eval('#sfx-menu .sfx-choice', (ns) =>
+await page.waitForSelector('#bx-chip .bx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
+await page.waitForSelector('#bx-menu .bx-choice');
+const quoteChoices = await page.$$eval('#bx-menu .bx-choice', (ns) =>
   ns.map((n) => n.innerText.trim()),
 );
 check(
   'quoted media is labelled and separate',
   quoteChoices.join('|') === 'Image|Quoted video' &&
-    /From the quoted post/.test(await text(page, '#sfx-menu')),
+    /From the quoted post/.test(await text(page, '#bx-menu')),
   quoteChoices.join('|'),
 );
 await sleep(500);
 check('nothing downloads until a choice is made', files().length === before);
-await page.click(
-  '#sfx-menu .sfx-choice:nth-of-type(2), #sfx-menu .sfx-choices > button:last-child',
-);
+await page.click('#bx-menu .bx-choice:nth-of-type(2), #bx-menu .bx-choices > button:last-child');
 check(
   'quoted video downloads from the quoted post',
-  await waitText(page, '#sfx-menu .sfx-status', /Downloaded/, 90000),
-  await text(page, '#sfx-menu .sfx-status'),
+  await waitText(page, '#bx-menu .bx-status', /Downloaded/, 90000),
+  await text(page, '#bx-menu .bx-status'),
 );
 const qName = `elonmusk_${ELON}_1 (1).mp4`;
 check(
@@ -294,16 +283,16 @@ await page.keyboard.press('Escape');
 
 // --- blob-only video X cannot describe
 await clickPost(page, '1999999999999999997');
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
-await page.click('#sfx-chip .sfx-chip-action');
+await page.waitForSelector('#bx-chip .bx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
 check(
   'unresolvable video says "Video unavailable to download"',
-  await waitText(page, '#sfx-chip', /Video unavailable to download/),
-  await text(page, '#sfx-chip'),
+  await waitText(page, '#bx-chip', /Video unavailable to download/),
+  await text(page, '#bx-chip'),
 );
 check(
   '…and offers Open post on X',
-  !!(await page.$('#sfx-chip a[href="https://x.com/ghost/status/1999999999999999997"]')),
+  !!(await page.$('#bx-chip a[href="https://x.com/ghost/status/1999999999999999997"]')),
 );
 check('no poster or partial file was saved for it', !files().some((f) => f.startsWith('ghost_')));
 await page.screenshot({ captureBeyondViewport: false, path: `${OUT}/06-unavailable.png` });
@@ -311,8 +300,8 @@ await page.keyboard.press('Escape');
 
 // --- saved-post menu: order, keyboard, focus, Escape
 await clickPost(page, '440322224407314432');
-await page.waitForSelector('#sfx-menu');
-const items = await page.$$eval('#sfx-menu .sfx-item', (ns) => ns.map((n) => n.innerText.trim()));
+await page.waitForSelector('#bx-menu');
+const items = await page.$$eval('#bx-menu .bx-item', (ns) => ns.map((n) => n.innerText.trim()));
 check(
   'saved menu: Download image / Open bookmark library / Remove bookmark',
   items.join('|') === 'Download image|Open bookmark library|Remove bookmark',
@@ -324,7 +313,7 @@ check(
 );
 check(
   'focus moves into the menu',
-  await page.evaluate(() => document.activeElement?.closest('#sfx-menu') !== null),
+  await page.evaluate(() => document.activeElement?.closest('#bx-menu') !== null),
 );
 await page.keyboard.press('ArrowDown');
 check(
@@ -335,13 +324,13 @@ await page.screenshot({ path: `${OUT}/07-menu.png` });
 await page.keyboard.press('Escape');
 check(
   'Escape closes the menu and returns focus to the control',
-  !(await page.$('#sfx-menu')) &&
-    (await page.evaluate(() => document.activeElement?.classList.contains('sfx-control'))),
+  !(await page.$('#bx-menu')) &&
+    (await page.evaluate(() => document.activeElement?.classList.contains('bx-control'))),
 );
 const box = await page.$eval(sel('440322224407314432'), (n) => n.getBoundingClientRect().toJSON());
 await clickPost(page, '440322224407314432');
-await page.waitForSelector('#sfx-menu');
-const mbox = await page.$eval('#sfx-menu', (n) => n.getBoundingClientRect().toJSON());
+await page.waitForSelector('#bx-menu');
+const mbox = await page.$eval('#bx-menu', (n) => n.getBoundingClientRect().toJSON());
 check(
   'menu fits in the viewport',
   mbox.left >= 8 && mbox.right <= 1272 && mbox.top >= 8 && mbox.bottom <= 892,
@@ -350,7 +339,7 @@ check(
 await page.evaluate(() => scrollBy(0, 40));
 await sleep(150);
 const mbox2 = await page
-  .$eval('#sfx-menu', (n) => n.getBoundingClientRect().toJSON())
+  .$eval('#bx-menu', (n) => n.getBoundingClientRect().toJSON())
   .catch(() => null);
 check(
   'menu follows its control on scroll',
@@ -359,7 +348,7 @@ check(
 );
 await page.evaluate(() => scrollTo(0, 2000));
 await sleep(200);
-check('menu closes when its control scrolls away', !(await page.$('#sfx-menu')));
+check('menu closes when its control scrolls away', !(await page.$('#bx-menu')));
 await page.evaluate(() => scrollTo(0, 0));
 await sleep(100);
 
@@ -370,9 +359,9 @@ await page.evaluate((s) => {
 }, sel('1999999999999999997'));
 await sleep(200);
 await page.click(sel('1999999999999999997'));
-await page.waitForSelector('#sfx-menu');
+await page.waitForSelector('#bx-menu');
 await sleep(200);
-const flip = await page.$eval('#sfx-menu', (n) => ({
+const flip = await page.$eval('#bx-menu', (n) => ({
   side: n.dataset.side,
   bottom: n.getBoundingClientRect().bottom,
 }));
@@ -389,7 +378,7 @@ const panel = await browser.newPage();
 await panel.goto(`chrome-extension://${extId}/sidepanel.html`, { waitUntil: 'networkidle0' });
 await panel.evaluate(() =>
   chrome.storage.local.set({
-    settings: {
+    'bx.settings': {
       version: 1,
       theme: 'auto',
       accent: 'pink',
@@ -403,12 +392,12 @@ await panel.evaluate(() =>
 await sleep(300);
 await page.bringToFront();
 const accent = await page.evaluate(() =>
-  getComputedStyle(document.documentElement).getPropertyValue('--sfx-accent').trim(),
+  getComputedStyle(document.documentElement).getPropertyValue('--bx-accent').trim(),
 );
 check('accent change reaches the open X tab live', accent === '#f91880', accent);
 await clickPost(page, '440322224407314432');
-await page.waitForSelector('#sfx-menu');
-const items2 = await page.$$eval('#sfx-menu .sfx-item', (ns) => ns.map((n) => n.innerText.trim()));
+await page.waitForSelector('#bx-menu');
+const items2 = await page.$$eval('#bx-menu .bx-item', (ns) => ns.map((n) => n.innerText.trim()));
 check(
   'hidden menu actions leave Remove bookmark',
   items2.join('|') === 'Remove bookmark',
@@ -420,8 +409,8 @@ await sleep(400);
 // Post 6 is saved: click opened menu. Use an unsaved post for the quiet check: remove + resave text post.
 await page.keyboard.press('Escape');
 await clickPost(page, '1100000000000000001'); // saved → menu
-await page.waitForSelector('#sfx-menu');
-await page.click('#sfx-menu .sfx-danger');
+await page.waitForSelector('#bx-menu');
+await page.click('#bx-menu .bx-danger');
 await page.waitForFunction(
   (s) => document.querySelector(s).dataset.saved === 'false',
   {},
@@ -429,7 +418,7 @@ await page.waitForFunction(
 );
 check(
   'Remove bookmark from the page works and restores focus',
-  await page.evaluate(() => document.activeElement?.classList.contains('sfx-control')),
+  await page.evaluate(() => document.activeElement?.classList.contains('bx-control')),
 );
 await clickPost(page, '1100000000000000001');
 await page.waitForFunction(
@@ -438,10 +427,10 @@ await page.waitForFunction(
   sel('1100000000000000001'),
 );
 await sleep(300);
-check('quiet setting: saving shows no chip', !(await page.$('#sfx-chip')));
+check('quiet setting: saving shows no chip', !(await page.$('#bx-chip')));
 await panel.evaluate(() =>
   chrome.storage.local.set({
-    settings: {
+    'bx.settings': {
       version: 1,
       theme: 'auto',
       accent: 'blue',
@@ -454,15 +443,14 @@ await panel.evaluate(() =>
 );
 await sleep(300);
 await clickPost(page, '1100000000000000001'); // menu
-await page.waitForSelector('#sfx-menu');
+await page.waitForSelector('#bx-menu');
 check(
   'downloads off: no Download in menu',
-  (await page.$$eval('#sfx-menu .sfx-item', (ns) => ns.map((n) => n.innerText.trim()))).join(
-    '|',
-  ) === 'Open bookmark library|Remove bookmark',
+  (await page.$$eval('#bx-menu .bx-item', (ns) => ns.map((n) => n.innerText.trim()))).join('|') ===
+    'Open bookmark library|Remove bookmark',
 );
 await page.keyboard.press('Escape');
-await panel.evaluate(() => chrome.storage.local.remove('settings'));
+await panel.evaluate(() => chrome.storage.local.remove('bx.settings'));
 
 // --- side panel library
 await panel.bringToFront();
@@ -612,40 +600,40 @@ await page.evaluate((s) => {
   n.focus();
 }, sel('440322224407314432'));
 await page.keyboard.press('Enter');
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
+await page.waitForSelector('#bx-chip .bx-chip-action');
 await sleep(3500);
-check('keyboard save keeps the offer up longer than 3s', !!(await page.$('#sfx-chip')));
+check('keyboard save keeps the offer up longer than 3s', !!(await page.$('#bx-chip')));
 await page.keyboard.press('Tab');
 check(
   'Tab from the control enters the chip',
-  await page.evaluate(() => document.activeElement?.classList.contains('sfx-chip-action')),
+  await page.evaluate(() => document.activeElement?.classList.contains('bx-chip-action')),
 );
 await page.keyboard.down('Shift');
 await page.keyboard.press('Tab');
 await page.keyboard.up('Shift');
 check(
   'Shift+Tab returns to the control',
-  await page.evaluate(() => document.activeElement?.classList.contains('sfx-control')),
+  await page.evaluate(() => document.activeElement?.classList.contains('bx-control')),
 );
 await page.keyboard.press('Tab');
 await page.keyboard.press('Enter');
 check(
   'keyboard download completes',
-  await waitText(page, '#sfx-chip', /Downloaded/),
-  await text(page, '#sfx-chip'),
+  await waitText(page, '#bx-chip', /Downloaded/),
+  await text(page, '#bx-chip'),
 );
 await sleep(3500);
-check('focused chip is not removed from under the keyboard', !!(await page.$('#sfx-chip')));
+check('focused chip is not removed from under the keyboard', !!(await page.$('#bx-chip')));
 await page.keyboard.press('Escape');
 check(
   'Escape returns focus to the control',
-  !(await page.$('#sfx-chip')) &&
-    (await page.evaluate(() => document.activeElement?.classList.contains('sfx-control'))),
+  !(await page.$('#bx-chip')) &&
+    (await page.evaluate(() => document.activeElement?.classList.contains('bx-control'))),
 );
 
 // --- recycled article (virtualized list reuses the element for another post)
 await clickPost(page, '1100000000000000006');
-await page.waitForSelector('#sfx-menu');
+await page.waitForSelector('#bx-menu');
 await page.evaluate(() => {
   const a = document.querySelector(
     'article[data-post="1100000000000000006"] > a[href*="/status/"]',
@@ -653,11 +641,11 @@ await page.evaluate(() => {
   a.href = 'https://x.com/someoneelse/status/1100000000000000099';
 });
 await sleep(300);
-check('overlay closes when its post element is reused', !(await page.$('#sfx-menu')));
+check('overlay closes when its post element is reused', !(await page.$('#bx-menu')));
 check(
   'reused control shows the new post as unsaved',
   (await page.$eval(
-    'article[data-post="1100000000000000006"] .sfx-control',
+    'article[data-post="1100000000000000006"] .bx-control',
     (n) => n.dataset.saved,
   )) === 'false',
 );
@@ -699,16 +687,16 @@ await second.page.close();
 theme = 'dark';
 const dark = await openX();
 await clickPost(dark.page, '440322224407314432');
-await dark.page.waitForSelector('#sfx-menu');
+await dark.page.waitForSelector('#bx-menu');
 check(
   'overlays follow X dark theme',
-  (await dark.page.$eval('#sfx-menu', (n) => n.dataset.theme)) === 'dark',
+  (await dark.page.$eval('#bx-menu', (n) => n.dataset.theme)) === 'dark',
 );
 await dark.page.screenshot({ path: `${OUT}/13-dark-menu.png` });
 
 // --- reduced motion
 await dark.page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
-const anim = await dark.page.$eval('#sfx-menu', (n) => getComputedStyle(n).animationName);
+const anim = await dark.page.$eval('#bx-menu', (n) => getComputedStyle(n).animationName);
 check('reduced motion disables overlay animation', anim === 'none', anim);
 
 check(

@@ -4,7 +4,6 @@ import {
   ACCENTS,
   DEFAULT_SETTINGS,
   loadSettings,
-  migrateLegacyTheme,
   normalizeSettings,
   resetSettings,
   saveSettings,
@@ -48,12 +47,6 @@ describe('settings', () => {
     stop();
     await resetSettings();
     expect(await loadSettings()).toEqual(DEFAULT_SETTINGS);
-  });
-
-  it('migrate the old side-panel theme once and never overwrite newer settings', async () => {
-    expect((await migrateLegacyTheme('dark')).theme).toBe('dark');
-    await saveSettings({ theme: 'light' });
-    expect((await migrateLegacyTheme('dark')).theme).toBe('light');
   });
 
   it('every accent keeps small text at 4.5:1 or better', () => {

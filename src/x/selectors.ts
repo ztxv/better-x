@@ -472,7 +472,7 @@ export function extractPost(article: HTMLElement): BookmarkDraft | null {
 
 /** True when each of a row's children holds an icon control (reply, repost, like, …). */
 function isControlRow(row: Element): boolean {
-  const items = [...row.children].filter((child) => !child.classList.contains('sfx-control'));
+  const items = [...row.children].filter((child) => !child.classList.contains('bx-control'));
   return (
     items.length >= 4 &&
     items.every((item) => item.querySelector('button svg, a[href] svg')) &&

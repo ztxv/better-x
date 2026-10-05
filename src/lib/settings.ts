@@ -5,7 +5,7 @@
  * Settings never hold library data, so resetting them never deletes anything.
  */
 
-export const SETTINGS_KEY = 'settings';
+export const SETTINGS_KEY = 'bx.settings';
 export const SETTINGS_VERSION = 1;
 
 export type Theme = 'auto' | 'light' | 'dark';
@@ -161,16 +161,4 @@ export function watchSettings(listener: (settings: Settings) => void): () => voi
   };
   chrome.storage.onChanged.addListener(onChanged);
   return () => chrome.storage.onChanged.removeListener(onChanged);
-}
-
-/**
- * One-time migration of the side panel's old `localStorage` theme into shared settings.
- * Only runs when no shared settings exist yet, so it can never overwrite a newer choice.
- */
-export async function migrateLegacyTheme(legacy: string | null): Promise<Settings> {
-  const stored = await chrome.storage.local.get(SETTINGS_KEY);
-  if (stored[SETTINGS_KEY] !== undefined) return normalizeSettings(stored[SETTINGS_KEY]);
-  const settings = normalizeSettings({ theme: legacy });
-  await chrome.storage.local.set({ [SETTINGS_KEY]: settings });
-  return settings;
 }

@@ -804,16 +804,16 @@ button:disabled {
 }
 .item-menu,
 .collection-menu {
-  animation: sfx-panel-enter 140ms ease-out;
+  animation: bx-panel-enter 140ms ease-out;
   transform-origin: top right;
 }
 .editor {
-  animation: sfx-panel-enter 160ms ease-out;
+  animation: bx-panel-enter 160ms ease-out;
 }
 .toast {
-  animation: sfx-panel-enter 160ms ease-out;
+  animation: bx-panel-enter 160ms ease-out;
 }
-@keyframes sfx-panel-enter {
+@keyframes bx-panel-enter {
   from {
     opacity: 0;
     transform: translateY(3px) scale(0.985);

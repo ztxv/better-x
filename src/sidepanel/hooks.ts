@@ -3,17 +3,18 @@ import { request } from '../lib/api';
 import {
   ACCENTS,
   DEFAULT_SETTINGS,
-  migrateLegacyTheme,
+  loadSettings,
   normalizeSettings,
   saveSettings,
   watchSettings,
   type Settings,
   type SettingsPatch,
 } from '../lib/settings';
+import { DOWNLOADS_REVISION_KEY } from '../storage/db';
 import type { DownloadRecord } from '../types/model';
 
 /** The theme is also cached locally so the panel opens without a flash of the wrong theme. */
-const THEME_CACHE = 'theme';
+const THEME_CACHE = 'bx.theme';
 
 function applyAppearance(settings: Settings) {
   const root = document.documentElement;
@@ -51,8 +52,7 @@ export function useSettings() {
   }, [settings]);
   useEffect(() => {
     let active = true;
-    // The first run after this update copies the panel's old theme choice into shared settings.
-    void migrateLegacyTheme(cachedTheme()).then((loaded) => {
+    void loadSettings().then((loaded) => {
       if (!active) return;
       setSettings(loaded);
       setReady(true);
@@ -85,7 +85,7 @@ export function useDownloads() {
       .catch(() => {})
       .finally(() => void refresh());
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === 'local' && changes.downloadsRevision) void refresh();
+      if (area === 'local' && changes[DOWNLOADS_REVISION_KEY]) void refresh();
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);

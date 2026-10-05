@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { request } from '../lib/api';
 import { resetSettings } from '../lib/settings';
+import { LIBRARY_REVISION_KEY } from '../storage/db';
 import { validateExport } from '../lib/validation';
 import { exportDownloads, groupByPost, type PostDownloads } from '../downloads/history';
 import { downloadLabel, errorMessage } from '../downloads/messages';
@@ -108,7 +109,7 @@ function useLibrary() {
   useEffect(() => {
     void refresh();
     const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === 'local' && changes.libraryRevision) void refresh();
+      if (area === 'local' && changes[LIBRARY_REVISION_KEY]) void refresh();
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);

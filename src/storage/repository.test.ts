@@ -100,7 +100,7 @@ describe('backup import', () => {
   it('opens a version 1 database and keeps its bookmarks', async () => {
     // Create the original schema (version 1) with one bookmark, then open with the current code.
     await new Promise<void>((resolve, reject) => {
-      const open = indexedDB.open('saved-for-x', 1);
+      const open = indexedDB.open('better-x', 1);
       open.onupgradeneeded = () => {
         open.result.createObjectStore('bookmarks', { keyPath: 'id' });
         open.result.createObjectStore('collections', { keyPath: 'id' });

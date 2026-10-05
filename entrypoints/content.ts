@@ -24,6 +24,7 @@ import {
   type Settings,
 } from '../src/lib/settings';
 import { mediaKey } from '../src/media/urls';
+import { DOWNLOADS_REVISION_KEY, LIBRARY_REVISION_KEY } from '../src/storage/db';
 import type {
   Bookmark,
   BookmarkDraft,
@@ -109,11 +110,11 @@ export default defineContentScript({
 
     /* ------------------------------------------------------------------ settings */
 
-    const accentStyle = el('style', '', '', { id: 'sfx-accent' });
+    const accentStyle = el('style', '', '', { id: 'bx-accent' });
     function applySettings(next: Settings) {
       settings = next;
       // A scoped custom property only; X's own styles and markup are untouched.
-      accentStyle.textContent = `:root{--sfx-accent:${ACCENTS[next.accent].brand}}`;
+      accentStyle.textContent = `:root{--bx-accent:${ACCENTS[next.accent].brand}}`;
       if (!accentStyle.isConnected) (document.head ?? document.documentElement).append(accentStyle);
       // Hidden actions disappear from an open overlay right away.
       if (
@@ -184,7 +185,7 @@ export default defineContentScript({
     ): Overlay {
       closeOverlay();
       node.dataset.theme = xTheme();
-      node.id = `sfx-${kind}`;
+      node.id = `bx-${kind}`;
       document.body.append(node);
       const current: Overlay = { kind, node, anchor, tweetId, prefer, cleanup: [] };
       overlay = current;
@@ -294,7 +295,7 @@ export default defineContentScript({
     function showStatus(status: HTMLElement, text: string) {
       status.hidden = false;
       status.dataset.tone = 'error';
-      const line = el('span', 'sfx-status-text', text);
+      const line = el('span', 'bx-status-text', text);
       line.insertAdjacentHTML('afterbegin', ICONS.alert);
       status.replaceChildren(line);
     }
@@ -344,7 +345,7 @@ export default defineContentScript({
           text = done.length ? `${done.length} of ${count} downloaded. ${reason}` : reason;
           tone = 'error';
         } else text = done.length ? `${done.length} of ${count} downloaded` : 'Download cancelled';
-        const line = el('span', 'sfx-status-text', text);
+        const line = el('span', 'bx-status-text', text);
         if (tone)
           line.insertAdjacentHTML('afterbegin', tone === 'done' ? ICONS.check : ICONS.alert);
         status.dataset.tone = tone;
@@ -355,14 +356,14 @@ export default defineContentScript({
         const retryable = failed.filter((entry) => !OPEN_POST_ERRORS.has(entry.error));
         if (openPost)
           status.append(
-            el('a', 'sfx-link', 'Open post on X', {
+            el('a', 'bx-link', 'Open post on X', {
               href: openPost.choice.postUrl,
               target: '_blank',
               rel: 'noopener noreferrer',
             }),
           );
         if (retryable.length) {
-          const retry = button('sfx-link', 'Retry');
+          const retry = button('bx-link', 'Retry');
           retry.addEventListener('click', (event) => {
             event.stopPropagation();
             downloadInto(
@@ -404,7 +405,7 @@ export default defineContentScript({
           .catch(() => {});
 
       const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-        if (area === 'local' && changes.downloadsRevision) void refresh();
+        if (area === 'local' && changes[DOWNLOADS_REVISION_KEY]) void refresh();
       };
       chrome.storage.onChanged.addListener(listener);
       stopWatching = () => chrome.storage.onChanged.removeListener(listener);
@@ -445,22 +446,22 @@ export default defineContentScript({
 
     /** A small list of the post's media with previews; one click downloads that item. */
     function chooser(current: Overlay, choices: Choice[], body: HTMLElement, status: HTMLElement) {
-      body.replaceChildren(el('div', 'sfx-menu-heading', 'Download media'));
-      const list = el('div', 'sfx-choices');
+      body.replaceChildren(el('div', 'bx-menu-heading', 'Download media'));
+      const list = el('div', 'bx-choices');
       let inQuote = false;
       for (const choice of choices) {
-        if (choice.quoted && !inQuote) list.append(el('div', 'sfx-group', 'From the quoted post'));
+        if (choice.quoted && !inQuote) list.append(el('div', 'bx-group', 'From the quoted post'));
         inQuote = choice.quoted;
-        const item = button('sfx-choice', choice.label);
+        const item = button('bx-choice', choice.label);
         item.setAttribute('aria-label', `Download ${choice.label.toLowerCase()}`);
-        const thumb = el('span', 'sfx-thumb');
+        const thumb = el('span', 'bx-thumb');
         if (choice.item.thumbnailUrl) {
           const image = el('img', '', '', { alt: '', referrerpolicy: 'no-referrer' });
           image.src = choice.item.thumbnailUrl;
           image.addEventListener('error', () => image.remove());
           thumb.append(image);
         }
-        if (choice.item.kind === 'gif') thumb.append(el('span', 'sfx-badge', 'GIF'));
+        if (choice.item.kind === 'gif') thumb.append(el('span', 'bx-badge', 'GIF'));
         if (choice.item.kind === 'video') thumb.insertAdjacentHTML('beforeend', ICONS.play);
         item.prepend(thumb);
         item.addEventListener('click', (event) => {
@@ -475,7 +476,7 @@ export default defineContentScript({
       const group = own.length ? own : choices;
       if (group.length > 1) {
         const all = button(
-          'sfx-primary',
+          'bx-primary',
           own.length ? `Download all (${group.length})` : `Download all quoted (${group.length})`,
           ICONS.download,
         );
@@ -496,17 +497,17 @@ export default defineContentScript({
       const choices = choicesFor(draft);
       const offer =
         settings.downloadsEnabled && settings.afterSave === 'downloadOffer' && choices.length > 0;
-      const node = el('div', 'sfx-chip', '', { role: 'group', 'aria-label': PRODUCT_NAME });
-      const label = el('span', 'sfx-chip-label', 'Saved', { role: 'status' });
+      const node = el('div', 'bx-chip', '', { role: 'group', 'aria-label': PRODUCT_NAME });
+      const label = el('span', 'bx-chip-label', 'Saved', { role: 'status' });
       label.insertAdjacentHTML('afterbegin', ICONS.check);
       node.append(label);
       if (!offer) node.dataset.plain = '';
-      const status = el('div', 'sfx-status', '', { role: 'status', 'aria-live': 'polite' });
+      const status = el('div', 'bx-status', '', { role: 'status', 'aria-live': 'polite' });
       status.hidden = true;
       if (offer) {
         const own = choices.filter((choice) => !choice.quoted);
-        const dot = el('span', 'sfx-dot', '', { 'aria-hidden': 'true' });
-        const action = button('sfx-chip-action', 'Download', ICONS.download);
+        const dot = el('span', 'bx-dot', '', { 'aria-hidden': 'true' });
+        const action = button('bx-chip-action', 'Download', ICONS.download);
         action.dataset.download = '';
         action.setAttribute(
           'aria-label',
@@ -538,17 +539,17 @@ export default defineContentScript({
     }
 
     function showSaveError(control: HTMLButtonElement, draft: BookmarkDraft, article: HTMLElement) {
-      const node = el('div', 'sfx-chip', '', { role: 'alert' });
+      const node = el('div', 'bx-chip', '', { role: 'alert' });
       node.dataset.tone = 'error';
-      const label = el('span', 'sfx-chip-label', 'Could not save');
+      const label = el('span', 'bx-chip-label', 'Could not save');
       label.insertAdjacentHTML('afterbegin', ICONS.alert);
-      const retry = button('sfx-chip-action', 'Retry');
+      const retry = button('bx-chip-action', 'Retry');
       retry.addEventListener('click', (event) => {
         event.stopPropagation();
         closeOverlay();
         void savePost(control, article, draft);
       });
-      node.append(label, el('span', 'sfx-dot', '', { 'aria-hidden': 'true' }), retry);
+      node.append(label, el('span', 'bx-dot', '', { 'aria-hidden': 'true' }), retry);
       idleTimer(openOverlay('chip', node, control, draft.tweetId, 'above'), ERROR_IDLE_MS);
     }
 
@@ -558,9 +559,9 @@ export default defineContentScript({
       const id = draft.tweetId;
       const choices = choicesFor(draft);
       const own = choices.filter((choice) => !choice.quoted);
-      const node = el('div', 'sfx-menu', '', { role: 'dialog', 'aria-label': PRODUCT_NAME });
-      const body = el('div', 'sfx-menu-body');
-      const status = el('div', 'sfx-status', '', { role: 'status', 'aria-live': 'polite' });
+      const node = el('div', 'bx-menu', '', { role: 'dialog', 'aria-label': PRODUCT_NAME });
+      const body = el('div', 'bx-menu-body');
+      const status = el('div', 'bx-status', '', { role: 'status', 'aria-live': 'polite' });
       status.hidden = true;
       node.append(body, status);
       const current = openOverlay('menu', node, control, id, 'below');
@@ -573,7 +574,7 @@ export default defineContentScript({
         const label = own.length
           ? downloadLabel(own.map((choice) => choice.item))
           : downloadLabel([], true);
-        const download = button('sfx-item', label, ICONS.download);
+        const download = button('bx-item', label, ICONS.download);
         download.dataset.download = '';
         download.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -584,7 +585,7 @@ export default defineContentScript({
         body.append(download);
       }
       if (settings.menuActions.openLibrary) {
-        const library = button('sfx-item', 'Open bookmark library');
+        const library = button('bx-item', 'Open bookmark library');
         library.addEventListener('click', (event) => {
           event.stopPropagation();
           library.disabled = true;
@@ -600,10 +601,9 @@ export default defineContentScript({
         });
         body.append(library);
       }
-      if (body.childElementCount)
-        body.append(el('div', 'sfx-separator', '', { role: 'separator' }));
+      if (body.childElementCount) body.append(el('div', 'bx-separator', '', { role: 'separator' }));
       // Always present, so a saved post can always be managed from the page.
-      const remove = button('sfx-item sfx-danger', 'Remove bookmark');
+      const remove = button('bx-item bx-danger', 'Remove bookmark');
       remove.addEventListener('click', (event) => {
         event.stopPropagation();
         remove.disabled = true;
@@ -681,7 +681,7 @@ export default defineContentScript({
         const row = control.parentElement;
         const native = row
           ? [...row.querySelectorAll<HTMLElement>('button, a[href]')].filter(
-              (item) => !item.closest('.sfx-control') && item.querySelector('svg'),
+              (item) => !item.closest('.bx-control') && item.querySelector('svg'),
             )
           : [];
         // The last visible native icon; narrow layouts can hide part of the row.
@@ -695,8 +695,8 @@ export default defineContentScript({
       });
       for (const { control, glyph, box } of jobs) {
         const size = Math.min(Math.max(glyph.height, 14), 32);
-        control.style.setProperty('--sfx-icon', `${size}px`);
-        control.style.setProperty('--sfx-box', `${Math.min(Math.max(box, size), 48)}px`);
+        control.style.setProperty('--bx-icon', `${size}px`);
+        control.style.setProperty('--bx-box', `${Math.min(Math.max(box, size), 48)}px`);
       }
       const offsets = jobs.map(({ control, glyph }) => {
         const own = control.querySelector('svg')?.getBoundingClientRect();
@@ -708,7 +708,7 @@ export default defineContentScript({
       jobs.forEach(({ control }, index) => {
         const offset = offsets[index] ?? 0;
         control.dataset.offset = String(offset);
-        control.style.setProperty('--sfx-dy', `${offset}px`);
+        control.style.setProperty('--bx-dy', `${offset}px`);
       });
     }
 
@@ -729,7 +729,7 @@ export default defineContentScript({
       if (article.parentElement?.closest(X_SELECTORS.post)) return;
       const identity = postIdentity(article);
       if (!identity) return;
-      const existing = article.querySelector<HTMLButtonElement>('.sfx-control');
+      const existing = article.querySelector<HTMLButtonElement>('.bx-control');
       if (existing?.closest(X_SELECTORS.post) === article) {
         if (buttons.get(existing) !== identity.tweetId) {
           // X reused this article for another post: drop any overlay for the old one.
@@ -744,7 +744,7 @@ export default defineContentScript({
       const row = actionRow(article);
       if (!row) return;
       const control = document.createElement('button');
-      control.className = 'sfx-control';
+      control.className = 'bx-control';
       control.type = 'button';
       control.innerHTML = icon;
       buttons.set(control, identity.tweetId);
@@ -815,7 +815,7 @@ export default defineContentScript({
       resizeTimer = window.setTimeout(() => queueAlign(), 150);
     });
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && changes.libraryRevision) void refreshSaved();
+      if (area === 'local' && changes[LIBRARY_REVISION_KEY]) void refreshSaved();
     });
   },
 });

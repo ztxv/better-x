@@ -3,8 +3,14 @@
  * 1. `bookmarks` and `collections` (keyed by `id`).
  * 2. `downloads` (keyed by `id`) with indexes on `tweetId`, `chromeId`, and `status`.
  * Upgrades only add stores and indexes, so existing bookmarks and collections are untouched.
+ * The schema is the one Saved for X used; Better X opens it under its own name, so it starts
+ * empty and receives existing libraries through backup import.
  */
-const DB_NAME = 'saved-for-x';
+const DB_NAME = 'better-x';
+
+/** `chrome.storage.local` keys that tell every open view the library or history changed. */
+export const LIBRARY_REVISION_KEY = 'bx.libraryRevision';
+export const DOWNLOADS_REVISION_KEY = 'bx.downloadsRevision';
 export const DB_VERSION = 2;
 let opening: Promise<IDBDatabase> | null = null;
 
@@ -67,10 +73,10 @@ export function done(transaction: IDBTransaction): Promise<void> {
 
 /** Tells every open view that bookmarks or collections changed. */
 export async function libraryChanged(): Promise<void> {
-  await chrome.storage.local.set({ libraryRevision: Date.now() + Math.random() });
+  await chrome.storage.local.set({ [LIBRARY_REVISION_KEY]: Date.now() + Math.random() });
 }
 
 /** Tells every open view that download history changed (kept separate from the library). */
 export async function downloadsChanged(): Promise<void> {
-  await chrome.storage.local.set({ downloadsRevision: Date.now() + Math.random() });
+  await chrome.storage.local.set({ [DOWNLOADS_REVISION_KEY]: Date.now() + Math.random() });
 }

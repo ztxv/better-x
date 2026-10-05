@@ -38,11 +38,11 @@ page.on('request', (r) =>
       : r.continue(),
 );
 await page.goto('https://x.com/home');
-await page.waitForSelector('.sfx-control');
-const s = `article[data-post="${ELON}"] .sfx-control`;
+await page.waitForSelector('.bx-control');
+const s = `article[data-post="${ELON}"] .bx-control`;
 await page.evaluate((s) => document.querySelector(s).scrollIntoView({ block: 'center' }), s);
 await page.click(s);
-await page.waitForSelector('#sfx-chip .sfx-chip-action');
+await page.waitForSelector('#bx-chip .bx-chip-action');
 // Find the worker's version so it can be stopped from the browser side.
 const session = await browser.target().createCDPSession();
 const versions = new Map();
@@ -56,7 +56,7 @@ pageSession.on('ServiceWorker.workerVersionUpdated', (e) =>
 await pageSession
   .send('ServiceWorker.enable')
   .catch((e) => console.log('enable failed', e.message));
-await page.click('#sfx-chip .sfx-chip-action');
+await page.click('#bx-chip .bx-chip-action');
 // Stop the worker as soon as Chrome has accepted the download (its ID is bound).
 const watcher = await browser.newPage();
 await watcher.goto(`chrome-extension://${extId}/sidepanel.html`, { waitUntil: 'domcontentloaded' });

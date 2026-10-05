@@ -119,11 +119,11 @@ async function run(withExtension) {
 
     const started = Date.now();
     await page.goto('https://x.com/home', { waitUntil: 'load' });
-    const controls = () => page.evaluate(() => document.querySelectorAll('.sfx-control').length);
+    const controls = () => page.evaluate(() => document.querySelectorAll('.bx-control').length);
     const waitControls = async (count) => {
       if (!withExtension) return;
       await page.waitForFunction(
-        (n) => document.querySelectorAll('.sfx-control').length >= n,
+        (n) => document.querySelectorAll('.bx-control').length >= n,
         {
           timeout: 15000,
           polling: 'raf',
