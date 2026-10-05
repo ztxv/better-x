@@ -48,3 +48,19 @@ Same session, alternating builds, two rounds of 5 runs per mode. On − off delt
 | DOM nodes                | 1403        | 1403        |
 
 No difference beyond run-to-run spread: the rebrand changed names only.
+
+## Stage 2A.1 comparison (2026-10-05)
+
+The shared runtime lifecycle and a managed content observer, with no intended behavior change. Same session, alternating the build from just before the stage with the Stage 2A.1 build, four rounds of 5 runs per mode. On − off delta of medians, one value per round:
+
+| Metric                   | Before 2A.1            | Stage 2A.1             |
+| ------------------------ | ---------------------- | ---------------------- |
+| ScriptDuration (ms)      | 12.8, 12.6, 12.5, 12.5 | 13.4, 12.8, 13.2, 13.0 |
+| TaskDuration (ms)        | 39.3, 42.3, 37.5, 40.0 | 41.9, 41.2, 41.4, 41.0 |
+| RecalcStyleDuration (ms) | 8.5, 8.4, 8.2, 8.2     | 8.6, 8.4, 8.6, 8.5     |
+| LayoutDuration (ms)      | -1.3, 1.8, -1.7, -0.9  | -0.6, 0.6, -0.2, 0.4   |
+| JSHeapUsedSize (MB)      | 1.01, 1.02, 1.01, 1.02 | 1.10, 1.10, 1.12, 1.10 |
+| scrollMs                 | 146, 144, 145, 147     | 151, 142, 151, 149     |
+| DOM nodes, long tasks    | 1403, 0                | 1403, 0                |
+
+Script and task time are inside the reference's own round-to-round spread (script about +0.4 ms on 12.5, task within its spread). JS heap is consistently about 0.09 MB higher at the end of the run, which is outside the heap's own spread (cv under 0.5%); after a forced GC the retained difference is 0.02 MB (0.55 vs 0.57), so most of it is allocation not yet collected, not retained memory. Removing the `ctx.isValid` check from the observer did not change the heap difference. Treated as small and not pursued further; compare against this table, not the 0.2.0 baseline, for later stages.
