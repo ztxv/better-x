@@ -1,12 +1,13 @@
 import { defineConfig } from 'wxt';
 import react from '@vitejs/plugin-react';
+import { PRODUCT_NAME } from './src/lib/brand';
 
 export default defineConfig({
   modules: [],
   vite: () => ({ plugins: [react()] }),
   manifest: {
-    name: 'Saved for X',
-    description: 'A private, organized library for posts you save on X.',
+    name: PRODUCT_NAME,
+    description: 'Save, organize, and download posts from X in a private, local library.',
     version: '0.2.0',
     minimum_chrome_version: '116',
     // `downloads` saves media through the browser's own downloader. The host permissions are
@@ -18,7 +19,7 @@ export default defineConfig({
       'https://video.twimg.com/*',
       'https://cdn.syndication.twimg.com/*',
     ],
-    action: { default_title: 'Open Saved for X' },
+    action: { default_title: `Open ${PRODUCT_NAME}` },
     icons: {
       16: 'icons/icon-16.png',
       32: 'icons/icon-32.png',

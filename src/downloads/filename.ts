@@ -1,7 +1,7 @@
 import type { MediaKind } from '../types/model';
 
 /** The folder, inside the browser's download directory, that every file is saved under. */
-export const DOWNLOAD_FOLDER = 'Saved-for-X';
+export const DOWNLOAD_FOLDER = 'Better-X';
 
 const EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -30,7 +30,7 @@ const component = (value: string | null, fallback: string) =>
   (value ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || fallback;
 
 /**
- * `Saved-for-X/{handle}_{postId}_{n}.{ext}`. Every part is reduced to a safe character set,
+ * `Better-X/{handle}_{postId}_{n}.{ext}`. Every part is reduced to a safe character set,
  * so the result can never be absolute, contain `..`, or leave the download folder.
  */
 export function downloadPath(

@@ -376,7 +376,7 @@ export function App() {
     );
     const link = document.createElement('a');
     link.href = url;
-    link.download = `saved-for-x-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `better-x-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -429,8 +429,8 @@ export function App() {
             <BookmarkIcon className="brand-glyph" size={22} strokeWidth={1.8} />
           </span>
           <div>
-            <strong>Saved</strong>
-            <span>for X</span>
+            <strong>Better</strong>
+            <span>X</span>
           </div>
         </div>
         <button

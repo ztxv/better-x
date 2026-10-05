@@ -140,7 +140,7 @@ export function DownloadDialog({
           <div>
             <h2 id="download-title">Download media</h2>
             <p>
-              Files save to your Downloads folder, in <code>Saved-for-X</code>.
+              Files save to your Downloads folder, in <code>Better-X</code>.
             </p>
           </div>
           <button ref={closeRef} className="icon-button" aria-label="Close" onClick={onClose}>

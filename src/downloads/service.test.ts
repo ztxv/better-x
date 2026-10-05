@@ -65,7 +65,7 @@ function fakeDownloader() {
     api,
     items,
     started,
-    finish(id: number, filename = `/Users/me/Downloads/Saved-for-X/file_${id}.jpg`) {
+    finish(id: number, filename = `/Users/me/Downloads/Better-X/file_${id}.jpg`) {
       Object.assign(items.get(id)!, { state: 'complete', filename });
     },
     fail(id: number, error: string) {
@@ -133,14 +133,14 @@ describe('download lifecycle', () => {
     expect(result.outcomes).toMatchObject([{ status: 'started' }]);
     expect(chrome.started[0]).toMatchObject({
       url: orig('P1'),
-      filename: `Saved-for-X/author_${POST}_1.jpg`,
+      filename: `Better-X/author_${POST}_1.jpg`,
       conflictAction: 'uniquify',
       saveAs: false,
     });
     let [record] = await downloads.list();
     expect(record).toMatchObject({ status: 'inProgress', chromeId: 1, completedAt: null });
 
-    chrome.finish(1, '/Users/me/Downloads/Saved-for-X/author_1_1 (1).jpg');
+    chrome.finish(1, '/Users/me/Downloads/Better-X/author_1_1 (1).jpg');
     await svc.onChanged({ id: 1, state: { current: 'complete', previous: 'in_progress' } });
     [record] = await downloads.list();
     expect(record).toMatchObject({ status: 'complete', filename: 'author_1_1 (1).jpg' });
@@ -249,7 +249,7 @@ describe('download lifecycle', () => {
     ]);
     expect(chrome.started).toHaveLength(0);
     await svc.start([target(0, 'img:Q1', 'quote')]);
-    expect(chrome.started[0]!.filename).toBe('Saved-for-X/quoted_42_1.jpg');
+    expect(chrome.started[0]!.filename).toBe('Better-X/quoted_42_1.jpg');
     expect((await downloads.list())[0]).toMatchObject({
       sourceTweetId: '42',
       mediaKey: '42:img:Q1',

@@ -105,13 +105,13 @@ const waitText = (page, s, re, timeout = 30000) =>
     .catch(() => false);
 const files = () => {
   try {
-    return fs.readdirSync(path.join(DL, 'Saved-for-X')).sort();
+    return fs.readdirSync(path.join(DL, 'Better-X')).sort();
   } catch {
     return [];
   }
 };
 const fileInfo = (name) => {
-  const p = path.join(DL, 'Saved-for-X', name);
+  const p = path.join(DL, 'Better-X', name);
   const head = fs.readFileSync(p).subarray(0, 12);
   return {
     size: fs.statSync(p).size,
@@ -183,7 +183,7 @@ const photoName = 'TheEllenShow_440322224407314432_1.jpg';
 check(
   'photo file saved at original resolution',
   (await waitFile(photoName)) && fileInfo(photoName).jpeg && fileInfo(photoName).size > 150000,
-  JSON.stringify(fs.existsSync(path.join(DL, 'Saved-for-X', photoName)) && fileInfo(photoName)),
+  JSON.stringify(fs.existsSync(path.join(DL, 'Better-X', photoName)) && fileInfo(photoName)),
 );
 await page.screenshot({ captureBeyondViewport: false, path: `${OUT}/03-photo-downloaded.png` });
 await page.keyboard.press('Escape');
@@ -201,7 +201,7 @@ const gifName = 'gifposter_1100000000000000003_1.mp4';
 check(
   'GIF saved as a real MP4',
   (await waitFile(gifName)) && fileInfo(gifName).mp4,
-  fs.existsSync(path.join(DL, 'Saved-for-X', gifName))
+  fs.existsSync(path.join(DL, 'Better-X', gifName))
     ? JSON.stringify(fileInfo(gifName))
     : 'missing',
 );
@@ -220,7 +220,7 @@ const vidName = `elonmusk_${ELON}_1.mp4`;
 check(
   'video saved as an MP4 file (not the poster)',
   (await waitFile(vidName, 90000)) && fileInfo(vidName).mp4 && fileInfo(vidName).size > 1_000_000,
-  fs.existsSync(path.join(DL, 'Saved-for-X', vidName))
+  fs.existsSync(path.join(DL, 'Better-X', vidName))
     ? JSON.stringify(fileInfo(vidName))
     : 'missing',
 );

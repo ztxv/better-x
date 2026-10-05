@@ -36,7 +36,7 @@ export function validateExport(input: unknown): ExportData {
     input.bookmarks.length > 100000 ||
     input.collections.length > 10000
   ) {
-    throw new Error('This is not a valid Saved for X export.');
+    throw new Error('This is not a valid Better X or Saved for X backup.');
   }
   const collections: Collection[] = input.collections.map((value) => {
     if (

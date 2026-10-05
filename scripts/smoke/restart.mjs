@@ -106,8 +106,8 @@ const records = await panel.evaluate(async () =>
   })),
 );
 console.log('records after restart:', JSON.stringify(records));
-const files = fs.existsSync(path.join(DL, 'Saved-for-X'))
-  ? fs.readdirSync(path.join(DL, 'Saved-for-X'))
+const files = fs.existsSync(path.join(DL, 'Better-X'))
+  ? fs.readdirSync(path.join(DL, 'Better-X'))
   : [];
 console.log('files:', files.join(', '));
 console.log(

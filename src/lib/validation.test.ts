@@ -140,7 +140,7 @@ describe('import validation', () => {
       snapshot,
       createdAt: '2026-10-01T00:00:00.000Z',
       completedAt: '2026-10-01T00:00:05.000Z',
-      filename: '/Users/me/Downloads/Saved-for-X/alice_123_1.jpg',
+      filename: '/Users/me/Downloads/Better-X/alice_123_1.jpg',
       chromeId: 7,
       url: 'https://pbs.twimg.com/media/AbC?format=jpg&name=orig',
       status: 'complete',

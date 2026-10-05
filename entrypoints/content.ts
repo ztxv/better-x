@@ -15,6 +15,7 @@ import {
   OPEN_POST_ERRORS,
 } from '../src/downloads/messages';
 import { request } from '../src/lib/api';
+import { PRODUCT_NAME } from '../src/lib/brand';
 import {
   ACCENTS,
   DEFAULT_SETTINGS,
@@ -135,9 +136,9 @@ export default defineContentScript({
       control.dataset.saved = String(isSaved);
       control.setAttribute(
         'aria-label',
-        isSaved ? 'Saved to Saved for X. Manage bookmark' : 'Save post to Saved for X',
+        isSaved ? `Saved to ${PRODUCT_NAME}. Manage bookmark` : `Save post to ${PRODUCT_NAME}`,
       );
-      control.title = isSaved ? 'Saved for X' : 'Save to Saved for X';
+      control.title = isSaved ? `Saved in ${PRODUCT_NAME}` : `Save to ${PRODUCT_NAME}`;
     }
 
     const renderAll = (id?: string) =>
@@ -495,7 +496,7 @@ export default defineContentScript({
       const choices = choicesFor(draft);
       const offer =
         settings.downloadsEnabled && settings.afterSave === 'downloadOffer' && choices.length > 0;
-      const node = el('div', 'sfx-chip', '', { role: 'group', 'aria-label': 'Saved for X' });
+      const node = el('div', 'sfx-chip', '', { role: 'group', 'aria-label': PRODUCT_NAME });
       const label = el('span', 'sfx-chip-label', 'Saved', { role: 'status' });
       label.insertAdjacentHTML('afterbegin', ICONS.check);
       node.append(label);
@@ -557,7 +558,7 @@ export default defineContentScript({
       const id = draft.tweetId;
       const choices = choicesFor(draft);
       const own = choices.filter((choice) => !choice.quoted);
-      const node = el('div', 'sfx-menu', '', { role: 'dialog', 'aria-label': 'Saved for X' });
+      const node = el('div', 'sfx-menu', '', { role: 'dialog', 'aria-label': PRODUCT_NAME });
       const body = el('div', 'sfx-menu-body');
       const status = el('div', 'sfx-status', '', { role: 'status', 'aria-live': 'polite' });
       status.hidden = true;
@@ -591,7 +592,10 @@ export default defineContentScript({
             .then(() => closeOverlay())
             .catch(() => {
               library.disabled = false;
-              showStatus(status, 'Could not open the library. Use the Saved for X toolbar icon.');
+              showStatus(
+                status,
+                `Could not open the library. Use the ${PRODUCT_NAME} toolbar icon.`,
+              );
             });
         });
         body.append(library);
