@@ -131,7 +131,9 @@ export default defineContentScript({
 
     function renderState(control: HTMLButtonElement, id: string) {
       const isSaved = saved.has(id) || saving.has(id);
-      control.disabled = saving.has(id);
+      // Not `disabled`: Chrome blurs a focused control that stays disabled across a frame, which
+      // would drop a keyboard user's focus while the save is in flight. Clicks are ignored instead.
+      control.setAttribute('aria-disabled', String(saving.has(id)));
       control.setAttribute('aria-busy', String(saving.has(id)));
       control.setAttribute('aria-pressed', String(isSaved));
       control.dataset.saved = String(isSaved);
@@ -752,6 +754,7 @@ export default defineContentScript({
       control.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (saving.has(buttons.get(control) ?? '')) return;
         const draft = extractPost(article);
         if (!draft) return;
         if (saved.has(draft.tweetId)) {

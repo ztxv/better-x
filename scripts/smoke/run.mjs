@@ -603,10 +603,15 @@ await page.keyboard.press('Enter');
 await page.waitForSelector('#bx-chip .bx-chip-action');
 await sleep(3500);
 check('keyboard save keeps the offer up longer than 3s', !!(await page.$('#bx-chip')));
+// The save must leave focus on the control (Chrome blurs a focused control that is disabled).
+const focusedBeforeTab = await page.evaluate(
+  () => document.activeElement?.className || document.activeElement?.tagName,
+);
 await page.keyboard.press('Tab');
 check(
   'Tab from the control enters the chip',
   await page.evaluate(() => document.activeElement?.classList.contains('bx-chip-action')),
+  `focus before Tab: ${focusedBeforeTab}`,
 );
 await page.keyboard.down('Shift');
 await page.keyboard.press('Tab');

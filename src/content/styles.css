@@ -68,20 +68,20 @@
 .bx-control[data-saved='true'] svg path:last-child {
   fill-opacity: 1;
 }
-.bx-control:hover:not(:disabled)::before,
+.bx-control:hover:not([aria-busy='true'])::before,
 .bx-control[data-saved='true']::before {
   background: color-mix(in srgb, var(--bx-color) 10%, transparent);
 }
-.bx-control[data-saved='true']:hover:not(:disabled)::before {
+.bx-control[data-saved='true']:hover:not([aria-busy='true'])::before {
   background: color-mix(in srgb, var(--bx-color) 18%, transparent);
 }
 .bx-control:focus-visible::before {
   box-shadow: 0 0 0 2px var(--bx-color);
 }
-.bx-control:active:not(:disabled) {
+.bx-control:active:not([aria-busy='true']) {
   transform: scale(0.88);
 }
-.bx-control:disabled {
+.bx-control[aria-busy='true'] {
   cursor: progress;
   opacity: 0.7;
 }
@@ -446,7 +446,7 @@
     animation: none !important;
     transition: none !important;
   }
-  .bx-control:active:not(:disabled) {
+  .bx-control:active:not([aria-busy='true']) {
     transform: none;
   }
 }
