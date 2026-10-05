@@ -32,4 +32,19 @@ Chrome 154 headless, macOS (Apple M4), 5 runs per mode (`baseline-0.2.0.json`). 
 - `initialMs` is noisy (cv up to about 15%) because it is only a few milliseconds; use it for large changes only. Off-mode `ScriptDuration` is near zero, so its cv is meaningless.
 - `scrollMs` in "on" mode includes the harness polling for controls each frame, so it is an upper bound, not pure extension time.
 - No long tasks occur at this fixture size, so the long-task metrics only show regressions that cross the 50 ms threshold.
-- Numbers depend on the machine and Chrome version; compare runs from the same machine and record the environment (the JSON does).
+- Numbers depend on the machine, Chrome version, and current load, and shift between sessions on the same machine (Stage 1A measured the unchanged 0.2.0 build about 15% higher in script and task time than Stage 0 did). For a real comparison, measure the reference build in the same session, alternating with the new build: `node scripts/perf/run.mjs ../saved-for-x` measures the shipped 0.2.0 build (the harness recognizes both its `.sfx-control` and Better X's `.bx-control`).
+
+## Stage 1A comparison (2026-10-05)
+
+Same session, alternating builds, two rounds of 5 runs per mode. On − off delta of medians:
+
+| Metric                   | 0.2.0 build | Better X 1A |
+| ------------------------ | ----------- | ----------- |
+| ScriptDuration (ms)      | 14.1, 14.6  | 14.4, 14.9  |
+| TaskDuration (ms)        | 49.8, 51.6  | 46.4, 48.3  |
+| RecalcStyleDuration (ms) | 8.6, 9.2    | 8.6, 9.6    |
+| LayoutDuration (ms)      | 0.9, 1.8    | 1.4, 1.5    |
+| JSHeapUsedSize (MB)      | 1.02, 1.02  | 1.02, 1.01  |
+| DOM nodes                | 1403        | 1403        |
+
+No difference beyond run-to-run spread: the rebrand changed names only.

@@ -34,6 +34,9 @@ const INITIAL = 20;
 const BATCH = 20;
 const BATCHES = 9; // 20 + 9 × 20 = 200 posts
 const TOTAL = INITIAL + BATCH * BATCHES;
+/** The injected save control. `.sfx-control` is the Saved for X 0.2.0 name, kept so the
+ * baseline build (perf/baseline-0.2.0.json) can still be measured side by side. */
+const CONTROL = '.bx-control, .sfx-control';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
@@ -119,16 +122,17 @@ async function run(withExtension) {
 
     const started = Date.now();
     await page.goto('https://x.com/home', { waitUntil: 'load' });
-    const controls = () => page.evaluate(() => document.querySelectorAll('.bx-control').length);
+    const controls = () => page.evaluate((c) => document.querySelectorAll(c).length, CONTROL);
     const waitControls = async (count) => {
       if (!withExtension) return;
       await page.waitForFunction(
-        (n) => document.querySelectorAll('.bx-control').length >= n,
+        (n, c) => document.querySelectorAll(c).length >= n,
         {
           timeout: 15000,
           polling: 'raf',
         },
         count,
+        CONTROL,
       );
     };
     await waitControls(INITIAL);
