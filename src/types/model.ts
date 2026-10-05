@@ -1,5 +1,7 @@
 export const SCHEMA_VERSION = 3;
-export const EXPORT_VERSION = 3;
+/** Better X backups. Imports also accept older formats; see `src/lib/backup.ts`. */
+export const EXPORT_FORMAT = 'better-x';
+export const EXPORT_VERSION = 1;
 
 export type MediaKind = 'image' | 'video' | 'gif';
 
@@ -85,7 +87,7 @@ export interface Library {
   collections: Collection[];
 }
 export interface ExportData extends Library {
-  format: 'saved-for-x';
+  format: typeof EXPORT_FORMAT;
   version: typeof EXPORT_VERSION;
   exportedAt: string;
   /** Completed download history (metadata only, never files or local file paths). */

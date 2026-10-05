@@ -1,4 +1,5 @@
 import {
+  EXPORT_FORMAT,
   EXPORT_VERSION,
   SCHEMA_VERSION,
   type Bookmark,
@@ -8,6 +9,7 @@ import {
   type MediaKind,
 } from '../types/model';
 import { displayName } from '../downloads/filename';
+import { upgradeBackup } from './backup';
 import { isMediaKey } from '../media/urls';
 import { parsePostUrl } from '../x/url';
 import { cleanContext, cleanSnapshot, safeImageUrl } from './context';
@@ -24,21 +26,23 @@ export function normalizeTag(input: string): string {
   return input.trim().replace(/^#+/, '').replace(/\s+/g, '-').slice(0, 40).toLowerCase();
 }
 
+/**
+ * Checks a backup of any importable format (see `src/lib/backup.ts`) and returns it as a current
+ * Better X backup. Format and version problems, then malformed lists or records, are rejected
+ * with a message; unsafe optional fields and invalid history entries are dropped instead.
+ */
 export function validateExport(input: unknown): ExportData {
+  const upgraded = upgradeBackup(isRecord(input) ? input : {});
+  const { bookmarks: rawBookmarks, collections: rawCollections } = upgraded;
   if (
-    !isRecord(input) ||
-    input.format !== 'saved-for-x' ||
-    // Version 1 files predate post context; their bookmarks import with empty context.
-    // Versions 1 and 2 predate download history.
-    (input.version !== 1 && input.version !== 2 && input.version !== EXPORT_VERSION) ||
-    !Array.isArray(input.bookmarks) ||
-    !Array.isArray(input.collections) ||
-    input.bookmarks.length > 100000 ||
-    input.collections.length > 10000
+    !Array.isArray(rawBookmarks) ||
+    !Array.isArray(rawCollections) ||
+    rawBookmarks.length > 100000 ||
+    rawCollections.length > 10000
   ) {
-    throw new Error('This is not a valid Better X or Saved for X backup.');
+    throw new Error('This backup is damaged: its bookmark or collection list is missing.');
   }
-  const collections: Collection[] = input.collections.map((value) => {
+  const collections: Collection[] = rawCollections.map((value) => {
     if (
       !isRecord(value) ||
       !validText(value.id, 100) ||
@@ -52,7 +56,7 @@ export function validateExport(input: unknown): ExportData {
       createdAt: value.createdAt as string,
     };
   });
-  const bookmarks: Bookmark[] = input.bookmarks.map((value) => {
+  const bookmarks: Bookmark[] = rawBookmarks.map((value) => {
     if (
       !isRecord(value) ||
       !validText(value.id, 100) ||
@@ -95,12 +99,12 @@ export function validateExport(input: unknown): ExportData {
   for (const bookmark of bookmarks)
     if (bookmark.collectionId && !known.has(bookmark.collectionId)) bookmark.collectionId = null;
   return {
-    format: 'saved-for-x',
+    format: EXPORT_FORMAT,
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     bookmarks,
     collections,
-    downloads: cleanDownloads(input.downloads),
+    downloads: cleanDownloads(upgraded.downloads),
   };
 }
 

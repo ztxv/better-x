@@ -1,0 +1,44 @@
+{
+  "format": "saved-for-x",
+  "version": 1,
+  "exportedAt": "2026-01-05T00:00:00.000Z",
+  "bookmarks": [
+    {
+      "id": "1700000000000000001",
+      "tweetId": "1700000000000000001",
+      "url": "https://twitter.com/example_author/status/1700000000000000001?s=20",
+      "authorHandle": "example_author",
+      "authorDisplayName": "Example Author",
+      "authorAvatarUrl": "https://pbs.twimg.com/profile_images/1/example_normal.jpg",
+      "text": "A synthetic post with a photo, a quote, and a link.",
+      "createdAt": "2023-09-08T12:00:00.000Z",
+      "savedAt": "2026-01-03T09:00:00.000Z",
+      "collectionId": "col-reading",
+      "tags": ["fixtures", "#Testing"],
+      "note": "Synthetic note.",
+      "schemaVersion": 1
+    },
+    {
+      "id": "1700000000000000002",
+      "tweetId": "1700000000000000002",
+      "url": "https://x.com/example_replier/status/1700000000000000002",
+      "authorHandle": "example_replier",
+      "authorDisplayName": "Example Replier",
+      "authorAvatarUrl": null,
+      "text": "A synthetic reply.",
+      "createdAt": null,
+      "savedAt": "2026-01-04T09:00:00.000Z",
+      "collectionId": null,
+      "tags": [],
+      "note": "",
+      "schemaVersion": 1
+    }
+  ],
+  "collections": [
+    {
+      "id": "col-reading",
+      "name": "Reading list",
+      "createdAt": "2026-01-02T10:00:00.000Z"
+    }
+  ]
+}

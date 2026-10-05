@@ -1,0 +1,204 @@
+{
+  "format": "better-x",
+  "version": 1,
+  "exportedAt": "2026-02-01T00:00:00.000Z",
+  "bookmarks": [
+    {
+      "id": "1700000000000000001",
+      "tweetId": "1700000000000000001",
+      "url": "https://x.com/example_author/status/1700000000000000001",
+      "authorHandle": "example_author",
+      "authorDisplayName": "Example Author",
+      "authorAvatarUrl": "https://pbs.twimg.com/profile_images/1/example_normal.jpg",
+      "text": "A synthetic post with a photo, a quote, and a link.",
+      "createdAt": "2023-09-08T12:00:00.000Z",
+      "savedAt": "2026-01-03T09:00:00.000Z",
+      "collectionId": "col-reading",
+      "tags": ["fixtures", "testing"],
+      "note": "Synthetic note.",
+      "schemaVersion": 3,
+      "media": [
+        {
+          "kind": "image",
+          "thumbnailUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=small",
+          "alt": "A synthetic photo",
+          "sourceUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=orig"
+        }
+      ],
+      "quote": {
+        "tweetId": "1690000000000000009",
+        "url": "https://x.com/example_quoted/status/1690000000000000009",
+        "authorHandle": "example_quoted",
+        "authorDisplayName": "Example Quoted",
+        "authorAvatarUrl": null,
+        "text": "The quoted post.",
+        "createdAt": "2023-08-01T00:00:00.000Z",
+        "media": [
+          {
+            "kind": "gif",
+            "thumbnailUrl": "https://pbs.twimg.com/tweet_video_thumb/FixtureGif1.jpg",
+            "alt": null,
+            "sourceUrl": "https://video.twimg.com/tweet_video/FixtureGif1.mp4"
+          }
+        ]
+      },
+      "replyTo": null,
+      "card": {
+        "kind": "link",
+        "url": "https://t.co/fixture1",
+        "domain": "example.com",
+        "title": "An example headline",
+        "description": "An example description.",
+        "imageUrl": "https://pbs.twimg.com/card_img/1700/fixture?format=jpg&name=small"
+      }
+    },
+    {
+      "id": "1700000000000000002",
+      "tweetId": "1700000000000000002",
+      "url": "https://x.com/example_replier/status/1700000000000000002",
+      "authorHandle": "example_replier",
+      "authorDisplayName": "Example Replier",
+      "authorAvatarUrl": null,
+      "text": "A synthetic reply.",
+      "createdAt": null,
+      "savedAt": "2026-01-04T09:00:00.000Z",
+      "collectionId": null,
+      "tags": [],
+      "note": "",
+      "schemaVersion": 3,
+      "media": [],
+      "quote": null,
+      "replyTo": {
+        "tweetId": "1700000000000000000",
+        "url": "https://x.com/example_author/status/1700000000000000000",
+        "authorHandle": "example_author",
+        "authorDisplayName": "Example Author",
+        "text": "The parent post."
+      },
+      "card": null
+    }
+  ],
+  "collections": [
+    {
+      "id": "col-reading",
+      "name": "Reading list",
+      "createdAt": "2026-01-02T10:00:00.000Z"
+    }
+  ],
+  "downloads": [
+    {
+      "id": "dl-photo",
+      "batchId": "batch-1",
+      "tweetId": "1700000000000000001",
+      "sourceTweetId": "1700000000000000001",
+      "scope": "post",
+      "mediaIndex": 0,
+      "mediaKind": "image",
+      "mediaKey": "1700000000000000001:img:FixturePhoto1",
+      "previewUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=small",
+      "snapshot": {
+        "tweetId": "1700000000000000001",
+        "url": "https://x.com/example_author/status/1700000000000000001",
+        "authorHandle": "example_author",
+        "authorDisplayName": "Example Author",
+        "authorAvatarUrl": "https://pbs.twimg.com/profile_images/1/example_normal.jpg",
+        "text": "A synthetic post with a photo, a quote, and a link.",
+        "createdAt": "2023-09-08T12:00:00.000Z",
+        "media": [
+          {
+            "kind": "image",
+            "thumbnailUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=small",
+            "alt": "A synthetic photo",
+            "sourceUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=orig"
+          }
+        ],
+        "quote": {
+          "tweetId": "1690000000000000009",
+          "url": "https://x.com/example_quoted/status/1690000000000000009",
+          "authorHandle": "example_quoted",
+          "authorDisplayName": "Example Quoted",
+          "authorAvatarUrl": null,
+          "text": "The quoted post.",
+          "createdAt": "2023-08-01T00:00:00.000Z",
+          "media": [
+            {
+              "kind": "gif",
+              "thumbnailUrl": "https://pbs.twimg.com/tweet_video_thumb/FixtureGif1.jpg",
+              "alt": null,
+              "sourceUrl": "https://video.twimg.com/tweet_video/FixtureGif1.mp4"
+            }
+          ]
+        },
+        "replyTo": null,
+        "card": {
+          "kind": "link",
+          "url": "https://t.co/fixture1",
+          "domain": "example.com",
+          "title": "An example headline",
+          "description": "An example description.",
+          "imageUrl": "https://pbs.twimg.com/card_img/1700/fixture?format=jpg&name=small"
+        }
+      },
+      "createdAt": "2026-01-03T09:01:00.000Z",
+      "completedAt": "2026-01-03T09:01:02.000Z",
+      "filename": "example_author_1700000000000000001_1.jpg"
+    },
+    {
+      "id": "dl-quoted-gif",
+      "batchId": "batch-2",
+      "tweetId": "1700000000000000001",
+      "sourceTweetId": "1690000000000000009",
+      "scope": "quote",
+      "mediaIndex": 0,
+      "mediaKind": "gif",
+      "mediaKey": "1690000000000000009:gif:FixtureGif1",
+      "previewUrl": "https://pbs.twimg.com/tweet_video_thumb/FixtureGif1.jpg",
+      "snapshot": {
+        "tweetId": "1700000000000000001",
+        "url": "https://x.com/example_author/status/1700000000000000001",
+        "authorHandle": "example_author",
+        "authorDisplayName": "Example Author",
+        "authorAvatarUrl": "https://pbs.twimg.com/profile_images/1/example_normal.jpg",
+        "text": "A synthetic post with a photo, a quote, and a link.",
+        "createdAt": "2023-09-08T12:00:00.000Z",
+        "media": [
+          {
+            "kind": "image",
+            "thumbnailUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=small",
+            "alt": "A synthetic photo",
+            "sourceUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=orig"
+          }
+        ],
+        "quote": {
+          "tweetId": "1690000000000000009",
+          "url": "https://x.com/example_quoted/status/1690000000000000009",
+          "authorHandle": "example_quoted",
+          "authorDisplayName": "Example Quoted",
+          "authorAvatarUrl": null,
+          "text": "The quoted post.",
+          "createdAt": "2023-08-01T00:00:00.000Z",
+          "media": [
+            {
+              "kind": "gif",
+              "thumbnailUrl": "https://pbs.twimg.com/tweet_video_thumb/FixtureGif1.jpg",
+              "alt": null,
+              "sourceUrl": "https://video.twimg.com/tweet_video/FixtureGif1.mp4"
+            }
+          ]
+        },
+        "replyTo": null,
+        "card": {
+          "kind": "link",
+          "url": "https://t.co/fixture1",
+          "domain": "example.com",
+          "title": "An example headline",
+          "description": "An example description.",
+          "imageUrl": "https://pbs.twimg.com/card_img/1700/fixture?format=jpg&name=small"
+        }
+      },
+      "createdAt": "2026-01-03T09:02:00.000Z",
+      "completedAt": "2026-01-03T09:02:03.000Z",
+      "filename": "example_quoted_1690000000000000009_1.mp4"
+    }
+  ]
+}

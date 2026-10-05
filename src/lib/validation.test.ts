@@ -45,7 +45,7 @@ describe('import validation', () => {
   });
   it('imports version 1 files with empty context', () => {
     const result = validateExport(sample);
-    expect(result.version).toBe(3);
+    expect(result).toMatchObject({ format: 'better-x', version: 1 });
     expect(result.downloads).toEqual([]);
     expect(result.bookmarks[0]).toMatchObject({
       media: [],

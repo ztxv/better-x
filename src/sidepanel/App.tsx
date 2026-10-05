@@ -14,10 +14,11 @@ import {
   X,
 } from 'lucide-react';
 import { request } from '../lib/api';
+import { createBackup } from '../lib/backup';
 import { resetSettings } from '../lib/settings';
 import { LIBRARY_REVISION_KEY } from '../storage/db';
 import { validateExport } from '../lib/validation';
-import { exportDownloads, groupByPost, type PostDownloads } from '../downloads/history';
+import { groupByPost, type PostDownloads } from '../downloads/history';
 import { downloadLabel, errorMessage } from '../downloads/messages';
 import { BookmarkItem, type DownloadBadge } from './BookmarkItem';
 import { SelectionBar } from './SelectionBar';
@@ -28,7 +29,6 @@ import { DownloadDialog, downloadRows } from './DownloadDialog';
 import { SettingsDialog } from './SettingsDialog';
 import { useDownloads, useSettings } from './hooks';
 import {
-  EXPORT_VERSION,
   SCHEMA_VERSION,
   type Bookmark,
   type BookmarkDraft,
@@ -38,7 +38,6 @@ import {
   type ClearResult,
   type Collection,
   type DownloadRecord,
-  type ExportData,
   type Library,
   type StartResult,
 } from '../types/model';
@@ -365,13 +364,7 @@ export function App() {
     });
   const exportJson = async () => {
     const history = await request<DownloadRecord[]>({ type: 'downloads' }).catch(() => []);
-    const data: ExportData = {
-      format: 'saved-for-x',
-      version: EXPORT_VERSION,
-      exportedAt: new Date().toISOString(),
-      ...library,
-      downloads: exportDownloads(history),
-    };
+    const data = createBackup(library, history);
     const url = URL.createObjectURL(
       new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
     );

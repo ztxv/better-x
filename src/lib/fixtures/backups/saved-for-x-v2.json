@@ -1,0 +1,86 @@
+{
+  "format": "saved-for-x",
+  "version": 2,
+  "exportedAt": "2026-01-05T00:00:00.000Z",
+  "bookmarks": [
+    {
+      "id": "1700000000000000001",
+      "tweetId": "1700000000000000001",
+      "url": "https://twitter.com/example_author/status/1700000000000000001?s=20",
+      "authorHandle": "example_author",
+      "authorDisplayName": "Example Author",
+      "authorAvatarUrl": "https://pbs.twimg.com/profile_images/1/example_normal.jpg",
+      "text": "A synthetic post with a photo, a quote, and a link.",
+      "createdAt": "2023-09-08T12:00:00.000Z",
+      "savedAt": "2026-01-03T09:00:00.000Z",
+      "collectionId": "col-reading",
+      "tags": ["fixtures", "#Testing"],
+      "note": "Synthetic note.",
+      "schemaVersion": 2,
+      "media": [
+        {
+          "kind": "image",
+          "thumbnailUrl": "https://pbs.twimg.com/media/FixturePhoto1?format=jpg&name=small",
+          "alt": "A synthetic photo"
+        }
+      ],
+      "quote": {
+        "tweetId": "1690000000000000009",
+        "url": "https://x.com/example_quoted/status/1690000000000000009",
+        "authorHandle": "example_quoted",
+        "authorDisplayName": "Example Quoted",
+        "authorAvatarUrl": null,
+        "text": "The quoted post.",
+        "createdAt": "2023-08-01T00:00:00.000Z",
+        "media": [
+          {
+            "kind": "gif",
+            "thumbnailUrl": "https://pbs.twimg.com/tweet_video_thumb/FixtureGif1.jpg",
+            "alt": null
+          }
+        ]
+      },
+      "replyTo": null,
+      "card": {
+        "kind": "link",
+        "url": "https://t.co/fixture1",
+        "domain": "example.com",
+        "title": "An example headline",
+        "description": "An example description.",
+        "imageUrl": "https://pbs.twimg.com/card_img/1700/fixture?format=jpg&name=small"
+      }
+    },
+    {
+      "id": "1700000000000000002",
+      "tweetId": "1700000000000000002",
+      "url": "https://x.com/example_replier/status/1700000000000000002",
+      "authorHandle": "example_replier",
+      "authorDisplayName": "Example Replier",
+      "authorAvatarUrl": null,
+      "text": "A synthetic reply.",
+      "createdAt": null,
+      "savedAt": "2026-01-04T09:00:00.000Z",
+      "collectionId": null,
+      "tags": [],
+      "note": "",
+      "schemaVersion": 2,
+      "media": [],
+      "quote": null,
+      "replyTo": {
+        "tweetId": "1700000000000000000",
+        "url": "https://x.com/example_author/status/1700000000000000000",
+        "authorHandle": "example_author",
+        "authorDisplayName": "Example Author",
+        "text": "The parent post."
+      },
+      "card": null
+    }
+  ],
+  "collections": [
+    {
+      "id": "col-reading",
+      "name": "Reading list",
+      "createdAt": "2026-01-02T10:00:00.000Z"
+    }
+  ]
+}
