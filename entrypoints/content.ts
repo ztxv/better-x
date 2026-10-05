@@ -1,4 +1,5 @@
 import icon from '../src/brand/mark.svg?raw';
+import { watchArticles } from '../src/content/articles';
 import {
   anchorVisible,
   button,
@@ -24,6 +25,7 @@ import {
   type Settings,
 } from '../src/lib/settings';
 import { mediaKey } from '../src/media/urls';
+import { Scope } from '../src/runtime/scope';
 import { DOWNLOADS_REVISION_KEY, LIBRARY_REVISION_KEY } from '../src/storage/db';
 import type {
   Bookmark,
@@ -100,12 +102,18 @@ const isSingle = (choices: Choice[]) => choices.length === 1 && !choices[0]!.quo
 export default defineContentScript({
   matches: ['https://x.com/*', 'https://twitter.com/*'],
   runAt: 'document_idle',
-  main() {
+  main(ctx) {
+    // Everything this script keeps running is owned by this scope, released when WXT invalidates
+    // the context. WXT announces that only when a newer copy of the script starts; after an
+    // extension reload nothing does, so the scope also checks `ctx.isValid` (which disposes it
+    // through `onInvalidated`) each time the observer delivers a change.
+    const scope = new Scope(() => ctx.isValid);
+    ctx.onInvalidated(() => scope.dispose());
+
     const saved = new Set<string>();
     const saving = new Set<string>();
     const buttons = new Map<HTMLButtonElement, string>();
     let overlay: Overlay | null = null;
-    let scheduled = false;
     let settings: Settings = DEFAULT_SETTINGS;
 
     /* ------------------------------------------------------------------ settings */
@@ -125,7 +133,7 @@ export default defineContentScript({
     }
     applySettings(DEFAULT_SETTINGS);
     const settingsReady = loadSettings().then(applySettings);
-    watchSettings(applySettings);
+    scope.add(watchSettings(applySettings));
 
     /* ------------------------------------------------------------- save control */
 
@@ -715,12 +723,12 @@ export default defineContentScript({
     }
 
     const unaligned = new Set<HTMLButtonElement>();
-    let alignFrame = 0;
+    let cancelAlign = () => {};
     function queueAlign(control?: HTMLButtonElement) {
       if (control) unaligned.add(control);
       else buttons.forEach((_, item) => unaligned.add(item));
-      cancelAnimationFrame(alignFrame);
-      alignFrame = requestAnimationFrame(() => {
+      cancelAlign();
+      cancelAlign = scope.requestFrame(() => {
         align(unaligned);
         unaligned.clear();
       });
@@ -778,47 +786,39 @@ export default defineContentScript({
       for (const [control] of buttons) if (!control.isConnected) buttons.delete(control);
     }
 
-    const pending = new Set<HTMLElement>();
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        const target =
-          mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
-        const parent = target?.closest<HTMLElement>(X_SELECTORS.post) ?? null;
-        if (parent) pending.add(parent);
-        for (const node of mutation.addedNodes) {
-          if (!(node instanceof HTMLElement)) continue;
-          if (node.matches(X_SELECTORS.post)) pending.add(node);
-          node
-            .querySelectorAll<HTMLElement>(X_SELECTORS.post)
-            .forEach((article) => pending.add(article));
-        }
-      }
-      if (!pending.size || scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        for (const article of pending) if (article.isConnected) enhance(article);
-        pending.clear();
+    watchArticles(scope, {
+      root: document.documentElement,
+      selector: X_SELECTORS.post,
+      enhance,
+      afterBatch() {
         for (const [control] of buttons) if (!control.isConnected) buttons.delete(control);
         if (overlay && !overlay.anchor.isConnected) closeOverlay();
-      });
-    });
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['href'],
+      },
     });
     scan(document);
     void refreshSaved();
     let resizeTimer = 0;
-    addEventListener('resize', () => {
+    scope.listen(window, 'resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => queueAlign(), 150);
     });
-    chrome.storage.onChanged.addListener((changes, area) => {
+    scope.add(() => clearTimeout(resizeTimer));
+    const onStorageChanged = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      area: string,
+    ) => {
       if (area === 'local' && changes[LIBRARY_REVISION_KEY]) void refreshSaved();
+    };
+    chrome.storage.onChanged.addListener(onStorageChanged);
+    scope.add(() => chrome.storage.onChanged.removeListener(onStorageChanged));
+
+    // An invalidated script has no background to talk to, so its controls could only fail.
+    // Take down what it put on the page: the open overlay, the controls, the accent style.
+    scope.add(() => {
+      closeOverlay();
+      buttons.forEach((_, control) => control.remove());
+      buttons.clear();
+      accentStyle.remove();
     });
   },
 });
