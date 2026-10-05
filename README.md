@@ -1,6 +1,6 @@
-# Saved for X
+# Better X
 
-A private, local-first Chrome extension for saving posts from X into an organized library, and downloading their photos, GIFs, and videos.
+A private, local-first Chrome extension for saving posts from X into an organized library, and downloading their photos, GIFs, and videos. Better X grew out of Saved for X 0.2.0; customizing X itself is planned (see [Roadmap](#roadmap)).
 
 Save a post in one click. Browse, search, tag, and organize it in a side panel. Download its media at original quality. Everything stays in your browser: no account, no server, no X API.
 
@@ -53,7 +53,7 @@ Requires Node.js 20.19+ and Chrome 116+.
 
 ```bash
 git clone <repository-url>
-cd x-bookmarker
+cd better-x
 npm ci
 npm run build
 ```
@@ -65,6 +65,8 @@ npm run build
 After each rebuild, click **Reload** on the extension card and refresh X. The version shown on the card is the one in `wxt.config.ts`.
 
 For live development, run `npm run dev`; WXT prints the output directory to load.
+
+**Coming from Saved for X?** Better X is a separate extension with its own library. In Saved for X, open **Settings → Export JSON**; then in Better X, open **Settings → Import JSON** and choose that file.
 
 ## Using it
 
@@ -78,7 +80,7 @@ Keyboard: the icon and menus are ordinary buttons. Tab from the icon enters an o
 
 ## Media downloads
 
-Files are saved with Chrome's own downloader to `Downloads/Saved-for-X/{handle}_{postId}_{n}.{ext}`. The extension never deletes a downloaded file.
+Files are saved with Chrome's own downloader to `Downloads/Better-X/{handle}_{postId}_{n}.{ext}`. The extension never deletes a downloaded file.
 
 | Media                                                         | Supported                    | How                                                                |
 | ------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------ |
@@ -177,6 +179,6 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 
 ## Roadmap
 
-- **Page cleanup (planned, separate from saving):** optional controls to hide promoted posts, Who to follow, Premium upsells, and Grok and Messages entry points. Designed as its own settings area so the bookmarking and download features stay independent.
+- **X customization (planned):** optional controls to clean up and change X (promoted posts, Premium upsells, Grok, navigation, sidebar, feed behavior), built on a shared X runtime and declarative feature definitions. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Indexed search for very large libraries.
 - Optional sync, opt-in only.

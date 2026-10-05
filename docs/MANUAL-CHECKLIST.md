@@ -6,6 +6,8 @@ Setup: `npm run build`, load `.output/chrome-mv3` unpacked (or click **Reload** 
 
 Record the date, extension version, Chrome version, and any failures in the PR or release notes.
 
+- [ ] The extension card and toolbar tooltip read **Better X** / **Open Better X**, and the side panel header reads **Better X**.
+
 ## Saving
 
 - [ ] **Save a post:** click the save control in a text-only post's action row. The icon fills in, the "Saved" chip appears, and the control lines up with X's own icons.
@@ -15,7 +17,7 @@ Record the date, extension version, Chrome version, and any failures in the PR o
 
 ## Downloads
 
-- [ ] **GIF:** save a GIF post, click **Download** in the chip. One `.mp4` lands in the download folder and the post appears in **Downloaded**.
+- [ ] **GIF:** save a GIF post, click **Download** in the chip. One `.mp4` lands in `Downloads/Better-X/` and the post appears in **Downloaded**.
 - [ ] **Video:** save a public video post and download it. An `.mp4` is saved (never a poster image or playlist). A video that cannot be downloaded shows "Video unavailable to download" with **Open post on X**.
 - [ ] **Photos:** download from a multi-photo post. The chooser lists each photo and **Download all** saves originals.
 
