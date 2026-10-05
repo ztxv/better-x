@@ -11,7 +11,7 @@ export type Disposer = () => void;
 
 export class Scope {
   private readonly controller = new AbortController();
-  private disposers: Disposer[] = [];
+  private entries = new Set<{ run: Disposer }>();
 
   /**
    * `isValid` reports whether whatever owns this scope still exists (for a content script: its
@@ -47,9 +47,10 @@ export class Scope {
       runDisposer(disposer);
       return () => {};
     }
-    this.disposers.push(disposer);
+    const entry = { run: disposer };
+    this.entries.add(entry);
     return () => {
-      this.disposers = this.disposers.filter((item) => item !== disposer);
+      this.entries.delete(entry);
     };
   }
 
@@ -95,9 +96,9 @@ export class Scope {
   dispose(): void {
     if (this.disposed) return;
     this.controller.abort();
-    const pending = this.disposers;
-    this.disposers = [];
-    for (let index = pending.length - 1; index >= 0; index--) runDisposer(pending[index]!);
+    const pending = [...this.entries];
+    this.entries.clear();
+    for (let index = pending.length - 1; index >= 0; index--) runDisposer(pending[index]!.run);
   }
 }
 
