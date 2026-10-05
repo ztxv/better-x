@@ -10,6 +10,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 - [Features](#features)
 - [Install](#install)
+- [Moving from Saved for X](#moving-from-saved-for-x)
 - [Using it](#using-it)
 - [Media downloads](#media-downloads)
 - [Privacy and permissions](#privacy-and-permissions)
@@ -32,7 +33,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 - Side panel with full-text search, author filter, date sort, collections, tags, and private notes.
 - Bulk select to move, tag, or delete, with ten-second undo.
-- JSON export and validated import. Existing bookmarks are never overwritten by an import.
+- JSON export and validated import, including backups from Saved for X. Existing bookmarks are never overwritten by an import.
 
 **Downloads**
 
@@ -66,7 +67,26 @@ After each rebuild, click **Reload** on the extension card and refresh X. The ve
 
 For live development, run `npm run dev`; WXT prints the output directory to load.
 
-**Coming from Saved for X?** Better X is a separate extension with its own library. In Saved for X, open **Settings → Export JSON**; then in Better X, open **Settings → Import JSON** and choose that file.
+## Moving from Saved for X
+
+Better X is a separate extension with its own library; it does not read Saved for X's data on its own. Move your library with a backup file:
+
+1. In **Saved for X**, open **Settings → Export JSON** and keep the downloaded file.
+2. In **Better X**, open **Settings → Import JSON** and choose that file.
+
+Better X imports every Saved for X backup version (1, 2, and 3) as well as its own backups. What comes across:
+
+- bookmarks with their text, author, media previews, quoted post, reply, and link card (as far as that Saved for X version recorded them);
+- collections, tags, and notes;
+- completed download history, shown as **Downloaded previously**.
+
+What does not come across:
+
+- Saved for X's settings (theme, accent, download and menu options): set them again in Better X.
+- Downloaded files: they stay where they are, in `Downloads/Saved-for-X`. Better X saves new downloads to `Downloads/Better-X`.
+- Anything automatic: nothing is copied from Saved for X's browser storage or database, and Saved for X keeps its own library until you remove it.
+
+Importing the same backup twice adds nothing new, and a post already in Better X keeps its Better X notes, tags, and collection.
 
 ## Using it
 

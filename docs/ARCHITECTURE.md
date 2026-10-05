@@ -12,7 +12,7 @@ Better X is a Chrome extension that combines a private post library (saving, col
 
 **New extension identity.** Better X is a separate extension, not an update of Saved for X. Internal names (IndexedDB name, storage keys, download folder, CSS prefix, package name, feature IDs) may change freely; nothing is kept for browser-storage continuity. Since Stage 1A: IndexedDB `better-x`, `chrome.storage` keys `bx.*`, download folder `Better-X`, extension-owned CSS and DOM names prefixed `bx-`.
 
-**Saved for X users migrate by export → import.** Better X must import Saved for X export files (`format: "saved-for-x"`) versions 1, 2, and 3, with the existing rules: local data wins, imported download history becomes `historical`, invalid history entries are skipped.
+**Saved for X users migrate by export → import.** Better X must import Saved for X export files (`format: "saved-for-x"`) versions 1, 2, and 3, with the existing rules: local data wins, imported download history becomes `historical`, invalid history entries are skipped. Better X's own backups are `format: "better-x"`, version 1, which keeps the Saved for X version 3 structure; `src/lib/backup.ts` holds the importable formats and the upgrade from older versions (Stage 1B).
 
 ## Structure
 
