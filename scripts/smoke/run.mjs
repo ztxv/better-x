@@ -655,6 +655,87 @@ check(
   )) === 'false',
 );
 
+// --- X-like routes and layout: the runtime follows SPA navigation and live layout changes
+// The extension mirrors the runtime's state on <html>: data-bx-route, data-bx-layout.
+const runtimeAttr = (p, name) => p.evaluate((n) => document.documentElement.getAttribute(n), name);
+const waitAttr = (p, name, value) =>
+  p
+    .waitForFunction(
+      (n, v) => document.documentElement.getAttribute(n) === v,
+      { timeout: 5000 },
+      name,
+      value,
+    )
+    .then(() => true)
+    .catch(() => false);
+// What X does: pushState with no reload, no popstate, and often no DOM or title change at all.
+const spaTo = (p, url) => p.evaluate((u) => history.pushState({}, '', u), url);
+await page.bringToFront();
+await page.evaluate(() => scrollTo(0, 0));
+check(
+  'runtime starts on the page it was injected into',
+  (await runtimeAttr(page, 'data-bx-route')) === 'home' &&
+    (await runtimeAttr(page, 'data-bx-layout')) === 'wide',
+  `${await runtimeAttr(page, 'data-bx-route')} / ${await runtimeAttr(page, 'data-bx-layout')}`,
+);
+await spaTo(page, '/elonmusk');
+check('pushState to a profile is a route change', await waitAttr(page, 'data-bx-route', 'profile'));
+await spaTo(page, '/elonmusk/status/1585341984679469056');
+check('pushState to a post is a route change', await waitAttr(page, 'data-bx-route', 'post'));
+await page.evaluate(() =>
+  history.replaceState({}, '', '/elonmusk/status/1585341984679469056?s=20'),
+);
+await spaTo(page, '/compose/post');
+check('a modal route is reported as the route', await waitAttr(page, 'data-bx-route', 'compose'));
+await page.goBack();
+check('back out of the modal is recognized', await waitAttr(page, 'data-bx-route', 'post'));
+await page.goBack();
+check('back is recognized', await waitAttr(page, 'data-bx-route', 'profile'));
+await page.goForward();
+check('forward is recognized', await waitAttr(page, 'data-bx-route', 'post'));
+// Saving keeps working after navigating without a reload.
+await panel.evaluate(() =>
+  chrome.runtime.sendMessage({ type: 'delete', id: '1100000000000000001' }),
+);
+await page.waitForFunction(
+  (s) => document.querySelector(s).dataset.saved === 'false',
+  {},
+  sel('1100000000000000001'),
+);
+await spaTo(page, '/explore');
+await waitAttr(page, 'data-bx-route', 'explore');
+await clickPost(page, '1100000000000000001');
+check(
+  'saving still works after SPA navigation',
+  await waitText(page, '#bx-chip', /Saved/),
+  await text(page, '#bx-chip'),
+);
+check(
+  '...and the control shows it saved',
+  (await page.$eval(sel('1100000000000000001'), (n) => n.dataset.saved)) === 'true',
+);
+await page.keyboard.press('Escape');
+// A narrow window (the browser side panel) makes X switch layout without a route change.
+const routeBeforeResize = await runtimeAttr(page, 'data-bx-route');
+await page.setViewport({ width: 420, height: 900 });
+check(
+  'narrowing the window is detected as the narrow layout',
+  await waitAttr(page, 'data-bx-layout', 'narrow'),
+);
+check('...with no route change', (await runtimeAttr(page, 'data-bx-route')) === routeBeforeResize);
+await page.setViewport({ width: 1280, height: 900 });
+check('widening it again is detected', await waitAttr(page, 'data-bx-layout', 'wide'));
+// X replacing the app wrapper must not blind the layout service.
+await page.evaluate(() => {
+  const old = document.getElementById('bx-app');
+  const fresh = old.cloneNode(true);
+  fresh.className = 'app-narrow';
+  old.replaceWith(fresh);
+});
+check('a replaced app wrapper is followed', await waitAttr(page, 'data-bx-layout', 'narrow'));
+await page.evaluate(() => (document.getElementById('bx-app').className = 'app-wide'));
+check('...and its later changes', await waitAttr(page, 'data-bx-layout', 'wide'));
+
 // --- two X tabs saving the same post at the same moment
 const second = await openX();
 await page.bringToFront();

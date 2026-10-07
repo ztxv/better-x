@@ -37,6 +37,9 @@ export function page(theme = 'light') {
   const bg = theme === 'dark' ? '#000' : '#fff';
   return `<!doctype html><html><head><meta charset="utf-8"><title>X fixture</title></head>
   <body style="margin:0;background:${bg};color:${theme === 'dark' ? '#e7e9ea' : '#0f1419'};font-family:sans-serif">
+  <style>#bx-app{display:flex}#bx-app.app-narrow{flex-direction:column}</style>
+  <div id="layers"></div>
+  <div id="bx-app" class="app-wide">
   <main style="width:600px;margin:0 auto">
   ${post({ id: '1100000000000000001', handle: 'texter', text: 'Text only post' })}
   ${post({ id: '440322224407314432', handle: 'TheEllenShow', text: 'Real photo', media: photo('BhxWutnCEAAtEQ6', 1, '440322224407314432', 'TheEllenShow') })}
@@ -46,5 +49,12 @@ export function page(theme = 'light') {
   ${post({ id: '1100000000000000006', handle: 'quoter', text: 'Parent photo quoting a video', media: photo('BhxWutnCEAAtEQ6', 1, '1100000000000000006', 'quoter'), quote: quoteBlock({ id: ELON, handle: 'elonmusk', text: 'Quoted video', media: video(ELON_THUMB, 'blob:https://x.com/9c1d') }) })}
   ${post({ id: '1999999999999999997', handle: 'ghost', text: 'Blob-only video on a post X cannot describe', media: video('https://pbs.twimg.com/amplify_video_thumb/1999999999999999990/img/a.jpg', 'blob:https://x.com/77aa') })}
   <div style="height:1400px"></div>
-  </main></body></html>`;
+  </main></div>
+  <script>
+    // X switches layouts from JS when its window narrows, by re-rendering the wrapper's classes.
+    const app = () => document.getElementById('bx-app');
+    const fit = () => app() && (app().className = innerWidth < 500 ? 'app-narrow' : 'app-wide');
+    addEventListener('resize', fit);
+    fit();
+  </script></body></html>`;
 }
