@@ -25,6 +25,7 @@ import {
   type Settings,
 } from '../src/lib/settings';
 import { mediaKey } from '../src/media/urls';
+import { createLayoutService } from '../src/runtime/layout';
 import { createRouteService } from '../src/runtime/route';
 import { Scope } from '../src/runtime/scope';
 import { DOWNLOADS_REVISION_KEY, LIBRARY_REVISION_KEY } from '../src/storage/db';
@@ -806,6 +807,17 @@ export default defineContentScript({
     publishRoute();
     scope.add(routes.onRoute(publishRoute));
     scope.add(() => document.documentElement.removeAttribute('data-bx-route'));
+    // Likewise X's wide/narrow layout (narrow when its window is, e.g. beside the side panel):
+    // <html data-bx-layout="narrow">, absent until X's app wrapper has rendered.
+    const layout = createLayoutService(scope);
+    const publishLayout = () => {
+      const root = document.documentElement;
+      if (layout.layout) root.setAttribute('data-bx-layout', layout.layout);
+      else root.removeAttribute('data-bx-layout');
+    };
+    publishLayout();
+    scope.add(layout.onLayout(publishLayout));
+    scope.add(() => document.documentElement.removeAttribute('data-bx-layout'));
 
     let resizeTimer = 0;
     scope.listen(window, 'resize', () => {

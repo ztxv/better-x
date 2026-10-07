@@ -5,6 +5,11 @@ export interface WaitOptions {
   timeout?: number;
   /** Where to look and observe. Defaults to the document. */
   root?: ParentNode & Node;
+  /**
+   * Whether attribute changes are watched too (default true). A wait that only needs something
+   * to be added can turn this off so the observer ignores attribute churn.
+   */
+  attributes?: boolean;
 }
 
 /**
@@ -22,7 +27,7 @@ export function waitFor<T>(
 ): Promise<T>;
 export function waitFor(
   target: string | (() => unknown),
-  { signal, timeout, root = document }: WaitOptions = {},
+  { signal, timeout, root = document, attributes = true }: WaitOptions = {},
 ): Promise<unknown> {
   const find = typeof target === 'string' ? () => root.querySelector(target) : target;
   return new Promise((resolve, reject) => {
@@ -46,7 +51,7 @@ export function waitFor(
     observer.observe(root instanceof Document ? root.documentElement : root, {
       childList: true,
       subtree: true,
-      attributes: true,
+      attributes,
     });
     signal?.addEventListener('abort', onAbort, { once: true });
     if (timeout !== undefined)

@@ -27,6 +27,7 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   document.body.innerHTML = '';
+  delete document.body.dataset.ready;
 });
 
 describe('waitFor', () => {
@@ -65,6 +66,16 @@ describe('waitFor', () => {
     await Promise.resolve();
     vi.advanceTimersByTime(100);
     await expect(found).rejects.toMatchObject({ name: 'TimeoutError' });
+  });
+
+  it('can ignore attribute changes when only additions matter', async () => {
+    const found = waitFor(() => document.body.dataset.ready, { attributes: false });
+    document.body.dataset.ready = 'yes';
+    // An attribute change alone is not looked at...
+    await expect(Promise.race([found, Promise.resolve('pending')])).resolves.toBe('pending');
+    // ...but the next addition re-checks.
+    document.body.append(document.createElement('p'));
+    await expect(found).resolves.toBe('yes');
   });
 
   it('rejects on timeout and releases its observer', async () => {
