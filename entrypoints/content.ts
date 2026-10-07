@@ -25,6 +25,7 @@ import {
   type Settings,
 } from '../src/lib/settings';
 import { mediaKey } from '../src/media/urls';
+import { createRouteService } from '../src/runtime/route';
 import { Scope } from '../src/runtime/scope';
 import { DOWNLOADS_REVISION_KEY, LIBRARY_REVISION_KEY } from '../src/storage/db';
 import type {
@@ -797,6 +798,15 @@ export default defineContentScript({
     });
     scan(document);
     void refreshSaved();
+    // The runtime's view of where X is, mirrored as an attribute on <html> so it can be read (and
+    // later styled) from the page: <html data-bx-route="profile">. Nothing else consumes it yet.
+    const routes = createRouteService(scope);
+    const publishRoute = () =>
+      document.documentElement.setAttribute('data-bx-route', routes.route.id);
+    publishRoute();
+    scope.add(routes.onRoute(publishRoute));
+    scope.add(() => document.documentElement.removeAttribute('data-bx-route'));
+
     let resizeTimer = 0;
     scope.listen(window, 'resize', () => {
       clearTimeout(resizeTimer);
