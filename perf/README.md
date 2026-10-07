@@ -64,3 +64,22 @@ The shared runtime lifecycle and a managed content observer, with no intended be
 | DOM nodes, long tasks    | 1403, 0                | 1403, 0                |
 
 Script and task time are inside the reference's own round-to-round spread (script about +0.4 ms on 12.5, task within its spread). JS heap is consistently about 0.09 MB higher at the end of the run, which is outside the heap's own spread (cv under 0.5%); after a forced GC the retained difference is 0.02 MB (0.55 vs 0.57), so most of it is allocation not yet collected, not retained memory. Removing the `ctx.isValid` check from the observer did not change the heap difference. Treated as small and not pursued further; compare against this table, not the 0.2.0 baseline, for later stages.
+
+## Stage 2A.2 comparison (2026-10-07)
+
+Route service, layout service and the two `<html>` attributes, with no intended behavior change. Same session, alternating the build from just before the stage (`4ef57e2`) with the Stage 2A.2 build, three rounds of 5 runs per mode. On − off delta of medians, one value per round:
+
+| Metric              | Before 2A.2      | Stage 2A.2       |
+| ------------------- | ---------------- | ---------------- |
+| JSHeapUsedSize (MB) | 1.10, 1.11, 1.10 | 1.13, 1.13, 1.13 |
+| scrollMs            | 133, 147, 137    | 141, 138, 136    |
+| DOM nodes, controls | 1403, 200        | 1403, 200        |
+| Long tasks          | 0                | 0                |
+| ScriptDuration (ms) | 20.4, 15.1, 18.4 | 18.0, 13.9, 18.0 |
+| TaskDuration (ms)   | 49.9, 34.3, 58.8 | 55.6, 47.2, 55.0 |
+| RecalcStyleDuration | 10.0, 9.7, 11.4  | 10.5, 8.3, 10.1  |
+| LayoutDuration (ms) | 1.8, 1.9, 0.9    | 0.1, 2.0, 2.0    |
+
+**The duration rows are not a valid measurement.** The machine was degraded for the whole session (Wi-Fi daemon at 75% CPU, smoke runs taking ten times as long as usual), and the on-mode coefficients of variation were 7–36% for the duration metrics instead of the usual 1–3%; a plain `npm run perf` read 20.9 ms script and 117 ms task against about 13 and 94 on a quiet machine. The two builds' ranges overlap completely, so they show no difference, but they could not show a small one either. Only the low-noise rows say anything: heap is about 0.03 MB higher (cv under 1.2%), DOM nodes, controls and long tasks are identical, and scroll time is unchanged. The duration comparison should be repeated on a quiet machine before relying on it.
+
+What the stage adds at run time, which bounds the possible cost: one `currententrychange` listener, one `class`-attribute observer on the app wrapper (fires only when X changes its classes), one child-list observer on the wrapper's parent (not subtree), and, only while `#layers + div` has not yet rendered, a child-list/subtree observer whose callback is a single `getElementById` (the perf fixture has no `#layers`, so it never stops waiting there; on X it ends within the first renders).
