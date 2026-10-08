@@ -27,8 +27,11 @@ export interface PostStream {
    * `replay`, every post already known is reported first, as `new`.
    */
   onPost(listener: PostListener, options?: { replay?: boolean }): Disposer;
-  /** Called once after each batch of reports, for housekeeping that follows a round of changes. */
-  onBatch(listener: () => void): Disposer;
+  /**
+   * Called once after each batch of reports, with the post elements that have left the page
+   * since the last batch, for housekeeping that follows a round of changes.
+   */
+  onBatch(listener: (gone: ReadonlyArray<HTMLElement>) => void): Disposer;
   /** The posts currently on the page. */
   posts(): ReadonlyArray<Pick<StreamPost, 'article' | 'identity'>>;
 }
@@ -41,23 +44,29 @@ export interface PostStream {
 export function createPostStream(scope: Scope, root: Node = document.documentElement): PostStream {
   const known = new Map<HTMLElement, PostIdentity>();
   const postListeners = new Set<PostListener>();
-  const batchListeners = new Set<() => void>();
+  const batchListeners = new Set<(gone: ReadonlyArray<HTMLElement>) => void>();
   scope.add(() => {
     postListeners.clear();
     batchListeners.clear();
+    postSnapshot = [];
+    batchSnapshot = [];
     known.clear();
   });
 
-  const call = <T extends unknown[]>(listener: (...args: T) => void, ...args: T) => {
-    try {
-      listener(...args);
-    } catch (error) {
-      console.error('[Better X] post listener failed', error);
-    }
-  };
+  /** The listeners as arrays, rebuilt when they change, so a post visit allocates nothing to walk them. */
+  let postSnapshot: PostListener[] = [];
+  let batchSnapshot: Array<(gone: ReadonlyArray<HTMLElement>) => void> = [];
+  const failed = (error: unknown) => console.error('[Better X] post listener failed', error);
 
-  function prune() {
-    for (const article of known.keys()) if (!article.isConnected) known.delete(article);
+  /** Forgets posts that left the page and returns them. */
+  function prune(): HTMLElement[] {
+    const gone: HTMLElement[] = [];
+    for (const article of known.keys())
+      if (!article.isConnected) {
+        known.delete(article);
+        gone.push(article);
+      }
+    return gone;
   }
 
   function visit(article: HTMLElement) {
@@ -72,7 +81,14 @@ export function createPostStream(scope: Scope, root: Node = document.documentEle
         ? 'recycled'
         : 'changed';
     known.set(article, identity);
-    for (const listener of [...postListeners]) call(listener, { article, identity, reason });
+    const post: StreamPost = { article, identity, reason };
+    for (const listener of postSnapshot) {
+      try {
+        listener(post);
+      } catch (error) {
+        failed(error);
+      }
+    }
   }
 
   watchArticles(scope, {
@@ -80,8 +96,14 @@ export function createPostStream(scope: Scope, root: Node = document.documentEle
     selector: X_SELECTORS.post,
     enhance: visit,
     afterBatch() {
-      prune();
-      for (const listener of [...batchListeners]) call(listener);
+      const gone = prune();
+      for (const listener of batchSnapshot) {
+        try {
+          listener(gone);
+        } catch (error) {
+          failed(error);
+        }
+      }
     },
   });
 
@@ -94,13 +116,27 @@ export function createPostStream(scope: Scope, root: Node = document.documentEle
     onPost(listener, { replay = false } = {}) {
       if (replay)
         for (const [article, identity] of [...known])
-          if (article.isConnected) call(listener, { article, identity, reason: 'new' });
+          if (article.isConnected) {
+            try {
+              listener({ article, identity, reason: 'new' });
+            } catch (error) {
+              failed(error);
+            }
+          }
       postListeners.add(listener);
-      return () => postListeners.delete(listener);
+      postSnapshot = [...postListeners];
+      return () => {
+        postListeners.delete(listener);
+        postSnapshot = [...postListeners];
+      };
     },
     onBatch(listener) {
       batchListeners.add(listener);
-      return () => batchListeners.delete(listener);
+      batchSnapshot = [...batchListeners];
+      return () => {
+        batchListeners.delete(listener);
+        batchSnapshot = [...batchListeners];
+      };
     },
     posts() {
       return [...known]

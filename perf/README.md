@@ -83,3 +83,24 @@ Route service, layout service and the two `<html>` attributes, with no intended 
 **The duration rows are not a valid measurement.** The machine was degraded for the whole session (Wi-Fi daemon at 75% CPU, smoke runs taking ten times as long as usual), and the on-mode coefficients of variation were 7–36% for the duration metrics instead of the usual 1–3%; a plain `npm run perf` read 20.9 ms script and 117 ms task against about 13 and 94 on a quiet machine. The two builds' ranges overlap completely, so they show no difference, but they could not show a small one either. Only the low-noise rows say anything: heap is about 0.03 MB higher (cv under 1.2%), DOM nodes, controls and long tasks are identical, and scroll time is unchanged. The duration comparison should be repeated on a quiet machine before relying on it.
 
 What the stage adds at run time, which bounds the possible cost: one `currententrychange` listener, one `class`-attribute observer on the app wrapper (fires only when X changes its classes), one child-list observer on the wrapper's parent (not subtree), and, only while `#layers + div` has not yet rendered, a child-list/subtree observer whose callback is a single `getElementById` (the perf fixture has no `#layers`, so it never stops waiting there; on X it ends within the first renders).
+
+## Integration sprint comparison (2026-10-08)
+
+The Saved UI moved into `src/saved/`, with the shared `PostStream` and `ActionRow` under it. Same session, alternating the build from just before the sprint (`cf0bb1b`) with the final build, three rounds of 5 runs per mode. On − off delta of medians, one value per round:
+
+| Metric                   | Before sprint    | After sprint     |
+| ------------------------ | ---------------- | ---------------- |
+| ScriptDuration (ms)      | 14.1, 14.1, 14.2 | 14.4, 14.4, 14.5 |
+| TaskDuration (ms)        | 45.8, 46.1, 44.1 | 47.6, 46.8, 45.9 |
+| RecalcStyleDuration (ms) | 8.7, 8.7, 8.4    | 8.6, 8.6, 8.5    |
+| LayoutDuration (ms)      | 1.1, 1.5, 0.7    | 1.9, 0.9, 0.6    |
+| JSHeapUsedSize (MB)      | 1.15, 1.13, 1.13 | 1.19, 1.19, 1.19 |
+| scrollMs                 | 155, 144, 156    | 154, 155, 156    |
+| DOM nodes, controls      | 1403, 200        | 1403, 200        |
+| Long tasks               | 0                | 0                |
+
+Script time is about 0.3 ms (2%) higher; everything else is inside the round-to-round spread. A plain `npm run perf` the same evening read cv 20–60% (the machine was busy), so only the interleaved comparison above is used.
+
+**A regression was found and fixed on the way.** The first comparison showed ScriptDuration about 1.5–2 ms (10–14%) higher, in all rounds and with the order of the builds swapped, so it was not noise. Bisecting the sprint's commits put about 0.6 ms in `PostStream` and about 1.2 ms in `ActionRow`, and none in the pure extraction. Call counts (V8 precise coverage) were identical to the old build (400 identity reads, 200 controls, 200 alignments for the 200-post page), and a 20-post page showed only +0.3 ms, so the cost scaled with posts but not with how many times anything ran: it was in what each call did. Changing the lookup selector, snapshotting listener lists, and pruning only departed posts each made no measurable difference; replacing the `dataset` reads and writes in the mount path (about six DOM calls per control, to find an insert position) with JavaScript-side bookkeeping removed it. DOM `dataset` access is expensive enough to matter in per-post code.
+
+Heap readings moved between 0.8 and 1.25 MB across variants with no code reason; the JS heap is measured before any garbage collection, so differences under about 0.4 MB here say nothing about retention.

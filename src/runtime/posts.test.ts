@@ -126,6 +126,19 @@ describe('PostStream', () => {
     expect(stream.posts().map((post) => post.identity.tweetId)).toEqual(['2']);
   });
 
+  it('tells batch listeners which post elements left the page', async () => {
+    const { stream } = setup();
+    document.body.insertAdjacentHTML('beforeend', article('1') + article('2'));
+    await flush();
+    const first = document.querySelector('article')!;
+    const gone: HTMLElement[][] = [];
+    stream.onBatch((removed) => gone.push([...removed]));
+    first.remove();
+    document.body.insertAdjacentHTML('beforeend', article('3'));
+    await flush();
+    expect(gone).toEqual([[first]]);
+  });
+
   it('calls batch listeners once after each round of reports', async () => {
     const { stream } = setup();
     const batches: number[] = [];

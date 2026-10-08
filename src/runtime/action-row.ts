@@ -49,12 +49,25 @@ interface Mounted {
  */
 export function createActionRow(scope: Scope, posts: PostStream): ActionRowService {
   const slots = new Map<string, ActionSlot>();
+  /** The slots in registration order, kept as an array because every post visit walks it. */
+  let ordered: ActionSlot[] = [];
   const mounted = new Map<HTMLElement, Mounted>();
+  /** Each post element's mounted elements by slot id: a post is visited several times as X renders it, so finding ours must not scan its subtree. */
+  const byPost = new WeakMap<HTMLElement, Map<string, HTMLElement>>();
 
-  function mountSlot(slot: ActionSlot, post: SlotPost, rowOf: () => HTMLElement | null): boolean {
+  /** The slot's element in this post if it is still there (X may have re-rendered the row away). */
+  function mountedIn(article: HTMLElement, slot: ActionSlot): HTMLElement | null {
+    const element = byPost.get(article)?.get(slot.id);
+    return element && element.isConnected && element.closest(X_SELECTORS.post) === article
+      ? element
+      : null;
+  }
+
+  /** True when the slot is on the post (mounted now, or already there). False when it needs a row that is missing. */
+  function mountSlot(slot: ActionSlot, post: SlotPost, row: () => HTMLElement | null): boolean {
     const { article, identity } = post;
-    const existing = article.querySelector<HTMLElement>(`[data-bx-slot="${slot.id}"]`);
-    if (existing && existing.closest(X_SELECTORS.post) === article) {
+    const existing = mountedIn(article, slot);
+    if (existing) {
       const info = mounted.get(existing);
       if (info && info.tweetId !== identity.tweetId) {
         // X reused this post element for another post.
@@ -64,29 +77,43 @@ export function createActionRow(scope: Scope, posts: PostStream): ActionRowServi
       }
       return true;
     }
-    const row = rowOf();
-    if (!row) return false;
-    const order = slot.order ?? DEFAULT_ORDER;
+    const target = row();
+    if (!target) return false;
     const element = slot.create(post);
-    element.dataset.bxSlot = slot.id;
-    element.dataset.bxOrder = String(order);
+    element.setAttribute('data-bx-slot', slot.id);
     mounted.set(element, { slot, tweetId: identity.tweetId });
-    const after = [...row.children].find(
-      (child) => child instanceof HTMLElement && Number(child.dataset.bxOrder) > order,
-    );
-    row.insertBefore(element, after ?? null);
+    let own = byPost.get(article);
+    if (!own) byPost.set(article, (own = new Map()));
+    own.set(slot.id, element);
+    // Position matters only when slots share a row; the order is kept here, not read back from the DOM.
+    let before: Element | null = null;
+    if (ordered.length > 1) {
+      const order = slot.order ?? DEFAULT_ORDER;
+      for (const child of target.children) {
+        const other = mounted.get(child as HTMLElement);
+        if (other && (other.slot.order ?? DEFAULT_ORDER) > order) {
+          before = child;
+          break;
+        }
+      }
+    }
+    target.insertBefore(element, before);
     queueAlign(element);
     return true;
   }
 
   function mountPost(post: SlotPost, only?: ActionSlot) {
-    let row: HTMLElement | null | undefined;
-    const rowOf = () => (row === undefined ? (row = actionRow(post.article)) : row);
-    for (const slot of only ? [only] : slots.values()) if (!mountSlot(slot, post, rowOf)) break;
+    let found: HTMLElement | null | undefined;
+    const row = () => (found === undefined ? (found = actionRow(post.article)) : found);
+    for (const slot of only ? [only] : ordered) if (!mountSlot(slot, post, row)) break;
   }
 
-  const forget = () => {
-    for (const element of mounted.keys()) if (!element.isConnected) mounted.delete(element);
+  /** Drops the bookkeeping for posts that left the page; only those, so a batch costs what left. */
+  const forget = (gone: ReadonlyArray<HTMLElement>) => {
+    for (const article of gone) {
+      byPost.get(article)?.forEach((element) => mounted.delete(element));
+      byPost.delete(article);
+    }
   };
 
   /* ---------------------------------------------------------------------- alignment */
@@ -164,10 +191,12 @@ export function createActionRow(scope: Scope, posts: PostStream): ActionRowServi
     register(slot) {
       if (slots.has(slot.id)) throw new Error(`Action slot "${slot.id}" is already registered`);
       slots.set(slot.id, slot);
+      ordered = [...slots.values()];
       for (const post of posts.posts()) mountPost(post, slot);
       return () => {
         if (slots.get(slot.id) !== slot) return;
         slots.delete(slot.id);
+        ordered = [...slots.values()];
         for (const [element, info] of mounted)
           if (info.slot === slot) {
             element.remove();
