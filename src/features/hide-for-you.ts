@@ -1,7 +1,11 @@
+/*
+ * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
+ * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
+ */
 import { observe } from '../runtime/observe';
 import type { Scope } from '../runtime/scope';
 import { waitFor } from '../runtime/wait';
-import type { FeatureDef } from './types';
+import type { ToggleFeature } from './types';
 
 /** Set on <html> only while the For you tab is safe to hide. */
 const HIDE_ATTR = 'data-bx-hide-for-you';
@@ -35,7 +39,7 @@ const isSelected = (tab: Element) => tab.getAttribute('aria-selected') === 'true
  * `isConnected` check, no document query). Switching it off hides nothing, clicks
  * nothing and does not navigate; X's tabs are as they were.
  */
-export const hideForYou: FeatureDef = {
+export const hideForYou: ToggleFeature = {
   id: 'feed.hideForYou',
   category: 'feed',
   title: 'Hide For You',

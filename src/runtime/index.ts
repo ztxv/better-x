@@ -2,6 +2,7 @@ import { createActionRow, type ActionRowService } from './action-row';
 import { createLayoutService, type LayoutService } from './layout';
 import { createPostStream, type PostStream } from './posts';
 import { createRouteService, type RouteService } from './route';
+import { markSidebar } from './sidebar';
 import type { Scope } from './scope';
 
 /** The services every Better X feature builds on. */
@@ -14,15 +15,17 @@ export interface Runtime {
 
 /**
  * Starts the shared runtime on `scope`: post discovery, the action row, routes and layout.
- * Route and layout are also mirrored on <html> so they can be read, and later styled, from the
- * page: `data-bx-route="profile"` and `data-bx-layout="narrow"` (absent until X's app wrapper
- * has rendered). They are removed when the scope ends.
+ * Route, layout and sidebar presence are also mirrored on <html> so they can be read, and styled,
+ * from the page: `data-bx-route="profile"`, `data-bx-layout="narrow"` (absent until X's app
+ * wrapper has rendered) and `data-bx-sidebar` (present while X shows its sidebar column). They
+ * are removed when the scope ends.
  */
 export function startRuntime(scope: Scope): Runtime {
   const posts = createPostStream(scope);
   const actionRow = createActionRow(scope, posts);
   const routes = createRouteService(scope);
   const layout = createLayoutService(scope);
+  markSidebar(scope);
 
   const root = document.documentElement;
   const publishRoute = () => root.setAttribute('data-bx-route', routes.route.id);

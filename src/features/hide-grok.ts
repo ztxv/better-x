@@ -1,4 +1,8 @@
-import type { FeatureDef } from './types';
+/*
+ * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
+ * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
+ */
+import type { ToggleFeature } from './types';
 
 const GROK = '/i/grok';
 
@@ -20,7 +24,7 @@ const GROK = '/i/grok';
  * Not hidden, to be offered as separate options later: posts that share Grok conversations and
  * Grok's image-editing entry points.
  */
-export const hideGrok: FeatureDef = {
+export const hideGrok: ToggleFeature = {
   id: 'cleanup.hideGrok',
   category: 'cleanup',
   title: 'Hide Grok',

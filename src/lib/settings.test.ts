@@ -7,6 +7,7 @@ import {
   normalizeSettings,
   resetSettings,
   saveSettings,
+  SETTINGS_VERSION,
   watchSettings,
 } from './settings';
 
@@ -92,7 +93,11 @@ describe('settings: customization toggles', () => {
       features: {},
     });
     await saveSettings({ accent: 'pink' });
-    expect(data['bx.settings']).toMatchObject({ version: 2, theme: 'dark', accent: 'pink' });
+    expect(data['bx.settings']).toMatchObject({
+      version: SETTINGS_VERSION,
+      theme: 'dark',
+      accent: 'pink',
+    });
   });
 
   it('keep only well-formed id: boolean entries', () => {
@@ -139,5 +144,80 @@ describe('settings: customization toggles', () => {
       ...DEFAULT_SETTINGS,
       features: { 'cleanup.hideAds': true },
     });
+  });
+});
+
+describe('settings: version 3 slider values', () => {
+  it('load a stored version 2 object keeping its toggles, with no slider values', async () => {
+    const { data } = await freshEnvironment();
+    data['bx.settings'] = {
+      version: 2,
+      theme: 'light',
+      accent: 'purple',
+      downloadsEnabled: true,
+      afterSave: 'downloadOffer',
+      menuActions: { download: true, openLibrary: false },
+      saveAs: false,
+      features: { 'cleanup.hideAds': true, 'feed.hideForYou': false },
+    };
+    const loaded = await loadSettings();
+    expect(loaded).toMatchObject({
+      version: SETTINGS_VERSION,
+      theme: 'light',
+      accent: 'purple',
+      menuActions: { download: true, openLibrary: false },
+      features: { 'cleanup.hideAds': true, 'feed.hideForYou': false },
+      values: {},
+    });
+    await saveSettings({ values: { 'appearance.timelineWidth': 800 } });
+    expect(data['bx.settings']).toMatchObject({
+      version: SETTINGS_VERSION,
+      features: { 'cleanup.hideAds': true, 'feed.hideForYou': false },
+      values: { 'appearance.timelineWidth': 800 },
+    });
+  });
+
+  it('keep only well-formed id: finite number entries', () => {
+    expect(
+      normalizeSettings({
+        values: {
+          'appearance.timelineWidth': 640,
+          'appearance.navSpacing': 0,
+          'appearance.bad': '12',
+          'appearance.nan': Number.NaN,
+          'appearance.inf': Number.POSITIVE_INFINITY,
+          'no-dot': 5,
+          'Appearance.upper': 5,
+        },
+      }).values,
+    ).toEqual({ 'appearance.timelineWidth': 640, 'appearance.navSpacing': 0 });
+    expect(normalizeSettings({ values: [1] }).values).toEqual({});
+    expect(normalizeSettings({ values: 'x' }).values).toEqual({});
+  });
+
+  it('merge a values patch, and forget an id when it is patched to null', async () => {
+    await saveSettings({ values: { 'appearance.timelineWidth': 800 } });
+    await saveSettings({ values: { 'appearance.sidebarWidth': 300 } });
+    expect((await loadSettings()).values).toEqual({
+      'appearance.timelineWidth': 800,
+      'appearance.sidebarWidth': 300,
+    });
+    await saveSettings({ values: { 'appearance.timelineWidth': null } });
+    expect((await loadSettings()).values).toEqual({ 'appearance.sidebarWidth': 300 });
+    await saveSettings({ features: { 'cleanup.hideAds': true } });
+    await saveSettings({ features: { 'cleanup.hideAds': null } });
+    expect((await loadSettings()).features).toEqual({});
+  });
+
+  it('survive resetting the other preferences', async () => {
+    await saveSettings({
+      accent: 'pink',
+      features: { 'cleanup.hideAds': true },
+      values: { 'appearance.postTextSize': 18 },
+    });
+    const after = await resetSettings();
+    expect(after.accent).toBe(DEFAULT_SETTINGS.accent);
+    expect(after.features).toEqual({ 'cleanup.hideAds': true });
+    expect(after.values).toEqual({ 'appearance.postTextSize': 18 });
   });
 });

@@ -1,12 +1,36 @@
 import type { Runtime } from '../runtime';
 import type { Scope } from '../runtime/scope';
 
-/** Groups features in the Customize view. */
-export type FeatureCategory = 'cleanup' | 'feed';
+/** Groups features in the Customize view, in the order the view lists them. */
+export type FeatureCategory =
+  'navigation' | 'feed' | 'posts' | 'sidebar' | 'appearance' | 'cleanup';
 
 export const CATEGORY_TITLES: Record<FeatureCategory, string> = {
-  cleanup: 'Clean up',
+  navigation: 'Navigation',
   feed: 'Home & feed',
+  posts: 'Posts',
+  sidebar: 'Sidebar',
+  appearance: 'Appearance',
+  cleanup: 'Ads, Grok & Premium',
+};
+
+/** Short names for the category chips. */
+export const CATEGORY_SHORT: Record<FeatureCategory, string> = {
+  navigation: 'Navigation',
+  feed: 'Home',
+  posts: 'Posts',
+  sidebar: 'Sidebar',
+  appearance: 'Appearance',
+  cleanup: 'Ads & Grok',
+};
+
+export const CATEGORY_HINTS: Record<FeatureCategory, string> = {
+  navigation: 'Menu items and buttons you do not use',
+  feed: 'What shows up in your timelines',
+  posts: 'Counts, buttons and details on posts',
+  sidebar: 'The column beside your timeline',
+  appearance: 'Widths, spacing and type',
+  cleanup: 'Promotions, Grok and upsells',
 };
 
 /** What a feature is given when it turns on. */
@@ -21,22 +45,45 @@ export interface FeatureContext {
   runtime: Runtime;
 }
 
-/**
- * A customization feature: what it is called, how it is set, what it does to the page.
- *
- * The id is `category.name` (and is what settings store). The only kind of setting so far is a
- * toggle. A feature changes the page with `css` (applied while it is on, in one shared
- * stylesheet), with `activate` (runtime behavior on the shared runtime), or both. Dependencies and
- * route/layout restrictions are not modelled yet; a feature that needs them checks the runtime in
- * `activate` or scopes its selectors on `<html data-bx-route data-bx-layout>`.
- */
-export interface FeatureDef {
+interface FeatureBase {
+  /** `category.name`; what settings store. Never change one that has shipped. */
   id: string;
   category: FeatureCategory;
   title: string;
   description: string;
-  kind: 'toggle';
+  /** Extra words the Customize search matches besides the title and description. */
+  keywords?: readonly string[];
   defaultEnabled: boolean;
-  css?: string;
   activate?(context: FeatureContext): void;
 }
+
+/** An on/off option. `css` is applied while it is on, in one shared stylesheet. */
+export interface ToggleFeature extends FeatureBase {
+  kind: 'toggle';
+  css?: string;
+}
+
+/**
+ * An on/off option with a number, for a property that varies continuously (a width, a spacing, a
+ * size). The number is only used while the feature is on. `css` gets the validated value, which
+ * is always within `min`..`max` and a multiple of `step` from `min`.
+ */
+export interface SliderFeature extends FeatureBase {
+  kind: 'slider';
+  min: number;
+  max: number;
+  step: number;
+  defaultValue: number;
+  unit: string;
+  css(value: number): string;
+}
+
+/**
+ * A customization feature: what it is called, how it is set, what it does to the page.
+ *
+ * A feature changes the page with `css` (applied while it is on, in one shared stylesheet),
+ * with `activate` (runtime behavior on the shared runtime), or both. Dependencies and
+ * route/layout restrictions are not modelled; a feature that needs them checks the runtime in
+ * `activate` or scopes its selectors on `<html data-bx-route data-bx-layout data-bx-sidebar>`.
+ */
+export type FeatureDef = ToggleFeature | SliderFeature;

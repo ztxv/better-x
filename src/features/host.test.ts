@@ -6,16 +6,16 @@ import { Scope } from '../runtime/scope';
 import { freshEnvironment } from '../test/fakes';
 import { startFeatures } from './host';
 import { createFeatureRegistry } from './registry';
-import type { FeatureDef } from './types';
+import type { SliderFeature, ToggleFeature } from './types';
 
 const runtime = {} as Runtime;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 const styles = () => document.querySelectorAll('style#bx-features');
 
 /** A feature that records what it does, so tests can see activation and cleanup. */
-function probe(id: string, extra: Partial<FeatureDef> = {}) {
+function probe(id: string, extra: Partial<ToggleFeature> = {}) {
   const log: string[] = [];
-  const def: FeatureDef = {
+  const def: ToggleFeature = {
     id,
     category: id.startsWith('feed.') ? 'feed' : 'cleanup',
     title: id,
@@ -190,5 +190,88 @@ describe('feature host: lifetime', () => {
     scope.dispose();
     await saveSettings({ features: { 'cleanup.a': true } });
     expect(log).toEqual([]);
+  });
+});
+
+describe('feature host: sliders', () => {
+  const width = (): SliderFeature => ({
+    id: 'appearance.width',
+    category: 'appearance',
+    title: 'Width',
+    description: '',
+    kind: 'slider',
+    defaultEnabled: false,
+    min: 500,
+    max: 1000,
+    step: 10,
+    defaultValue: 700,
+    unit: 'px',
+    css: (value) => `.col{max-width:${value}px}`,
+  });
+  const css = () => styles()[0]?.textContent ?? '';
+
+  it('writes the default number when switched on, and nothing while off', async () => {
+    startFeatures(scope, runtime, createFeatureRegistry([width()]));
+    await settle();
+    expect(styles()).toHaveLength(0);
+    await saveSettings({ features: { 'appearance.width': true } });
+    expect(css()).toContain('max-width:700px');
+  });
+
+  it('restyles live as the number changes, in the same single stylesheet', async () => {
+    startFeatures(scope, runtime, createFeatureRegistry([width()]));
+    await saveSettings({ features: { 'appearance.width': true } });
+    await saveSettings({ values: { 'appearance.width': 820 } });
+    expect(styles()).toHaveLength(1);
+    expect(css()).toContain('max-width:820px');
+    expect(css()).not.toContain('700px');
+  });
+
+  it('does not restart the feature when only its number changes', async () => {
+    const log: string[] = [];
+    const def: SliderFeature = {
+      ...width(),
+      activate({ scope: own }) {
+        log.push('on');
+        own.add(() => log.push('off'));
+      },
+    };
+    startFeatures(scope, runtime, createFeatureRegistry([def]));
+    await saveSettings({ features: { 'appearance.width': true } });
+    await saveSettings({ values: { 'appearance.width': 900 } });
+    await saveSettings({ values: { 'appearance.width': 510 } });
+    expect(log).toEqual(['on']);
+  });
+
+  it('keeps a stored number while off and uses it when switched back on', async () => {
+    startFeatures(scope, runtime, createFeatureRegistry([width()]));
+    await saveSettings({ values: { 'appearance.width': 880 } });
+    expect(styles()).toHaveLength(0);
+    await saveSettings({ features: { 'appearance.width': true } });
+    expect(css()).toContain('880px');
+    await saveSettings({ features: { 'appearance.width': false } });
+    expect(styles()).toHaveLength(0);
+  });
+
+  it('never lets an invalid stored number reach the page', async () => {
+    startFeatures(scope, runtime, createFeatureRegistry([width()]));
+    await saveSettings({ features: { 'appearance.width': true } });
+    for (const [stored, shown] of [
+      [99999, '1000px'],
+      [-5, '500px'],
+      [655, '660px'],
+    ] as const) {
+      await saveSettings({ values: { 'appearance.width': stored } });
+      expect(css()).toContain(`max-width:${shown}`);
+    }
+    // A hand-edited non-number is dropped by settings validation, so the default applies.
+    await chrome.storage.local.set({
+      'bx.settings': {
+        features: { 'appearance.width': true },
+        values: { 'appearance.width': 'wide' },
+      },
+    });
+    await settle();
+    expect(css()).toContain('max-width:700px');
   });
 });

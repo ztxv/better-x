@@ -1,4 +1,9 @@
-import type { FeatureDef } from './types';
+/*
+ * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
+ * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
+ */
+import { CELL, onRoute } from './css';
+import type { ToggleFeature } from './types';
 
 /**
  * The "promoted" badge's icon path, which marks a promoted trend (the trend has no other
@@ -6,6 +11,9 @@ import type { FeatureDef } from './types';
  */
 const PROMOTED_ICON =
   'M19.498 3h-15c-1.381 0-2.5 1.12-2.5 2.5v13c0 1.38 1.119 2.5 2.5 2.5h15c1.381 0 2.5-1.12 2.5-2.5v-13c0-1.38-1.119-2.5-2.5-2.5zm-3.502 12h-2v-3.59l-5.293 5.3-1.414-1.42L12.581 10H8.996V8h7v7z';
+
+/** The icon of a promoted notification (Control Panel's own check). */
+const PROMOTED_NOTIFICATION_ICON = 'M18.766 2H7.323l-4.8 12h5.324l';
 
 const ADS_LINK = ':is([href*="ads.twitter.com"], [href*="ads.x.com"])';
 
@@ -19,21 +27,24 @@ const ADS_LINK = ':is([href*="ads.twitter.com"], [href*="ads.x.com"])';
  *   div rather than the cell, because X positions cells of its virtualized list by the cell
  *   itself; hiding the cell would shift or collapse the list.
  * - Promoted trends, by the promoted badge inside the trend.
+ * - Promoted notifications, by their icon.
  * - The Ads link in X's menus (the desktop menu, and the narrow layout's dialog).
  *
  * Detection relies on X's test IDs. X's newer markup shape (served to signed-out visitors) has
  * none, so nothing in it is matched and nothing in it is hidden. Not covered: promoted accounts
  * in "Who to follow".
  */
-export const hideAds: FeatureDef = {
+export const hideAds: ToggleFeature = {
   id: 'cleanup.hideAds',
   category: 'cleanup',
   title: 'Hide Ads',
   description: 'Remove promoted posts and trends from X.',
   kind: 'toggle',
+  keywords: ['promoted', 'sponsored', 'advertising'],
   defaultEnabled: false,
   css: `
-[data-testid="cellInnerDiv"] > div:has([data-testid="placementTracking"] [data-testid="tweet"]),
+${CELL} > div:has([data-testid="placementTracking"] [data-testid="tweet"]),
+${onRoute('notifications')} ${CELL} > div:has([data-testid="notification"] svg path[d^="${PROMOTED_NOTIFICATION_ICON}"]),
 [data-testid="trend"]:has(path[d="${PROMOTED_ICON}"]),
 [role="menu"] a${ADS_LINK},
 html[data-bx-layout="narrow"] [role="dialog"] a${ADS_LINK} {

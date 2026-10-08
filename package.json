@@ -10,7 +10,7 @@
     "test": "vitest run",
     "format": "prettier --write \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
-    "smoke": "wxt build && node scripts/smoke/run.mjs && node scripts/smoke/restart.mjs && node scripts/smoke/reload.mjs",
+    "smoke": "wxt build && node scripts/smoke/run.mjs && node scripts/smoke/restart.mjs && node scripts/smoke/reload.mjs && node scripts/smoke/catalog.mjs",
     "perf": "wxt build && node scripts/perf/run.mjs"
   },
   "dependencies": {

@@ -442,9 +442,11 @@ export function App() {
         </button>
       </header>
       <SectionTabs section={section} onChange={setSection} />
-      {section === 'customize' && (
-        <Customize settings={settings} onChange={(patch) => void updateSettings(patch)} />
-      )}
+      <Customize
+        settings={settings}
+        onChange={(patch) => void updateSettings(patch)}
+        hidden={section !== 'customize'}
+      />
       <div
         className="library-view"
         id="library-panel"

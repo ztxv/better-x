@@ -18,7 +18,9 @@ const STYLE_ID = 'bx-features';
  *
  * Each running feature has its own child scope, so deactivation and failure release exactly that
  * feature's work. A feature that throws while starting is disposed and left off; it never
- * reaches Saved or the other features. All feature CSS lives in one `<style id="bx-features">`.
+ * reaches Saved or the other features. All feature CSS lives in one `<style id="bx-features">`,
+ * rewritten whenever a feature turns on or off or a slider moves (the sheet is replaced, never
+ * accumulated, so there is nothing to clean up).
  */
 export function startFeatures(
   scope: Scope,
@@ -30,11 +32,15 @@ export function startFeatures(
   const style = document.createElement('style');
   style.id = STYLE_ID;
 
+  let values: Record<string, number> = {};
+
   function renderStyle() {
     const css = registry
       .list()
-      .filter((def) => def.css && running.has(def.id))
-      .map((def) => `/* ${def.id} */\n${def.css}`)
+      .filter((def) => running.has(def.id))
+      .map((def) => [def.id, def.kind === 'slider' ? def.css(values[def.id]!) : def.css] as const)
+      .filter(([, css]) => css)
+      .map(([id, css]) => `/* ${id} */\n${css}`)
       .join('\n');
     if (!css) return style.remove();
     style.textContent = css;
@@ -57,6 +63,7 @@ export function startFeatures(
   function apply(settings: Settings) {
     if (scope.disposed) return;
     const want = registry.enabled(settings.features);
+    values = registry.values(settings.values);
     for (const def of registry.list()) {
       const on = want[def.id]!;
       if (!on) failed.delete(def.id);

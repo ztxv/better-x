@@ -7,11 +7,12 @@
 
 export const SETTINGS_KEY = 'bx.settings';
 /**
- * Version 2 added `features` (customization toggles). A stored version 1 object has none, so it
- * loads with every feature at its default and is rewritten as version 2 on the next save; no
- * other field changes meaning.
+ * Version 2 added `features` (customization toggles); version 3 added `values` (the numbers of
+ * slider features). A stored older object lacks them, so it loads with every feature at its
+ * default and is rewritten at the current version on the next save; no other field changes
+ * meaning, and nothing a user had set is lost.
  */
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
@@ -34,6 +35,11 @@ export interface Settings {
    * ignored. The feature registry decides what each id means; see `src/features`.
    */
   features: Record<string, boolean>;
+  /**
+   * Slider numbers by feature id, only for those the user has moved. Like `features`, unknown ids
+   * are kept; the registry validates each against its feature's range and step when it reads it.
+   */
+  values: Record<string, number>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
   features: {},
+  values: {},
 };
 
 /**
@@ -116,16 +123,19 @@ const pick = <T>(value: unknown, allowed: Set<T>, fallback: T): T =>
 const bool = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
 const FEATURE_ID = /^[a-z][A-Za-z0-9]{0,31}\.[a-z][A-Za-z0-9]{0,47}$/;
-const MAX_FEATURES = 128;
+const MAX_FEATURES = 256;
 
-/** Keeps only `id: boolean` entries with well-formed ids, so storage can never hold junk. */
-function normalizeFeatures(input: unknown): Record<string, boolean> {
-  const features: Record<string, boolean> = {};
-  if (!isRecord(input)) return features;
+/** Keeps only well-formed ids whose value passes `valid`, so storage can never hold junk. */
+function normalizeById<T>(input: unknown, valid: (value: unknown) => value is T) {
+  const result: Record<string, T> = {};
+  if (!isRecord(input)) return result;
   for (const [id, value] of Object.entries(input).slice(0, MAX_FEATURES))
-    if (FEATURE_ID.test(id) && typeof value === 'boolean') features[id] = value;
-  return features;
+    if (FEATURE_ID.test(id) && valid(value)) result[id] = value;
+  return result;
 }
+const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
+const isNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 export function normalizeSettings(input: unknown): Settings {
   const value = isRecord(input) ? input : {};
@@ -142,14 +152,22 @@ export function normalizeSettings(input: unknown): Settings {
       openLibrary: bool(menu.openLibrary, d.menuActions.openLibrary),
     },
     saveAs: bool(value.saveAs, d.saveAs),
-    features: normalizeFeatures(value.features),
+    features: normalizeById(value.features, isBoolean),
+    values: normalizeById(value.values, isNumber),
   };
 }
 
-export type SettingsPatch = Partial<Omit<Settings, 'version' | 'menuActions' | 'features'>> & {
+export type SettingsPatch = Partial<
+  Omit<Settings, 'version' | 'menuActions' | 'features' | 'values'>
+> & {
   menuActions?: Partial<Settings['menuActions']>;
-  /** Merged into the stored toggles: ids not mentioned keep their value. */
-  features?: Record<string, boolean>;
+  /**
+   * Merged into the stored toggles: ids not mentioned keep their value, and `null` forgets an id
+   * (so the feature is back at its default).
+   */
+  features?: Record<string, boolean | null>;
+  /** Merged into the stored slider numbers, the same way. */
+  values?: Record<string, number | null>;
 };
 
 export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
@@ -158,6 +176,7 @@ export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
     ...patch,
     menuActions: { ...current.menuActions, ...patch.menuActions },
     features: { ...current.features, ...patch.features },
+    values: { ...current.values, ...patch.values },
   });
 }
 
@@ -177,11 +196,12 @@ export async function saveSettings(patch: SettingsPatch): Promise<Settings> {
 }
 
 /**
- * Restores appearance and Saved/download preferences. The customization toggles are kept: they
- * change what X looks like, which resetting an accent color should not undo.
+ * Restores appearance and Saved/download preferences. The customization toggles and slider
+ * numbers are kept: they change what X looks like, which resetting an accent color should not undo.
  */
 export async function resetSettings(): Promise<Settings> {
-  const next = { ...DEFAULT_SETTINGS, features: (await loadSettings()).features };
+  const { features, values } = await loadSettings();
+  const next = { ...DEFAULT_SETTINGS, features, values };
   await chrome.storage.local.set({ [SETTINGS_KEY]: next });
   return next;
 }
