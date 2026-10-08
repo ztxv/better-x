@@ -148,9 +148,11 @@ Built with [WXT](https://wxt.dev) (Manifest V3), React 19, and TypeScript in str
 ```
 entrypoints/
   background.ts      Message router, download events (service worker)
-  content.ts         Save control, post-save chip, saved-post menu (on X)
+  content.ts         Content-script entry on X: starts the runtime, then Saved
   sidepanel/         Library UI entry
 src/
+  runtime/           Shared X runtime: scopes, post stream, action row, routes, layout
+  saved/             Save control, post-save chip, saved-post menu, downloads (on X)
   x/                 X DOM extraction and URL rules (all selectors live here)
   media/             URL rules, metadata adapter, media resolution
   downloads/         History store, lifecycle service, file naming, wording
