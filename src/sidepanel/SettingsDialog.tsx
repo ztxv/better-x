@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Check, Download, History, Layers2, RotateCcw, Trash, Upload, X } from 'lucide-react';
+import { Toggle } from './Toggle';
 import {
   ACCENTS,
   type AccentId,
@@ -22,37 +23,6 @@ const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
   },
   { value: 'quiet', label: 'Quiet', hint: 'Only the icon fills in' },
 ];
-
-/** A labelled switch built on a native checkbox, so it keeps keyboard and screen-reader support. */
-function Toggle({
-  label,
-  hint,
-  checked,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className={`setting-toggle ${disabled ? 'is-disabled' : ''}`}>
-      <span>
-        <strong>{label}</strong>
-        {hint && <small>{hint}</small>}
-      </span>
-      <input
-        type="checkbox"
-        role="switch"
-        checked={checked}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-    </label>
-  );
-}
 
 /** A miniature of the X page overlays, drawn with the chosen accent and the current theme. */
 function Preview({ settings }: { settings: Settings }) {

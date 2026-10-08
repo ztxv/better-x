@@ -26,6 +26,7 @@ import { ClearAllDialog } from './ClearAllDialog';
 import { ClearDownloadsDialog } from './ClearDownloadsDialog';
 import { BookmarkEditor } from './BookmarkEditor';
 import { DownloadDialog, downloadRows } from './DownloadDialog';
+import { Customize } from './Customize';
 import { SettingsDialog } from './SettingsDialog';
 import { useDownloads, useSettings } from './hooks';
 import {
@@ -43,6 +44,7 @@ import {
 } from '../types/model';
 
 const emptyLibrary: Library = { bookmarks: [], collections: [] };
+type Section = 'library' | 'customize';
 type View =
   | { kind: 'all' }
   | { kind: 'downloaded' }
@@ -120,6 +122,7 @@ export function App() {
   const { library, loading, error, refresh } = useLibrary();
   const { settings, update: updateSettings } = useSettings();
   const { records, refresh: refreshDownloads } = useDownloads();
+  const [section, setSection] = useState<Section>('library');
   const [view, setView] = useState<View>({ kind: 'all' });
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
@@ -438,319 +441,355 @@ export function App() {
           <Settings2 size={18} />
         </button>
       </header>
-      <input
-        ref={importRef}
-        type="file"
-        accept="application/json,.json"
-        hidden
-        onChange={(event) => void importJson(event.target.files?.[0])}
-      />
-      <div className="search-wrap">
-        <Search size={17} />
-        <input
-          type="search"
-          aria-label="Search bookmarks"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search your bookmarks"
-        />
-        {query && (
-          <button aria-label="Clear search" onClick={() => setQuery('')}>
-            <X size={15} />
+      <div className="section-tabs" role="tablist" aria-label="Better X">
+        {(['library', 'customize'] as const).map((id) => (
+          <button
+            key={id}
+            role="tab"
+            id={`${id}-tab`}
+            aria-selected={section === id}
+            aria-controls={id === 'customize' ? 'customize-panel' : 'library-panel'}
+            tabIndex={section === id ? 0 : -1}
+            className={section === id ? 'selected' : ''}
+            onClick={() => setSection(id)}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+              event.preventDefault();
+              const next = id === 'library' ? 'customize' : 'library';
+              setSection(next);
+              document.getElementById(`${next}-tab`)?.focus();
+            }}
+          >
+            {id === 'library' ? 'Library' : 'Customize'}
           </button>
+        ))}
+      </div>
+      {section === 'customize' && (
+        <Customize settings={settings} onChange={(patch) => void updateSettings(patch)} />
+      )}
+      <div
+        className="library-view"
+        id="library-panel"
+        role="tabpanel"
+        aria-labelledby="library-tab"
+        hidden={section !== 'library'}
+      >
+        <input
+          ref={importRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={(event) => void importJson(event.target.files?.[0])}
+        />
+        <div className="search-wrap">
+          <Search size={17} />
+          <input
+            type="search"
+            aria-label="Search bookmarks"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search your bookmarks"
+          />
+          {query && (
+            <button aria-label="Clear search" onClick={() => setQuery('')}>
+              <X size={15} />
+            </button>
+          )}
+        </div>
+        <nav className="library-nav" aria-label="Library">
+          <button
+            className={`nav-all ${view.kind === 'all' ? 'selected' : ''}`}
+            aria-current={view.kind === 'all' ? 'page' : undefined}
+            onClick={() => setView({ kind: 'all' })}
+          >
+            <BookmarkIcon size={16} />
+            <span>All Bookmarks</span>
+            <small>{library.bookmarks.length}</small>
+          </button>
+          {/* Built in: membership comes from completed downloads, never from collectionId. */}
+          <button
+            className={`nav-all nav-downloaded ${view.kind === 'downloaded' ? 'selected' : ''}`}
+            aria-current={view.kind === 'downloaded' ? 'page' : undefined}
+            onClick={() => setView({ kind: 'downloaded' })}
+          >
+            <Download size={16} />
+            <span>Downloaded</span>
+            <small>{downloaded.length}</small>
+          </button>
+          <div className="nav-heading">
+            <span>COLLECTIONS</span>
+            <button
+              className="icon-button"
+              aria-label="New collection"
+              title="New collection"
+              onClick={() => setNewCollection(!newCollection)}
+            >
+              <FolderPlus size={16} />
+            </button>
+          </div>
+          {newCollection && (
+            <form
+              className="new-collection"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createCollection();
+              }}
+            >
+              <input
+                autoFocus
+                maxLength={80}
+                value={collectionName}
+                onChange={(event) => setCollectionName(event.target.value)}
+                placeholder="Collection name"
+                aria-label="Collection name"
+              />
+              <button type="submit" aria-label="Create collection">
+                <Check size={16} />
+              </button>
+            </form>
+          )}
+          {library.collections.map((collection) => (
+            <div
+              className={`collection-row ${view.kind === 'collection' && view.id === collection.id ? 'selected' : ''}`}
+              key={collection.id}
+            >
+              <button
+                className="collection-select"
+                onClick={() => setView({ kind: 'collection', id: collection.id })}
+              >
+                <Folder size={15} />
+                <span>{collection.name}</span>
+                <small>
+                  {
+                    library.bookmarks.filter((bookmark) => bookmark.collectionId === collection.id)
+                      .length
+                  }
+                </small>
+              </button>
+              <button
+                className="collection-more"
+                aria-label={`Manage ${collection.name}`}
+                aria-expanded={collectionMenu === collection.id}
+                onClick={() =>
+                  setCollectionMenu(collectionMenu === collection.id ? null : collection.id)
+                }
+              >
+                <MoreHorizontal size={15} />
+              </button>
+              {collectionMenu === collection.id && (
+                <div className="collection-menu">
+                  <button
+                    onClick={() => {
+                      setCollectionMenu(null);
+                      void renameCollection(collection);
+                    }}
+                  >
+                    <Pencil size={14} />
+                    Rename
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setCollectionMenu(null);
+                      void removeCollection(collection);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          {tags.length > 0 && (
+            <>
+              <div className="nav-heading tags-heading">
+                <span>TAGS</span>
+              </div>
+              <div className="tag-list">
+                {tags.map((tag) => (
+                  <button
+                    className={view.kind === 'tag' && view.name === tag ? 'selected' : ''}
+                    key={tag}
+                    onClick={() => setView({ kind: 'tag', name: tag })}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </nav>
+        <main className="main-content">
+          <div className="list-head">
+            <div>
+              <h1>{title}</h1>
+              <span>{countLabel}</span>
+            </div>
+            <div className="filters">
+              <label>
+                <span className="sr-only">Filter by author</span>
+                <select value={author} onChange={(event) => setAuthor(event.target.value)}>
+                  <option value="">All authors</option>
+                  {authors.map((value) => (
+                    <option key={value} value={value}>
+                      @{value}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} />
+              </label>
+              <label>
+                <span className="sr-only">Sort bookmarks</span>
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as 'newest' | 'oldest')}
+                >
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                </select>
+                <ChevronDown size={13} />
+              </label>
+            </div>
+          </div>
+          {view.kind === 'downloaded' ? (
+            <div className="view-note">
+              <span>
+                Posts with media downloaded from this extension. Files stay where you saved them.
+              </span>
+              <button
+                className="text-button"
+                disabled={!records.length}
+                onClick={() => setClearDownloadsOpen(true)}
+              >
+                Clear history…
+              </button>
+            </div>
+          ) : selecting ? (
+            <SelectionBar
+              count={selectedIds.length}
+              total={selectable.length}
+              collections={library.collections}
+              tags={tags}
+              busy={bulkBusy}
+              onToggleAll={() =>
+                setSelected(
+                  selectedIds.length === selectable.length
+                    ? new Set()
+                    : new Set(selectable.map((entry) => entry.bookmark.id)),
+                )
+              }
+              onExit={() => {
+                setSelecting(false);
+                setSelected(new Set());
+              }}
+              onAction={(action) => void performBulk(selectedIds, action)}
+            />
+          ) : (
+            <div className="selection-entry">
+              <button
+                className="text-button"
+                disabled={!selectable.length}
+                onClick={() => setSelecting(true)}
+              >
+                Select bookmarks
+              </button>
+            </div>
+          )}
+          {error ? (
+            <div className="empty-state">
+              <strong>Could not load your library</strong>
+              <p>{error}</p>
+              <button className="primary-button" onClick={() => void refresh()}>
+                Retry
+              </button>
+            </div>
+          ) : loading ? (
+            <div className="loading-state">Loading bookmarks…</div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state">
+              <span className="empty-icon">
+                {query ? (
+                  <Search size={23} />
+                ) : view.kind === 'downloaded' ? (
+                  <Download size={23} />
+                ) : (
+                  <BookmarkIcon size={23} />
+                )}
+              </span>
+              <strong>
+                {query
+                  ? `No results for “${query}”`
+                  : view.kind === 'downloaded'
+                    ? 'No downloads yet'
+                    : library.bookmarks.length
+                      ? 'Nothing here yet'
+                      : 'No bookmarks yet'}
+              </strong>
+              <p>
+                {query
+                  ? 'Try another search term or filter.'
+                  : view.kind === 'downloaded'
+                    ? 'Download media from a saved post and it appears here once the download completes.'
+                    : library.bookmarks.length
+                      ? 'Save a bookmark to this collection or tag.'
+                      : 'Save a post on X and it will appear here.'}
+              </p>
+            </div>
+          ) : (
+            <div className="bookmark-list">
+              {filtered.map(({ bookmark, removed, downloads }) => {
+                const own = bookmark.media;
+                const quoted = bookmark.quote?.tweetId ? (bookmark.quote.media ?? []) : [];
+                const canDownload = downloadsOn && (own.length > 0 || quoted.length > 0);
+                return (
+                  <BookmarkItem
+                    key={bookmark.id}
+                    bookmark={bookmark}
+                    removed={removed}
+                    selecting={selecting && view.kind !== 'downloaded' && !removed}
+                    selected={selected.has(bookmark.id)}
+                    busy={bulkBusy}
+                    onToggle={() => toggleSelected(bookmark.id)}
+                    collection={collectionById.get(bookmark.collectionId || '')}
+                    badge={badgeFor(bookmark, downloads)}
+                    downloadLabel={
+                      canDownload
+                        ? downloadLabel(own.length ? own : quoted, !own.length)
+                        : undefined
+                    }
+                    onDownload={() => void startDownload(bookmark)}
+                    onEdit={() => setEditing(bookmark)}
+                    onDelete={() => void removeBookmark(bookmark)}
+                    onSave={() => void saveFromHistory(bookmark)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </main>
+        {(undo.length > 0 || undoDownloads.length > 0) && !notice && (
+          <div className="toast undo-toast" role="status">
+            <span>
+              {undo.length
+                ? `${undo.length} ${undo.length === 1 ? 'bookmark' : 'bookmarks'} deleted`
+                : 'Download history cleared'}
+            </span>
+            <button disabled={bulkBusy} onClick={() => void undoDelete()}>
+              Undo
+            </button>
+            <button
+              aria-label="Dismiss undo"
+              onClick={() => {
+                setUndo([]);
+                setUndoDownloads([]);
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
         )}
       </div>
-      <nav className="library-nav" aria-label="Library">
-        <button
-          className={`nav-all ${view.kind === 'all' ? 'selected' : ''}`}
-          aria-current={view.kind === 'all' ? 'page' : undefined}
-          onClick={() => setView({ kind: 'all' })}
-        >
-          <BookmarkIcon size={16} />
-          <span>All Bookmarks</span>
-          <small>{library.bookmarks.length}</small>
-        </button>
-        {/* Built in: membership comes from completed downloads, never from collectionId. */}
-        <button
-          className={`nav-all nav-downloaded ${view.kind === 'downloaded' ? 'selected' : ''}`}
-          aria-current={view.kind === 'downloaded' ? 'page' : undefined}
-          onClick={() => setView({ kind: 'downloaded' })}
-        >
-          <Download size={16} />
-          <span>Downloaded</span>
-          <small>{downloaded.length}</small>
-        </button>
-        <div className="nav-heading">
-          <span>COLLECTIONS</span>
-          <button
-            className="icon-button"
-            aria-label="New collection"
-            title="New collection"
-            onClick={() => setNewCollection(!newCollection)}
-          >
-            <FolderPlus size={16} />
-          </button>
-        </div>
-        {newCollection && (
-          <form
-            className="new-collection"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void createCollection();
-            }}
-          >
-            <input
-              autoFocus
-              maxLength={80}
-              value={collectionName}
-              onChange={(event) => setCollectionName(event.target.value)}
-              placeholder="Collection name"
-              aria-label="Collection name"
-            />
-            <button type="submit" aria-label="Create collection">
-              <Check size={16} />
-            </button>
-          </form>
-        )}
-        {library.collections.map((collection) => (
-          <div
-            className={`collection-row ${view.kind === 'collection' && view.id === collection.id ? 'selected' : ''}`}
-            key={collection.id}
-          >
-            <button
-              className="collection-select"
-              onClick={() => setView({ kind: 'collection', id: collection.id })}
-            >
-              <Folder size={15} />
-              <span>{collection.name}</span>
-              <small>
-                {
-                  library.bookmarks.filter((bookmark) => bookmark.collectionId === collection.id)
-                    .length
-                }
-              </small>
-            </button>
-            <button
-              className="collection-more"
-              aria-label={`Manage ${collection.name}`}
-              aria-expanded={collectionMenu === collection.id}
-              onClick={() =>
-                setCollectionMenu(collectionMenu === collection.id ? null : collection.id)
-              }
-            >
-              <MoreHorizontal size={15} />
-            </button>
-            {collectionMenu === collection.id && (
-              <div className="collection-menu">
-                <button
-                  onClick={() => {
-                    setCollectionMenu(null);
-                    void renameCollection(collection);
-                  }}
-                >
-                  <Pencil size={14} />
-                  Rename
-                </button>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    setCollectionMenu(null);
-                    void removeCollection(collection);
-                  }}
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-        {tags.length > 0 && (
-          <>
-            <div className="nav-heading tags-heading">
-              <span>TAGS</span>
-            </div>
-            <div className="tag-list">
-              {tags.map((tag) => (
-                <button
-                  className={view.kind === 'tag' && view.name === tag ? 'selected' : ''}
-                  key={tag}
-                  onClick={() => setView({ kind: 'tag', name: tag })}
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </nav>
-      <main className="main-content">
-        <div className="list-head">
-          <div>
-            <h1>{title}</h1>
-            <span>{countLabel}</span>
-          </div>
-          <div className="filters">
-            <label>
-              <span className="sr-only">Filter by author</span>
-              <select value={author} onChange={(event) => setAuthor(event.target.value)}>
-                <option value="">All authors</option>
-                {authors.map((value) => (
-                  <option key={value} value={value}>
-                    @{value}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={13} />
-            </label>
-            <label>
-              <span className="sr-only">Sort bookmarks</span>
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value as 'newest' | 'oldest')}
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-              </select>
-              <ChevronDown size={13} />
-            </label>
-          </div>
-        </div>
-        {view.kind === 'downloaded' ? (
-          <div className="view-note">
-            <span>
-              Posts with media downloaded from this extension. Files stay where you saved them.
-            </span>
-            <button
-              className="text-button"
-              disabled={!records.length}
-              onClick={() => setClearDownloadsOpen(true)}
-            >
-              Clear history…
-            </button>
-          </div>
-        ) : selecting ? (
-          <SelectionBar
-            count={selectedIds.length}
-            total={selectable.length}
-            collections={library.collections}
-            tags={tags}
-            busy={bulkBusy}
-            onToggleAll={() =>
-              setSelected(
-                selectedIds.length === selectable.length
-                  ? new Set()
-                  : new Set(selectable.map((entry) => entry.bookmark.id)),
-              )
-            }
-            onExit={() => {
-              setSelecting(false);
-              setSelected(new Set());
-            }}
-            onAction={(action) => void performBulk(selectedIds, action)}
-          />
-        ) : (
-          <div className="selection-entry">
-            <button
-              className="text-button"
-              disabled={!selectable.length}
-              onClick={() => setSelecting(true)}
-            >
-              Select bookmarks
-            </button>
-          </div>
-        )}
-        {error ? (
-          <div className="empty-state">
-            <strong>Could not load your library</strong>
-            <p>{error}</p>
-            <button className="primary-button" onClick={() => void refresh()}>
-              Retry
-            </button>
-          </div>
-        ) : loading ? (
-          <div className="loading-state">Loading bookmarks…</div>
-        ) : filtered.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon">
-              {query ? (
-                <Search size={23} />
-              ) : view.kind === 'downloaded' ? (
-                <Download size={23} />
-              ) : (
-                <BookmarkIcon size={23} />
-              )}
-            </span>
-            <strong>
-              {query
-                ? `No results for “${query}”`
-                : view.kind === 'downloaded'
-                  ? 'No downloads yet'
-                  : library.bookmarks.length
-                    ? 'Nothing here yet'
-                    : 'No bookmarks yet'}
-            </strong>
-            <p>
-              {query
-                ? 'Try another search term or filter.'
-                : view.kind === 'downloaded'
-                  ? 'Download media from a saved post and it appears here once the download completes.'
-                  : library.bookmarks.length
-                    ? 'Save a bookmark to this collection or tag.'
-                    : 'Save a post on X and it will appear here.'}
-            </p>
-          </div>
-        ) : (
-          <div className="bookmark-list">
-            {filtered.map(({ bookmark, removed, downloads }) => {
-              const own = bookmark.media;
-              const quoted = bookmark.quote?.tweetId ? (bookmark.quote.media ?? []) : [];
-              const canDownload = downloadsOn && (own.length > 0 || quoted.length > 0);
-              return (
-                <BookmarkItem
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  removed={removed}
-                  selecting={selecting && view.kind !== 'downloaded' && !removed}
-                  selected={selected.has(bookmark.id)}
-                  busy={bulkBusy}
-                  onToggle={() => toggleSelected(bookmark.id)}
-                  collection={collectionById.get(bookmark.collectionId || '')}
-                  badge={badgeFor(bookmark, downloads)}
-                  downloadLabel={
-                    canDownload ? downloadLabel(own.length ? own : quoted, !own.length) : undefined
-                  }
-                  onDownload={() => void startDownload(bookmark)}
-                  onEdit={() => setEditing(bookmark)}
-                  onDelete={() => void removeBookmark(bookmark)}
-                  onSave={() => void saveFromHistory(bookmark)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </main>
-      {(undo.length > 0 || undoDownloads.length > 0) && !notice && (
-        <div className="toast undo-toast" role="status">
-          <span>
-            {undo.length
-              ? `${undo.length} ${undo.length === 1 ? 'bookmark' : 'bookmarks'} deleted`
-              : 'Download history cleared'}
-          </span>
-          <button disabled={bulkBusy} onClick={() => void undoDelete()}>
-            Undo
-          </button>
-          <button
-            aria-label="Dismiss undo"
-            onClick={() => {
-              setUndo([]);
-              setUndoDownloads([]);
-            }}
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
       {notice && (
         <div className="toast" role="status">
           {notice}
