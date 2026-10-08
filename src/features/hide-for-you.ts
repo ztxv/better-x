@@ -1,0 +1,128 @@
+import { observe } from '../runtime/observe';
+import type { Scope } from '../runtime/scope';
+import { waitFor } from '../runtime/wait';
+import type { FeatureDef } from './types';
+
+/** Set on <html> only while the For you tab is safe to hide. */
+const HIDE_ATTR = 'data-bx-hide-for-you';
+/** Consecutive clicks on Following that did not leave it selected, before giving up. */
+const MAX_FAILED_CLICKS = 2;
+
+/**
+ * Where X puts the Home tabs: in the primary column on the wide layout, in the top bar on the
+ * narrow one (Control Panel for Twitter uses the same split). The tabs are `For you` first and
+ * `Following` second, then any pinned lists.
+ */
+const TABLISTS = {
+  wide: '[data-testid="primaryColumn"] nav [role="tablist"]',
+  narrow: '[data-testid="TopNavBar"] nav [role="tablist"]',
+};
+
+const isSelected = (tab: Element) => tab.getAttribute('aria-selected') === 'true';
+
+/**
+ * Makes Following the Home timeline and hides the For you tab.
+ *
+ * Following is selected first: the tab is hidden (an attribute on <html> that the CSS keys on) only
+ * once the user is, or is being moved, to Following, and is shown again if the click does not take
+ * (so no one is left on a hidden, selected tab). A click happens only when For you is the selected
+ * tab, never on other pages, and after two failed attempts in a row it stops. A success resets
+ * that count, so X putting For you back (pressing Home again, the tabs re-rendering) is corrected
+ * each time without ever looping.
+ *
+ * It follows the shared runtime: the Home page and layout come from the route and layout
+ * services, a small managed observer watches only the tab list's selection, and the post stream's
+ * batches re-check cheaply when X re-renders the tabs. Switching it off hides nothing, clicks
+ * nothing and does not navigate; X's tabs are as they were.
+ */
+export const hideForYou: FeatureDef = {
+  id: 'feed.hideForYou',
+  category: 'feed',
+  title: 'Hide For You',
+  description: 'Use Following instead of the For You timeline.',
+  kind: 'toggle',
+  defaultEnabled: false,
+  css: `
+html[${HIDE_ATTR}] :is([data-testid="primaryColumn"], [data-testid="TopNavBar"]) nav [role="tablist"] > div:first-child {
+  display: none !important;
+}`,
+  activate({ scope, runtime: { routes, layout, posts } }) {
+    const root = document.documentElement;
+    const setHidden = (hidden: boolean) =>
+      hidden ? root.setAttribute(HIDE_ATTR, '') : root.removeAttribute(HIDE_ATTR);
+    scope.add(() => setHidden(false));
+
+    let tablist: HTMLElement | null = null;
+    let watching: Scope | null = null;
+    let failedClicks = 0;
+
+    const findTablist = (): HTMLElement | null => {
+      const order = layout.layout === 'narrow' ? ['narrow', 'wide'] : ['wide', 'narrow'];
+      for (const where of order) {
+        const found = document.querySelector<HTMLElement>(TABLISTS[where as keyof typeof TABLISTS]);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    function watch(list: HTMLElement) {
+      watching?.dispose();
+      watching = scope.child();
+      tablist = list;
+      failedClicks = 0;
+      observe(
+        watching,
+        list,
+        { attributes: true, attributeFilter: ['aria-selected'], subtree: true },
+        ensure,
+      );
+    }
+
+    /** Brings the tabs to the wanted state, if the Home tabs are on screen. */
+    function ensure() {
+      if (routes.page.id !== 'home') return setHidden(false);
+      const list = tablist?.isConnected ? tablist : findTablist();
+      if (!list) return setHidden(false);
+      if (list !== tablist) watch(list);
+      const forYou = list.children[0]?.querySelector('[role="tab"]');
+      const following = list.children[1]?.querySelector<HTMLElement>('[role="tab"]');
+      // Cannot tell which tab is which: leave X's tabs alone rather than guess.
+      if (!forYou || !following) return setHidden(false);
+      if (isSelected(following)) failedClicks = 0;
+      else if (isSelected(forYou)) {
+        if (failedClicks >= MAX_FAILED_CLICKS) return setHidden(false);
+        failedClicks++;
+        following.click();
+      }
+      setHidden(true);
+    }
+
+    let pending: Scope | null = null;
+    /** Starts over for a visit to Home: find the tabs (waiting if they are not rendered yet). */
+    function enter() {
+      pending?.dispose();
+      pending = null;
+      watching?.dispose();
+      watching = null;
+      tablist = null;
+      failedClicks = 0;
+      if (routes.page.id !== 'home') return setHidden(false);
+      if (findTablist()) return ensure();
+      // Not rendered yet: wait for it, until the feature ends or the user leaves this page.
+      const waiting = (pending = scope.child());
+      waiting.add(routes.pageScope.add(() => waiting.dispose()));
+      waitFor(findTablist, { signal: waiting.signal, attributes: false }).then(
+        () => {
+          waiting.dispose();
+          ensure();
+        },
+        () => {},
+      );
+    }
+
+    scope.add(routes.onRoute((change) => change.pageChanged && enter()));
+    scope.add(layout.onLayout(enter));
+    scope.add(posts.onBatch(() => routes.page.id === 'home' && ensure()));
+    enter();
+  },
+};

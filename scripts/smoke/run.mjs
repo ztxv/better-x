@@ -972,6 +972,160 @@ check(
     (await controlCount()) === FEATURE_POSTS &&
     (await allShown(GROK_SURFACES, true)),
 );
+
+// Hide For You
+const tabClicks = () => fx.evaluate(() => window.__tabClicks.slice());
+const tabState = () =>
+  fx.evaluate(() => ({
+    forYou: document.getElementById('tab-foryou-link').getAttribute('aria-selected'),
+    following: document.getElementById('tab-following-link').getAttribute('aria-selected'),
+    forYouShown: getComputedStyle(document.getElementById('tab-foryou')).display !== 'none',
+    followingShown: getComputedStyle(document.getElementById('tab-following')).display !== 'none',
+  }));
+const spaTo2 = (p, url) => p.evaluate((u) => history.pushState({}, '', u), url);
+const sameState = async (want) => {
+  const s = await tabState();
+  return Object.entries(want).every(([k, v]) => s[k] === v);
+};
+check(
+  'Hide For You is off by default: For you is selected and visible',
+  await sameState({ forYou: 'true', forYouShown: true }),
+);
+await toggleFeature('Hide For You', true);
+check(
+  'Hide For You selects Following and hides the For you tab on the open tab',
+  await fx
+    .waitForFunction(
+      () =>
+        document.getElementById('tab-following-link').getAttribute('aria-selected') === 'true' &&
+        getComputedStyle(document.getElementById('tab-foryou')).display === 'none',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+  JSON.stringify(await tabState()),
+);
+check(
+  '...with a single click on Following, and Following still visible',
+  JSON.stringify(await tabClicks()) === JSON.stringify(['tab-following-link']) &&
+    (await sameState({ followingShown: true })),
+);
+await sleep(600);
+check(
+  'it does not keep clicking',
+  JSON.stringify(await tabClicks()) === JSON.stringify(['tab-following-link']),
+);
+// Leaving Home stops the effect; other pages' tabs are untouched.
+await spaTo2(fx, '/elonmusk');
+check(
+  'off Home the For you tab is shown again and nothing is clicked',
+  (await fx
+    .waitForFunction(
+      () => getComputedStyle(document.getElementById('tab-foryou')).display !== 'none',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false)) && (await tabClicks()).length === 1,
+);
+// X puts For you back when Home is opened again; Better X corrects it once.
+await fx.evaluate(() => {
+  document.getElementById('tab-foryou-link').setAttribute('aria-selected', 'true');
+  document.getElementById('tab-following-link').setAttribute('aria-selected', 'false');
+});
+await spaTo2(fx, '/home');
+check(
+  'returning to Home selects Following again and hides For you',
+  await fx
+    .waitForFunction(
+      () =>
+        document.getElementById('tab-following-link').getAttribute('aria-selected') === 'true' &&
+        getComputedStyle(document.getElementById('tab-foryou')).display === 'none',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+);
+check('...with exactly one more click', (await tabClicks()).length === 2);
+// A modal over Home does not flicker the tab or trigger anything.
+await spaTo2(fx, '/compose/post');
+await sleep(300);
+check(
+  'opening the composer over Home changes nothing',
+  (await sameState({ forYouShown: false })) && (await tabClicks()).length === 2,
+);
+await spaTo2(fx, '/home');
+await sleep(300);
+// Saving keeps working.
+await fx.evaluate(() => document.querySelector('#cell-mention .bx-control').click());
+check(
+  'saving works with Hide For You on',
+  await waitText(fx, '#bx-chip', /Saved/),
+  await text(fx, '#bx-chip'),
+);
+await fx.keyboard.press('Escape');
+// Switching off restores X's tabs and does not navigate.
+const clicksBeforeOff = (await tabClicks()).length;
+await toggleFeature('Hide For You', false);
+check(
+  'switching Hide For You off shows the For you tab again',
+  await fx
+    .waitForFunction(
+      () => getComputedStyle(document.getElementById('tab-foryou')).display !== 'none',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+);
+check(
+  '...and does not click, navigate away, or force Following afterwards',
+  (await tabClicks()).length === clicksBeforeOff &&
+    (await fx.evaluate(() => location.pathname)) === '/home' &&
+    (await sameState({ following: 'true' })),
+);
+await fx.evaluate(() => {
+  document.getElementById('tab-foryou-link').setAttribute('aria-selected', 'true');
+  document.getElementById('tab-following-link').setAttribute('aria-selected', 'false');
+});
+await spaTo2(fx, '/explore');
+await spaTo2(fx, '/home');
+await sleep(400);
+check(
+  '...the user can sit on For you without being pushed off it',
+  (await tabClicks()).length === clicksBeforeOff && (await sameState({ forYou: 'true' })),
+);
+// Independent of the other two, and repeated toggling leaves nothing behind.
+await toggleFeature('Hide Ads', true);
+await toggleFeature('Hide For You', true);
+check(
+  'all three features work together',
+  (await waitShown(fx, '#inner-promo', false)) &&
+    (await fx
+      .waitForFunction(
+        () => getComputedStyle(document.getElementById('tab-foryou')).display === 'none',
+        { timeout: 5000 },
+      )
+      .then(() => true)
+      .catch(() => false)),
+);
+await toggleFeature('Hide Grok', true);
+await toggleFeature('Hide Grok', false);
+await toggleFeature('Hide Ads', false);
+for (let i = 0; i < 3; i++) {
+  await toggleFeature('Hide For You', false);
+  await toggleFeature('Hide For You', true);
+}
+await toggleFeature('Hide For You', false);
+check(
+  'repeated toggling leaves no markers, styles or duplicate controls',
+  (await styleCount()) === 0 &&
+    (await controlCount()) === FEATURE_POSTS &&
+    (await fx.evaluate(() => !document.documentElement.hasAttribute('data-bx-hide-for-you'))),
+);
+check(
+  'no page errors from any of it',
+  features.errors.length === 0,
+  features.errors.join(' | ').slice(0, 300),
+);
 await features.page.close();
 
 // --- two X tabs saving the same post at the same moment
