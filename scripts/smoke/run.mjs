@@ -886,6 +886,92 @@ check(
   })(),
 );
 await toggleFeature('Hide Ads', false);
+
+// Hide Grok
+const GROK_SURFACES = [
+  '#nav-grok',
+  '#menu-grok',
+  '#grok-drawer',
+  '#followups',
+  '#followups-nav',
+  '#ask-grok',
+  '#grok-actions',
+  '#grok-promo',
+];
+const allShown = async (selectors, want) => {
+  for (const s of selectors) if ((await shown(fx, s)) !== want) return false;
+  return true;
+};
+check('Hide Grok is off by default', await allShown(GROK_SURFACES, true));
+await toggleFeature('Hide Grok', true);
+check(
+  'Hide Grok hides the Grok nav entry, menu entry, drawer and promo on the open tab',
+  (await waitShown(fx, '#nav-grok', false)) &&
+    (await shown(fx, '#menu-grok')) === false &&
+    (await shown(fx, '#grok-drawer')) === false &&
+    (await shown(fx, '#grok-promo')) === false,
+);
+check(
+  '...and the post-level prompts, Ask Grok and Grok actions',
+  (await shown(fx, '#followups')) === false &&
+    (await shown(fx, '#followups-nav')) === false &&
+    (await shown(fx, '#ask-grok')) === false &&
+    (await shown(fx, '#grok-actions')) === false,
+);
+check(
+  '...but not other navigation, other sidebar cards, or any post (including ones about Grok)',
+  await allShown(
+    [
+      '#nav-home',
+      '#menu-settings',
+      '#other-promo',
+      '#inner-mention',
+      '#inner-grokpost',
+      '#inner-plain1',
+    ],
+    true,
+  ),
+);
+check('Hide Grok leaves ads alone', (await shown(fx, '#inner-promo')) === true);
+check(
+  'the narrow dialog’s Grok entry is only hidden in that layout',
+  (await shown(fx, '#sheet-grok')) === true,
+);
+await fx.setViewport({ width: 420, height: 900 });
+check('...narrow: hidden', await waitShown(fx, '#sheet-grok', false));
+check('...and Grok stays hidden there', (await shown(fx, '#nav-grok')) === false);
+await fx.setViewport({ width: 1280, height: 900 });
+check('...wide again: visible', await waitShown(fx, '#sheet-grok', true));
+await fx.evaluate(() => document.querySelector('#cell-plain2 .bx-control').click());
+check(
+  'saving works with Hide Grok on',
+  await waitText(fx, '#bx-chip', /Saved/),
+  await text(fx, '#bx-chip'),
+);
+await fx.keyboard.press('Escape');
+await toggleFeature('Hide Ads', true);
+check(
+  'Hide Ads and Hide Grok work together',
+  (await waitShown(fx, '#inner-promo', false)) && (await shown(fx, '#nav-grok')) === false,
+);
+await toggleFeature('Hide Grok', false);
+check(
+  'switching Hide Grok off restores Grok and leaves Hide Ads on',
+  (await waitShown(fx, '#nav-grok', true)) &&
+    (await allShown(GROK_SURFACES, true)) &&
+    (await shown(fx, '#inner-promo')) === false,
+);
+await toggleFeature('Hide Ads', false);
+for (let i = 0; i < 3; i++) {
+  await toggleFeature('Hide Grok', true);
+  await toggleFeature('Hide Grok', false);
+}
+check(
+  'repeated Hide Grok toggling leaves nothing behind',
+  (await styleCount()) === 0 &&
+    (await controlCount()) === FEATURE_POSTS &&
+    (await allShown(GROK_SURFACES, true)),
+);
 await features.page.close();
 
 // --- two X tabs saving the same post at the same moment

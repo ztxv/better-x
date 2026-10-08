@@ -85,7 +85,7 @@ export function featuresPage(theme = 'light') {
   </style>
   <div id="layers">
     <div role="menu" id="menu"><a id="menu-ads" href="https://ads.x.com/">Ads</a><a id="menu-grok" href="/i/grok">Grok</a><a id="menu-settings" href="/settings">Settings</a></div>
-    <div role="dialog" id="sheet"><a id="sheet-ads" href="https://ads.twitter.com/">Ads</a><a id="sheet-settings" href="/settings">Settings</a></div>
+    <div role="dialog" id="sheet"><a id="sheet-ads" href="https://ads.twitter.com/">Ads</a><a id="sheet-grok" href="/i/grok">Grok</a><a id="sheet-settings" href="/settings">Settings</a></div>
     <div data-testid="GrokDrawer" id="grok-drawer">Grok drawer</div>
   </div>
   <div id="bx-app" class="app-wide">
