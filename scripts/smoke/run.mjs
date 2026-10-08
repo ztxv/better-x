@@ -761,11 +761,29 @@ const waitShown = (p, s, want, timeout = 5000) =>
     )
     .then(() => true)
     .catch(() => false);
-/** Flips a Customize switch by its label, the way a user would, and waits for it to read back. */
-async function toggleFeature(title, on) {
+/** Finds a Customize setting the way a user does, by searching for it. */
+async function findSetting(title) {
   await panel.bringToFront();
   await panel.click('#customize-tab');
-  await panel.waitForSelector('.customize .setting-toggle');
+  await panel.waitForSelector('.customize input[type="search"]');
+  const box = await panel.$('.customize input[type="search"]');
+  await box.focus();
+  await panel.keyboard.press('Escape'); // clears whatever was searched for before
+  await box.type(title);
+  await panel.waitForFunction(
+    (t) =>
+      [...document.querySelectorAll('.customize .setting-toggle strong')].some(
+        (n) => n.textContent === t,
+      ),
+    {},
+    title,
+  );
+  // The group opens with a 200 ms height transition; a click lands only once it has finished.
+  await sleep(320);
+}
+/** Flips a Customize switch by its label, the way a user would, and waits for it to read back. */
+async function toggleFeature(title, on) {
+  await findSetting(title);
   const input = async () =>
     (
       await panel.evaluateHandle(
@@ -1121,6 +1139,241 @@ check(
     (await controlCount()) === FEATURE_POSTS &&
     (await fx.evaluate(() => !document.documentElement.hasAttribute('data-bx-hide-for-you'))),
 );
+// --- the Customize interface itself: search, groups, sliders, quick setups, state kept
+await panel.bringToFront();
+await panel.setViewport({ width: 400, height: 900 });
+await panel.reload({ waitUntil: 'networkidle0' });
+await panel.click('#customize-tab');
+await panel.waitForSelector('.customize input[type="search"]');
+const ui = {
+  search: async (text) => {
+    const box = await panel.$('.customize input[type="search"]');
+    await box.focus();
+    await panel.keyboard.press('Escape');
+    if (text) await box.type(text);
+    await sleep(120);
+  },
+  titles: () =>
+    panel.$$eval('.customize .setting-toggle strong', (n) => n.map((x) => x.textContent)),
+  settings: () =>
+    panel.evaluate(async () => (await chrome.storage.local.get('bx.settings'))['bx.settings']),
+};
+await ui.search('');
+const total = (await ui.titles()).length;
+check(
+  'Customize lists every setting, grouped',
+  total > 60 && (await panel.$$('.customize-group')).length === 6,
+  String(total),
+);
+await ui.search('sidebar');
+const found = await ui.titles();
+check(
+  'search narrows the list as you type, across titles and descriptions',
+  found.length > 3 && found.length < total / 3 && found.includes('Hide the sidebar'),
+  found.length + ' found',
+);
+await ui.search('qqqqq');
+check(
+  '...and a miss shows an empty state with a way back',
+  (await ui.titles()).length === 0 &&
+    (await panel.$eval('.customize-empty', (n) => n.textContent.includes('No settings match'))),
+);
+await panel.click('.customize-empty .link-button');
+check('...Clear search restores the list', (await ui.titles()).length === total);
+await panel.focus('.customize input[type="search"]');
+await panel.keyboard.type('ads');
+await panel.keyboard.press('Escape');
+check(
+  'Escape clears the search',
+  (await panel.$eval('.customize input[type="search"]', (i) => i.value)) === '',
+);
+await panel.click('.category-chips .chip:nth-child(5)');
+check(
+  'a category chip shows just that category',
+  (await panel.$$('.customize-group')).length === 1 &&
+    (await panel.$eval('.customize-group h2', (n) => n.textContent)) === 'Sidebar',
+);
+await panel.click('.category-chips .chip:first-child');
+const groupState = () =>
+  panel.$$eval('.customize-group', (n) =>
+    n.map((g) => ({ open: g.dataset.open, inert: g.querySelector('.group-panel').inert })),
+  );
+const closedGroup = (await groupState()).find((g) => g.open === 'false');
+check('a closed group is inert, so Tab skips it', closedGroup?.inert === true);
+
+// Sliders, by keyboard and by the reset button, restyling the open X tab live.
+const primaryWidth = () =>
+  fx.$eval('[data-testid="primaryColumn"]', (n) => getComputedStyle(n).maxWidth);
+await ui.search('Timeline width');
+check(
+  'a slider is off until its switch is on',
+  await panel.$eval('.customize .slider', (n) => n.disabled),
+);
+await panel.click('.customize .setting-toggle input');
+await panel.waitForFunction(() => !document.querySelector('.customize .slider').disabled);
+check(
+  '...then the X tab takes its number',
+  await fx
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        '700px',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+  await primaryWidth(),
+);
+await panel.focus('.customize .slider');
+for (let i = 0; i < 3; i++) await panel.keyboard.press('ArrowRight');
+check(
+  'arrow keys move it one step each, and X follows',
+  await fx
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        '730px',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+  await primaryWidth(),
+);
+await panel.keyboard.press('End');
+check(
+  'End goes to the maximum and Home to the minimum',
+  (await fx
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        '1000px',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false)) &&
+    (await panel.keyboard.press('Home'),
+    await fx
+      .waitForFunction(
+        () =>
+          getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+          '500px',
+        { timeout: 5000 },
+      )
+      .then(() => true)
+      .catch(() => false)),
+  await primaryWidth(),
+);
+await panel.click('.customize .slider-reset');
+check(
+  'the reset button returns it to its default',
+  await fx
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        '700px',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+  await primaryWidth(),
+);
+check(
+  'the slider is stored as a number, within its range',
+  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 3),
+);
+await panel.click('.customize .setting-toggle input');
+check(
+  'turning it off removes the width rule and keeps nothing behind',
+  await fx
+    .waitForFunction(
+      () =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        'none',
+      { timeout: 5000 },
+    )
+    .then(() => true)
+    .catch(() => false),
+  await primaryWidth(),
+);
+
+// Quick setups apply a whole configuration, leave Saved's settings alone, and undo.
+await ui.search('');
+await panel.evaluate(() =>
+  chrome.storage.local.set({
+    'bx.settings': {
+      version: 3,
+      accent: 'pink',
+      downloadsEnabled: false,
+      afterSave: 'quiet',
+      features: { 'posts.plainText': true },
+    },
+  }),
+);
+await sleep(200);
+const beforeDownloads = await ui.settings();
+await panel.click('.preset:nth-child(1)');
+check(
+  'the Clean setup hides ads and Grok on the open X tab',
+  (await waitShown(fx, '#inner-promo', false)) && (await waitShown(fx, '#nav-grok', false)),
+);
+const afterClean = await ui.settings();
+check(
+  '...replaces the other customization, and leaves Saved, downloads and the panel’s own settings alone',
+  afterClean.accent === 'pink' &&
+    afterClean.downloadsEnabled === false &&
+    afterClean.afterSave === 'quiet' &&
+    afterClean.features['posts.plainText'] === undefined &&
+    afterClean.features['cleanup.hideAds'] === true,
+  JSON.stringify(Object.keys(afterClean.features).length),
+);
+await panel.click('.preset-notice button');
+check(
+  'Undo restores exactly what was there before',
+  (await waitShown(fx, '#inner-promo', true)) &&
+    (await waitShown(fx, '#nav-grok', true)) &&
+    (await ui
+      .settings()
+      .then((v) => JSON.stringify(v.features) === JSON.stringify(beforeDownloads.features))),
+);
+await panel.evaluate(() => chrome.storage.local.set({ 'bx.settings': { version: 3 } }));
+
+// The Library and Customize each keep their state while the other is showing.
+await ui.search('footer');
+await panel.click('#library-tab');
+await panel.waitForSelector('.nav-all', { visible: true });
+await panel.type('.search-wrap input', 'zzz');
+await panel.click('#customize-tab');
+check(
+  'the Customize search is where it was left after a visit to the Library',
+  (await panel.$eval('.customize input[type="search"]', (i) => i.value)) === 'footer',
+);
+await panel.click('#library-tab');
+check(
+  '...and so is the Library’s',
+  (await panel.$eval('.search-wrap input', (i) => i.value)) === 'zzz',
+);
+await panel.$eval('.search-wrap input', (i) => i.focus());
+await panel.keyboard.press('Escape');
+await panel.click('#customize-tab');
+await ui.search('');
+
+// Motion: short, and off when the system asks.
+const duration = (selector) => panel.$eval(selector, (n) => getComputedStyle(n).transitionDuration);
+check(
+  'chips and cards transition briefly',
+  /0\.14s/.test(await duration('.chip')),
+  await duration('.chip'),
+);
+await panel.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+check(
+  'reduced motion removes every Customize transition',
+  (await duration('.chip')) === '0s' &&
+    (await duration('.group-panel')) === '0s' &&
+    (await panel.$eval('.customize', (n) => getComputedStyle(n).animationName)) === 'none',
+);
+await panel.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+await panel.setViewport({ width: 400, height: 900 });
+
 check(
   'no page errors from any of it',
   features.errors.length === 0,

@@ -6,14 +6,14 @@ const row =
 </div>`;
 const avatar = (n) =>
   `<div data-testid="Tweet-User-Avatar"><img width="40" src="https://pbs.twimg.com/profile_images/1661201415899951105/azNjKOSH_normal.jpg" alt="${n}"></div>`;
-export function post({ id, handle, text, media = '', quote = '' }) {
+export function post({ id, handle, text, media = '', quote = '', rowHtml = row() }) {
   return `<article style="padding:12px;border-bottom:1px solid #eee" data-post="${id}">
     ${avatar(handle)}
     <div data-testid="User-Name"><a href="https://x.com/${handle}">${handle} Name</a><span>@${handle}</span></div>
     <a href="https://x.com/${handle}/status/${id}"><time datetime="2024-03-21T00:00:00Z">Mar 21</time></a>
     <div data-testid="tweetText">${text}</div>
     ${media}${quote}
-    ${row()}
+    ${rowHtml}
   </article>`;
 }
 export const photo = (mediaId, n = 1, id = 0, handle = 'x') =>
