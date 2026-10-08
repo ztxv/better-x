@@ -55,3 +55,57 @@ Not yet verified on live X: the automated tests use an X-shaped fixture, and X r
 - [ ] **Hide For You:** with it on, Home switches to **Following** and the **For you** tab disappears; opening a profile and coming back, or pressing the Home button again, leaves you on Following. With the switch off, **For you** reappears and you are not moved off whichever feed you are on. Try it with pinned lists (their tabs stay), in the narrow layout (open the side panel), and on a profile, search and list page, where nothing should change.
 - [ ] **Together:** turn all three on, save a post, download its media, and use the keyboard Tab/Enter flow on the save control. Saving and downloading work as usual.
 - [ ] **Persistence:** close and reopen the side panel, and restart Chrome: the switches keep their state. Reload the extension from the extensions page with an X tab open: the open tab's changes disappear on its next navigation or scroll, and a refresh brings them back.
+
+## Customize: the interface
+
+- [ ] **Search:** type `sidebar`, `counts`, `ads`. The list narrows as you type, the summary says how many were found, groups with matches open by themselves, and a word that matches nothing shows "No settings match" with a way back. Escape and the clear button empty the search.
+- [ ] **Groups and chips:** open and close each group (the arrow turns, nothing jumps); choose a chip to see one group; counts on chips and groups match the switches that are on. Close and reopen the panel: the open groups are as you left them.
+- [ ] **Library and Customize keep their state:** type in both searches, switch tabs back and forth; each keeps its text. Library bookmarks, collections and downloads still work.
+- [ ] **Keyboard:** Tab reaches search, chips, group headers, switches and sliders in order; Space flips a switch; arrow keys, Home, End and Page Up/Down move a slider; `/` focuses the search when nothing is being typed.
+- [ ] **Sliders:** drag one on an open X tab and watch X follow. Off, the slider is greyed and reads "Turn on to adjust."; the reset arrow returns it to its default.
+- [ ] **Quick setups:** Clean, Minimal and Focus each turn on a combination and replace what was on before; **Undo** puts back exactly the previous switches and numbers. Saved and download settings are not changed (check Settings).
+- [ ] **Turn everything off** asks first, then clears every switch and slider; the open X tabs go back to normal at once.
+- [ ] **Motion:** transitions are short. With the operating system's "reduce motion" on, groups open instantly.
+- [ ] **Two windows or tabs:** change a setting; every open X tab follows, and the panel in another window shows it.
+
+## Customize: what each group should do on real X
+
+Everything below is CSS written from Control Panel for Twitter's selectors and checked only on X-shaped fixtures. For each, turn it on, look, turn it off, look. Note any case where it hides nothing, hides too much, or leaves a gap. Do it in the wide layout first, then open the side panel (narrow layout) and repeat the ones marked **N**.
+
+**Navigation** (menu items disappear from the side navigation, the **More** menu, and the bottom bar when narrow; the pages themselves still open)
+
+- [ ] **Hide Explore** removes Explore only while X shows its sidebar; with the sidebar gone (narrow window) Explore comes back, so search is never lost. **N**
+- [ ] **Communities, Lists, Messages, Bookmarks, Jobs, Premium, Business, Connect, Spaces, History, Creator Studio and subscriptions:** each hides its own entry and nothing next to it. Notifications hides only the nav entry, never the tabs on the Notifications page. Creator Studio also hides Monetization and Subscriptions under Settings.
+- [ ] **Hide notification counts** removes the unread dots on Notifications, Messages and your avatar, and not the entries. **N**
+- [ ] **Hide the Post button, account switcher details, Messages drawer:** the Post button goes (nav and floating); the account button keeps its menu but loses avatar and name; the chat panel at the bottom right goes.
+
+**Home and feed**
+
+- [ ] **Show new posts, Home composer, Manage timelines:** each disappears on Home only (check a profile, where they should be untouched). Posting still works from the Post button.
+- [ ] **Timeline prompts, Who to follow in the timeline, suggestions on profiles, Explore page contents:** the modules go; real posts around them do not. Open Explore: only search is left.
+- [ ] **Reposts on Home / on profiles:** reposts go; a pinned post on a profile stays.
+- [ ] **Like and repost notifications:** open Notifications; those rows go, follows and mentions stay.
+
+**Posts**
+
+- [ ] **Views, reply, repost, like and bookmark counts, follower counts, post totals:** the number goes and the button stays. Look at a timeline post, a post's own page, the media viewer, a profile and a hover card.
+- [ ] **X's bookmark button, share button, View post engagements, Sort replies:** each button goes; Better X's **Save** button is always still there and still works.
+- [ ] **Simplify post actions:** X's reply/repost/like/share/views row is gone, and only Save is left; nothing else on the post is hidden.
+- [ ] **Verification badges and Plain post text:** badges (all kinds) go; bold and italic in post text become regular.
+
+**Sidebar** (wide layout, window wide enough that X shows the sidebar)
+
+- [ ] **Hide the sidebar, keep only search, What's happening, Today's News, Who to follow, Premium card, footer links:** each removes its own section. Note any leftover gap or border where a section was. Who to follow stays on a post's own page ("Relevant people"). Search results and communities keep the extra section when "keep only search" is on.
+
+**Appearance**
+
+- [ ] **Timeline width** (Home, lists, communities only), **Sidebar width, Menu spacing, Menu text size, Post text size:** drag and compare with X's own sizes (600, 350, 20, 15). Look for overlap or a squeezed sidebar at the extremes, with the sidebar on and off.
+- [ ] **System font** and **Lighter menu text:** text changes everywhere / in X's popup menus, and nothing is clipped.
+
+**Ads, Grok and Premium**
+
+- [ ] **Hide Ads** (also promoted notifications), **Grok image editing, posts sharing Grok chats, Premium upsells, creator subscriptions, Verified Followers tab:** each removes only its own surface; look at your own profile, Settings, the composer, a post's menu and a followers list.
+
+**Together**
+
+- [ ] Turn on a Quick setup, then use Saved: save, remove, download, open the Library. Reload the extension from the extensions page with an X tab open: the open tab goes back to normal on its next navigation or scroll.

@@ -125,3 +125,70 @@ Script, task, recalculation and layout are inside the old build's own spread. Sc
 **With all three features on** (the same build, features on versus off, three rounds; the perf fixture has no promoted posts, Grok surfaces or Home tabs, so this measures the cost of the rules and hooks being present, not of hiding anything): script 15.5–16.4 ms against 15.0–15.5, task time equal within noise (46.5–49.9 against 49.2–53.0), recalculation 8.5–8.7 against 8.8–9.1, heap +0.02 MB, scroll 137–147 against 137–144, one more node (the attached stylesheet). The CSS-only features add no observers and no per-post work; the style rules (`:has(...)`) did not show up as extra recalculation here, but a real timeline with many promoted posts was not measured.
 
 **Found and fixed on the way.** A first measurement with all three on showed Hide For You adding about 2 ms of script time: on a Home page with no tabs it ran two document-wide selector queries on every batch of posts, and its wait for the tabs ran the same queries on every mutation. It now checks only that the tab list it already knew is still attached, finds tabs by walking the page's few `nav` elements, and confirms each click with one timer. A plain `npm run perf` the same evening read within 10% of these figures with cv up to 19%, so only the interleaved comparisons are used.
+
+## Customization expansion (2026-10-08)
+
+64 features (61 new), sliders, settings version 3, the sidebar marker, and the new Customize view. Two questions: did the default state (every feature off) get slower, and what does switching features on cost? The machine was moderately busy (load average about 4, WindowServer at 40–50%); the coefficients of variation below stay under about 3% except where noted, so the comparisons are usable, but they are not the quiet-machine figures of the earlier sections.
+
+`scripts/perf/run.mjs` gained `--shape x` and `--features`. `--shape x` serves the same 200 posts inside X's shell: timeline cells (`cellInnerDiv`), tweet test IDs, X-shaped action rows with counts, the primary nav, menus and the sidebar. The plain fixture has none of those, so a customization rule has nothing to match there and would measure nothing. `--features default,typical,all` adds extension modes with those customizations on (`typical` is the Minimal quick setup, 31 features; `all` is all 64; `cat:<category>` and `ids:<id>+<id>` work too). Modes alternate per run, as always.
+
+### Default state: before and after
+
+The build from just before the sprint (`29c7d9c`) against the final build, every feature off, three rounds of 5 runs per build, alternating. On − off delta of medians, one value per round:
+
+| Metric (plain fixture)   | Before           | After            |
+| ------------------------ | ---------------- | ---------------- |
+| ScriptDuration (ms)      | 14.7, 14.1, 14.1 | 14.5, 14.9, 14.8 |
+| TaskDuration (ms)        | 46.8, 43.4, 44.7 | 43.1, 46.2, 43.3 |
+| RecalcStyleDuration (ms) | 8.8, 8.1, 8.5    | 7.7, 8.2, 8.3    |
+| LayoutDuration (ms)      | 0.2, 1.0, 1.6    | 0.9, 1.1, -0.8   |
+| scrollMs                 | 152, 148, 154    | 152, 154, 156    |
+| DOM nodes, long tasks    | 1404, 0          | 1404, 0          |
+
+| Metric (X-shaped)        | Before           | After            |
+| ------------------------ | ---------------- | ---------------- |
+| ScriptDuration (ms)      | 14.8, 14.8, 14.8 | 15.9, 15.6, 15.8 |
+| TaskDuration (ms)        | 53.4, 52.3, 51.1 | 56.7, 52.2, 54.3 |
+| RecalcStyleDuration (ms) | 7.8, 8.4, 8.7    | 9.2, 8.6, 9.1    |
+| LayoutDuration (ms)      | 5.3, 5.4, 5.0    | 5.8, 4.9, 5.1    |
+| JSHeapUsedSize (MB)      | 1.15, 1.14, 1.15 | 1.27, 1.27, 1.28 |
+| scrollMs                 | 135, 136, 132    | 136, 134, 135    |
+| DOM nodes, long tasks    | 1404, 0          | 1404, 0          |
+
+On the plain fixture the default state is inside the old build's own spread. On the X-shaped page script time is about 1 ms (7%) higher in all three rounds and the heap about 0.12 MB higher. The content script grew from 47 KB to 67 KB, mostly the catalog's CSS, titles and descriptions, and a V8 CPU profile (5 runs each) puts the content script's own execution at 16.95 ms before and 17.28 ms after, so the difference is mostly compiling and evaluating a larger script rather than anything running per post. Not reduced further: splitting the titles and descriptions out of the content script would need two registries for about 0.5 ms.
+
+**A regression was found and fixed on the way.** The first comparison showed plain-fixture script time about 1.1 ms higher (16.1, 16.0, 16.8 against 15.0, 14.7, 15.2). The sidebar marker waited for X's primary column with a document-wide observer that ran a document-wide `querySelector` on every mutation, and the plain fixture has no primary column, so the wait never ended (200 control insertions and 200 post insertions each ran it). It now observes nothing until the column exists and instead looks again at the first post, on a route change and on a layout change; a page that never has a column (a login flow) pays nothing.
+
+### With customizations on
+
+X-shaped page, 200 posts, 5 runs per mode, alternating (median, cv):
+
+| Metric                   | No extension | Default (all off) | Typical (31 on) | All (64 on)  |
+| ------------------------ | ------------ | ----------------- | --------------- | ------------ |
+| ScriptDuration (ms)      | 0.4          | 16.1 (0.6%)       | 15.7 (1.5%)     | 15.2 (1.3%)  |
+| TaskDuration (ms)        | 69.7         | 122.6 (1.2%)      | 136.4 (1.7%)    | 117.0 (1.3%) |
+| RecalcStyleDuration (ms) | 11.1         | 19.1 (1.1%)       | 38.7 (2.5%)     | 45.6 (1.7%)  |
+| LayoutDuration (ms)      | 11.8         | 17.2 (1.2%)       | 15.7 (1.1%)     | 10.7 (1.3%)  |
+| JSHeapUsedSize (MB)      | 1.44         | 2.72 (7%)         | 2.31 (0.0%)     | 2.32 (0.4%)  |
+| DOM nodes                | 13709        | 15113             | 15114           | 15114        |
+| Long tasks               | 0            | 0                 | 0               | 0            |
+| scrollMs                 | 302          | 437               | 438             | 443          |
+
+Customization is CSS only, so script time does not move (the small drops are noise). The cost is style recalculation: about 20 ms across the page's whole life for the typical setup and about 27 ms for everything, against 19 ms for the extension's default state, or roughly 0.1 ms per post. Task time rises 14 ms for the typical setup; with everything on it falls, because hiding the sidebar, counts and rows removes more layout (−6.5 ms) than the rules cost. No long tasks in any configuration. The JS heap readings are before any garbage collection and say nothing below about 0.4 MB (the default mode's cv is 7%). The extra DOM node is the feature stylesheet; the plain-fixture default state has none.
+
+By category (3 runs, recalculation, change from the default state): navigation +1.2 ms, home and feed +17.4, posts −0.8, sidebar +3.7, appearance +2.9, ads/Grok/Premium +7.5. Any one stylesheet costs about 1 ms (the extra `<style>` recalculates once); a `:has()` rule costs from about 1.5 ms (written the cheap way) to about 5.5 ms (written the costly way).
+
+**What made rules expensive, and the rules that follow from it.** The first all-on measurement was +78 ms of recalculation (typical +41). Bisecting by category, then by feature, then with a micro-benchmark that appends 400 posts and 400 controls with one rule present (baseline 9.4–10.1 ms), found one cause: a `:has()` whose subject is a bare `div` makes Chrome re-test every ancestor `div` of anything inserted anywhere on the page, because it cannot tell which ancestors the rule is about. Every post X adds and every control Better X adds triggers it.
+
+| Rule shape                                                                     | Before (ms) | After (ms) |
+| ------------------------------------------------------------------------------ | ----------- | ---------- |
+| `cell > div:has(prompt)` → `cell:has(prompt) > div`                            | +7.5        | +1.9       |
+| Suggested modules (three `:has`, `:not`)                                       | +11.6       | +1.5       |
+| Reposts (`:has` and `:not(:has)`)                                              | +6.5        | +1.5       |
+| Sidebar Who to follow: `div:has(aside … UserCell)` → anchored on `aside[role]` | +8.1        | −0.4       |
+| Sidebar, same with `:has(> aside)` (child combinator)                          | n/a         | +0.8       |
+| Home composer: `div:has([data-testid^=…])` → `div:has(.DraftEditor-root)`      | +6.5        | +1.2       |
+
+The rules that follow, all applied: put `:has()` on the timeline cell, which has a test ID, never on its inner `div` (`cellWhere` in `src/features/css.ts`); anchor on an element with a role or test ID; use a child combinator inside `:has(> …)`, which stays cheap; and make the `:has` argument something rare (a class, a tag) rather than `[data-testid]`, which every inserted node has. Route scoping (`html[data-bx-route="home"] …`) costs nothing on other routes, since the rule cannot match there. One rule keeps the old shape because no cheaper form was found that is still correct: `feed.hideManageTimelines` identifies a button by an icon path inside a bare `div` (+5.2 ms). Remaining per-feature costs over the default state, 3 runs: Premium upsells +3.4, Hide Ads +3.1, view counts +3.9, suggested modules +2.5, reposts +1.8, inline prompts +1.6, Grok posts +1.7, Who to follow +0.3, composer +1.2, simplify actions −5.9 (it hides rows, so less layout).
+
+A plain `npm run perf` is not used for any of the above; the figures are from alternating runs in one session.

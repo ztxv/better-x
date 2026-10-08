@@ -1,6 +1,6 @@
 # Better X
 
-A private, local-first Chrome extension for saving posts from X into an organized library, and downloading their photos, GIFs, and videos. Better X grew out of Saved for X 0.2.0; customizing X itself is planned (see [Roadmap](#roadmap)).
+A private, local-first Chrome extension for saving posts from X into an organized library, and downloading their photos, GIFs, and videos. Better X grew out of Saved for X 0.2.0, and also lets you clean up and adjust X itself from its side panel.
 
 Save a post in one click. Browse, search, tag, and organize it in a side panel. Download its media at original quality. Everything stays in your browser: no account, no server, no X API.
 
@@ -43,7 +43,16 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 - Multi-image posts open a chooser with previews and **Download all**. Quoted-post media is listed separately and never downloaded silently.
 - A built-in **Downloaded** collection lists posts with at least one completed download, without moving them out of their own collection.
 
-**Customization**
+**Customize X**
+
+- A **Customize** tab beside the Library with 64 settings in six groups: navigation, home and feed, posts, sidebar, appearance, and ads / Grok / Premium. Search them, filter by group, open and close groups. Every setting starts off.
+- Changes apply to every open X tab at once, without reloading, and turning a setting off puts back what it changed. Nothing is removed from X's page; it is hidden with style rules, so nothing needs undoing.
+- What it covers: hide Ads, Grok, Premium upsells and suggested accounts; trim the menu (Explore, Communities, Lists, Messages, Notifications, Bookmarks, Jobs, Premium...); hide view, reply, repost, like and bookmark counts, follower counts, verification badges and X's own action buttons (Better X's Save stays); hide reposts, the Home composer and "Show new posts"; keep only search in the sidebar or hide it; follow Following instead of For You.
+- Sliders for timeline width, sidebar width, menu spacing, menu text size and post text size.
+- **Quick setups**: Clean, Minimal and Focus apply a whole combination in one click, with Undo.
+- Selectors come from Control Panel for Twitter and are checked against X-shaped test pages, not live x.com, so an X redesign can make a setting do nothing; it will not hide ordinary posts. See [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md) for what is and is not covered.
+
+**Appearance**
 
 - Light, dark, or automatic theme, and five accent colors, applied live on X and in the library.
 - Choose what happens after saving (offer a download, show a confirmation, or stay quiet) and which actions the saved-post menu shows.
@@ -139,7 +148,7 @@ No browsing history, no all-site access, no credentials, no analytics, no remote
 | Ask where to save     | Off                    | Chrome's own "Ask where to save" setting may still prompt.  |
 | Saved-post menu       | Download, Open library | **Remove bookmark** is always available.                    |
 
-Reset customization never touches your data.
+Reset customization never touches your data. The Customize tab's own settings (the 64 switches and sliders) are separate: they are kept by that reset, and **Turn everything off** at the bottom of the tab clears them.
 
 ## Architecture
 
@@ -153,7 +162,7 @@ entrypoints/
 src/
   runtime/           Shared X runtime: scopes, post stream, action row, routes, layout
   saved/             Save control, post-save chip, saved-post menu, downloads (on X)
-  features/          Customization features (Hide Ads, Hide Grok, Hide For You) and their registry
+  features/          The 64 customization features by category, their registry, CSS helpers and quick setups
   x/                 X DOM extraction and URL rules (all selectors live here)
   media/             URL rules, metadata adapter, media resolution
   downloads/         History store, lifecycle service, file naming, wording
@@ -186,8 +195,8 @@ npm run format    # Prettier
 
 ## Testing
 
-- **Unit tests (Vitest):** DOM extraction including avatar regressions, URL rules, the metadata adapter against recorded responses, media resolution outcomes, the download lifecycle with a scripted `chrome.downloads`, repository atomicity, settings, backup round-trips, and opening a version 1 database.
-- **End-to-end (`npm run smoke`):** loads the unpacked build in installed Chrome against an X-shaped page, then saves and downloads real media from X's CDNs. Covers photos, GIFs, a blob-player video, partial batches, quoted media, keyboard use, placement, two tabs saving at once, live settings, dark theme, reduced motion, and stopping the worker mid-download.
+- **Unit tests (Vitest):** DOM extraction including avatar regressions, URL rules, the metadata adapter against recorded responses, media resolution outcomes, the download lifecycle with a scripted `chrome.downloads`, repository atomicity, settings (including migration from versions 1 and 2), backup round-trips, opening a version 1 database, the feature registry and catalog (ids, ranges, selector rules), slider values, quick setups, the sidebar marker, and the Customize view (search, groups, sliders, keyboard, motion limits).
+- **End-to-end (`npm run smoke`):** loads the unpacked build in installed Chrome against an X-shaped page, then saves and downloads real media from X's CDNs. Covers photos, GIFs, a blob-player video, partial batches, quoted media, keyboard use, placement, two tabs saving at once, live settings, dark theme, reduced motion, and stopping the worker mid-download. A second run (`scripts/smoke/catalog.mjs`) checks every customization on a 64-feature X-shaped page: what each hides, what it must leave alone, route, layout and sidebar changes, and that all of them together leave Save alone. Another reloads the extension under an open tab and checks everything is taken off the page.
 
 The smoke test does not use a signed-in X account. Verify against real x.com after changes to selectors or media handling.
 
@@ -202,6 +211,6 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 
 ## Roadmap
 
-- **X customization (planned):** optional controls to clean up and change X (promoted posts, Premium upsells, Grok, navigation, sidebar, feed behavior), built on a shared X runtime and declarative feature definitions. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **More X customization:** the settings that need X's internals (feature flags, React state, network responses), such as separated reposts, sorting, restoring the post source and counts, and dark-theme variants. Listed in [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md); design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Indexed search for very large libraries.
 - Optional sync, opt-in only.
