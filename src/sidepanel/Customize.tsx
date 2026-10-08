@@ -205,12 +205,12 @@ export function Customize({
               <button
                 key={id}
                 type="button"
-                className="chip"
+                className="category-chip"
                 aria-pressed={category === id}
                 onClick={() => pickCategory(id)}
               >
                 {id === 'all' ? 'All' : CATEGORY_SHORT[id]}
-                {on > 0 && <span className="chip-count">{on}</span>}
+                {on > 0 && <span className="category-chip-count">{on}</span>}
               </button>
             );
           })}

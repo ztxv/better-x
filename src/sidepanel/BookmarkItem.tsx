@@ -180,9 +180,13 @@ export function BookmarkItem({
             </span>
           )}
           {badge && (
-            <span className={`chip download-chip is-${badge.tone}`}>
+            <span
+              className={`chip download-chip is-${badge.tone}`}
+              title={badge.text}
+              data-tone={badge.tone}
+            >
               <Download size={12} />
-              {badge.text}
+              <span className="chip-label">{badge.text}</span>
             </span>
           )}
           {bookmark.tags.slice(0, 3).map((tag) => (

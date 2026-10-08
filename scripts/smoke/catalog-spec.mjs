@@ -308,18 +308,21 @@ export const SCENARIOS = [
     hides: ['sec-news'],
     keeps: ['sec-search', 'sec-trends', 'sec-wtf'],
   }),
-  s('sidebar.hideWhoToFollow', 'home', {
-    hides: ['aside-wtf'],
-    keeps: ['sec-search', 'aside-premium', 'aside-other', 'sec-trends', 'sec-wtf'],
+  s('sidebar.hideWhoToFollow', 'home: the whole card goes, border and space too', {
+    hides: ['aside-wtf', 'sec-wtf'],
+    keeps: ['sec-search', 'sec-news', 'sec-trends', 'sec-premium', 'sec-super', 'sec-other'],
+    // The card after it moves up by the card's height and margin, so no gap is left.
+    collapses: { gone: 'sec-wtf', next: 'sec-premium' },
   }),
   s('sidebar.hideWhoToFollow', 'post page keeps Relevant people', {
     route: 'post',
     hides: [],
-    keeps: ['aside-wtf'],
+    keeps: ['aside-wtf', 'sec-wtf'],
   }),
-  s('sidebar.hidePremiumPromo', 'premium cards', {
-    hides: ['aside-premium', 'super-card'],
-    keeps: ['sec-search', 'aside-wtf', 'aside-other', 'sec-trends'],
+  s('sidebar.hidePremiumPromo', 'premium cards, whole', {
+    hides: ['aside-premium', 'sec-premium', 'super-card', 'sec-super'],
+    keeps: ['sec-search', 'sec-news', 'sec-trends', 'sec-wtf', 'sec-other'],
+    collapses: { gone: ['sec-premium', 'sec-super'], next: 'sec-other' },
   }),
   s('sidebar.hideFooter', 'footer links', {
     hides: ['footer-nav'],

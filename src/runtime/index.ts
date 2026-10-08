@@ -2,7 +2,7 @@ import { createActionRow, type ActionRowService } from './action-row';
 import { createLayoutService, type LayoutService } from './layout';
 import { createPostStream, type PostStream } from './posts';
 import { createRouteService, type RouteService } from './route';
-import { markSidebar } from './sidebar';
+import { createSidebarService, type SidebarService } from './sidebar';
 import type { Disposer, Scope } from './scope';
 
 /** The services every Better X feature builds on. */
@@ -11,6 +11,7 @@ export interface Runtime {
   actionRow: ActionRowService;
   routes: RouteService;
   layout: LayoutService;
+  sidebar: SidebarService;
 }
 
 /**
@@ -26,7 +27,7 @@ export function startRuntime(scope: Scope): Runtime {
   const routes = createRouteService(scope);
   const layout = createLayoutService(scope);
   // The sidebar marker looks again at the moments X's columns can have appeared.
-  markSidebar(scope, [
+  const sidebar = createSidebarService(scope, [
     (retry) => routes.onRoute(retry),
     (retry) => layout.onLayout(retry),
     (retry) => {
@@ -55,5 +56,5 @@ export function startRuntime(scope: Scope): Runtime {
     root.removeAttribute('data-bx-layout');
   });
 
-  return { posts, actionRow, routes, layout };
+  return { posts, actionRow, routes, layout, sidebar };
 }

@@ -94,6 +94,7 @@ export function catalogPage({ timeline, extras = true } = {}) {
     [role="tablist"]{display:flex}
     [data-testid="primaryColumn"]{max-width:600px;width:100%;flex-shrink:0}
     [data-testid="sidebarColumn"]{width:350px;flex-shrink:0}
+    .card{border:1px solid #ccc;border-radius:12px;padding:12px;margin-bottom:16px}
     header nav>a{display:block;padding:4px 0}
     header nav>a>div{padding:12px}
     header nav span{font-size:20px;font-weight:700}
@@ -245,10 +246,10 @@ export function catalogPage({ timeline, extras = true } = {}) {
       <div id="sec-search"><div role="search">Search</div></div>
       <div id="sec-news"><div data-testid="news_sidebar">News</div></div>
       <div id="sec-trends"><section><div aria-label="Timeline: Trending now"><div><div data-testid="trend" id="side-trend">#news</div></div></div></section></div>
-      <div id="sec-wtf"><aside role="complementary" id="aside-wtf"><div data-testid="UserCell">Someone to follow</div></aside></div>
-      <div id="sec-premium"><aside role="complementary" id="aside-premium"><a href="/i/premium_sign_up">Subscribe to Premium</a></aside></div>
-      <div id="sec-super"><div><div data-testid="super-upsell-UpsellCardRenderProperties" id="super-card">Upsell</div></div></div>
-      <div id="sec-other"><aside role="complementary" id="aside-other"><a href="https://example.com/">Something else</a></aside></div>
+      <div id="sec-wtf" class="card"><div><div><aside role="complementary" id="aside-wtf"><h2>Who to follow</h2><div data-testid="UserCell">Someone to follow</div></aside></div></div></div>
+      <div id="sec-premium" class="card"><div><aside role="complementary" id="aside-premium"><a href="/i/premium_sign_up">Subscribe to Premium</a></aside></div></div>
+      <div id="sec-super" class="card"><div><div data-testid="super-upsell-UpsellCardRenderProperties" id="super-card">Upsell</div></div></div>
+      <div id="sec-other" class="card"><aside role="complementary" id="aside-other"><a href="https://example.com/">Something else</a></aside></div>
       <div id="sec-footer"><nav aria-label="Footer" id="footer-nav"><a href="/tos">Terms</a></nav></div>
     </div></div></div></div></div></aside>
   </div>

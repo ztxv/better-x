@@ -1187,13 +1187,13 @@ check(
   'Escape clears the search',
   (await panel.$eval('.customize input[type="search"]', (i) => i.value)) === '',
 );
-await panel.click('.category-chips .chip:nth-child(5)');
+await panel.click('.category-chips .category-chip:nth-child(5)');
 check(
   'a category chip shows just that category',
   (await panel.$$('.customize-group')).length === 1 &&
     (await panel.$eval('.customize-group .group-name', (n) => n.textContent)) === 'Sidebar',
 );
-await panel.click('.category-chips .chip:first-child');
+await panel.click('.category-chips .category-chip:first-child');
 const groupState = () =>
   panel.$$eval('.customize-group', (n) =>
     n.map((g) => ({ open: g.dataset.open, inert: g.querySelector('.group-panel').inert })),
@@ -1318,13 +1318,13 @@ await ui.search('');
 const duration = (selector) => panel.$eval(selector, (n) => getComputedStyle(n).transitionDuration);
 check(
   'chips and cards transition briefly',
-  /0\.14s/.test(await duration('.chip')),
-  await duration('.chip'),
+  /0\.14s/.test(await duration('.category-chip')),
+  await duration('.category-chip'),
 );
 await panel.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
 check(
   'reduced motion removes every Customize transition',
-  (await duration('.chip')) === '0s' &&
+  (await duration('.category-chip')) === '0s' &&
     (await duration('.group-panel')) === '0s' &&
     (await panel.$eval('.customize', (n) => getComputedStyle(n).animationName)) === 'none',
 );

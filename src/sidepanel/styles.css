@@ -1289,7 +1289,21 @@ button:disabled {
   color: var(--accent);
 }
 .download-chip {
-  max-width: 150px;
+  /* The label gives way (with an ellipsis, and the full text in the tooltip) before the chip can
+     outgrow its row, so a long or translated status never spills over the card's edge. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(100%, 160px);
+  padding: 3px 8px 3px 6px;
+}
+.download-chip svg {
+  flex: none;
+}
+.download-chip .chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .download-chip.is-done {
   color: var(--accent);
@@ -1744,7 +1758,7 @@ button:disabled {
 .category-chips::-webkit-scrollbar {
   display: none;
 }
-.chip {
+.category-chip {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -1762,16 +1776,16 @@ button:disabled {
     background-color 140ms ease,
     border-color 140ms ease;
 }
-.chip:hover {
+.category-chip:hover {
   color: var(--text);
   background: var(--hover);
 }
-.chip[aria-pressed='true'] {
+.category-chip[aria-pressed='true'] {
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
 }
-.chip-count {
+.category-chip-count {
   min-width: 16px;
   height: 16px;
   padding: 0 4px;

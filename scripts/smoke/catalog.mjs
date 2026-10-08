@@ -107,6 +107,25 @@ const hiddenSaveControls = (page) =>
         return postShown && !control.checkVisibility({ visibilityProperty: true });
       }).length,
   );
+/** Where the card after a hidden one sits, and how much room the hidden one takes. */
+const gap = (page, { gone, next }) =>
+  page.evaluate(
+    (gone, next) => {
+      const cards = [gone].flat().map((id) => document.getElementById(id));
+      const rects = cards.map((card) => card.getBoundingClientRect());
+      return {
+        nextTop: document.getElementById(next).getBoundingClientRect().top,
+        goneHeight: rects.reduce((sum, rect) => sum + rect.height, 0),
+        space: rects.reduce(
+          (sum, rect, i) =>
+            sum + rect.height + parseFloat(getComputedStyle(cards[i]).marginBottom || '0'),
+          0,
+        ),
+      };
+    },
+    gone,
+    next,
+  );
 const styleSheetState = (page) =>
   page.evaluate(() => {
     const style = document.getElementById('bx-features');
@@ -161,7 +180,9 @@ const page = await openCatalog();
 check('the catalog page loads with Saved running', true);
 
 /* -------------------------------------------------------------------- per-feature scenarios */
+const ONLY = process.env.CATALOG_ONLY;
 for (const sc of SCENARIOS) {
+  if (ONLY && !sc.feature.includes(ONLY)) continue;
   const label = `${sc.feature} — ${sc.name}`;
   const ids = [...(sc.hides ?? []), ...(sc.keeps ?? [])];
   try {
@@ -205,8 +226,17 @@ for (const sc of SCENARIOS) {
     } else {
       const everything = await wrong(page, ids, true);
       if (everything.length) problems.push(`off, not visible: ${everything}`);
+      const before = sc.collapses ? await gap(page, sc.collapses) : null;
       await store({ [sc.feature]: true });
       await waitFeature(page, sc.feature, true);
+      if (sc.collapses) {
+        const after = await gap(page, sc.collapses);
+        // The next card moves up by the whole card: its height and its margin, no reserved space.
+        const moved = before.nextTop - after.nextTop;
+        if (Math.abs(moved - before.space) > 1)
+          problems.push(`next card moved ${moved}px, expected ${before.space}px`);
+        if (after.goneHeight !== 0) problems.push(`card still has height ${after.goneHeight}px`);
+      }
       const stillShown = await wrong(page, sc.hides ?? [], false);
       const lost = await wrong(page, sc.keeps ?? [], true);
       if (stillShown.length) problems.push(`not hidden: ${stillShown}`);
@@ -341,6 +371,88 @@ check(
 );
 await prepare(page, { sidebar: true });
 check('...sidebar back', (await wrong(page, ['nav-explore'], false)).length === 0);
+
+/* ---------------------------------------------- the sidebar card under re-rendering */
+await store({ 'sidebar.hideWhoToFollow': true });
+await waitFeature(page, 'sidebar.hideWhoToFollow', true);
+await prepare(page, {});
+await page.waitForFunction(
+  () => document.getElementById('sec-wtf')?.hasAttribute('data-bx-hide-whoToFollow'),
+  {
+    timeout: 5000,
+    polling: 50,
+  },
+);
+const sectionsHtml = await page.$eval('#sections', (n) => n.innerHTML);
+await page.$eval('#sections', (n) => (n.innerHTML = ''));
+await page.$eval('#sections', (n, html) => (n.innerHTML = html), sectionsHtml);
+await page.waitForFunction(
+  () => document.getElementById('sec-wtf')?.hasAttribute('data-bx-hide-whoToFollow'),
+  {
+    timeout: 5000,
+    polling: 50,
+  },
+);
+check(
+  'X re-rendering the sidebar: the whole Who to follow card is hidden again, the others stay',
+  (await wrong(page, ['sec-wtf', 'aside-wtf'], false)).length === 0 &&
+    (await wrong(page, ['sec-search', 'sec-news', 'sec-trends', 'sec-premium', 'sec-other'], true))
+      .length === 0,
+);
+await page.evaluate(() => {
+  // The module arrives late, into a card that was empty.
+  const wrap = document.querySelector('#sec-wtf > div > div');
+  window.__wtf = wrap.innerHTML;
+  wrap.innerHTML = '';
+});
+await page.waitForFunction(
+  () => !document.getElementById('sec-wtf').hasAttribute('data-bx-hide-whoToFollow'),
+  {
+    timeout: 5000,
+    polling: 50,
+  },
+);
+await page.evaluate(
+  () => (document.querySelector('#sec-wtf > div > div').innerHTML = window.__wtf),
+);
+await page.waitForFunction(
+  () => document.getElementById('sec-wtf').hasAttribute('data-bx-hide-whoToFollow'),
+  {
+    timeout: 5000,
+    polling: 50,
+  },
+);
+check('...and a card that empties and refills is released and taken again', true);
+await prepare(page, { route: 'post' });
+await page.waitForFunction(() => !document.querySelector('[data-bx-hide-whoToFollow]'), {
+  timeout: 5000,
+  polling: 50,
+});
+check(
+  'Relevant people on a post page keep their card',
+  (await wrong(page, ['sec-wtf', 'aside-wtf'], true)).length === 0,
+);
+await prepare(page, { route: 'home' });
+await prepare(page, { layout: 'narrow' });
+await prepare(page, { layout: 'wide' });
+await page.waitForFunction(
+  () => document.getElementById('sec-wtf')?.hasAttribute('data-bx-hide-whoToFollow'),
+  {
+    timeout: 5000,
+    polling: 50,
+  },
+);
+check(
+  'narrow and wide again: still collapsed',
+  (await wrong(page, ['sec-wtf'], false)).length === 0,
+);
+await store();
+await waitFeature(page, 'sidebar.hideWhoToFollow', false);
+check(
+  'switching it off removes every mark and brings the card back',
+  (await page.$$('[data-bx-hide-whoToFollow]')).length === 0 &&
+    (await wrong(page, ['sec-wtf', 'aside-wtf'], true)).length === 0,
+);
 
 /* ------------------------------------------------------------------ two tabs stay in step */
 await store();

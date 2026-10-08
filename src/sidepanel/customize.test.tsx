@@ -245,9 +245,9 @@ describe('Customize search', () => {
 describe('Customize categories and groups', () => {
   it('shows one category from its chip and counts what is on in each', () => {
     render({ initial: normalizeSettings({ features: { 'sidebar.hideFooter': true } }) });
-    expect(button(/^Sidebar/).querySelector('.chip-count')!.textContent).toBe('1');
-    expect(button(/^All/).querySelector('.chip-count')!.textContent).toBe('1');
-    expect(button(/^Posts/).querySelector('.chip-count')).toBeNull();
+    expect(button(/^Sidebar/).querySelector('.category-chip-count')!.textContent).toBe('1');
+    expect(button(/^All/).querySelector('.category-chip-count')!.textContent).toBe('1');
+    expect(button(/^Posts/).querySelector('.category-chip-count')).toBeNull();
     act(() => button(/^Sidebar/).click());
     expect(groupTitles()).toEqual(['Sidebar']);
     expect(button(/^Sidebar/).getAttribute('aria-pressed')).toBe('true');
@@ -503,6 +503,18 @@ describe('Customize quick setups', () => {
     expect(host.querySelector('.preset-notice')).not.toBeNull();
     act(() => switchFor('Hide Jobs').click());
     expect(host.querySelector('.preset-notice')).toBeNull();
+  });
+});
+
+describe('Customize styles stay out of the Library', () => {
+  const css = fs.readFileSync(path.resolve(__dirname, 'styles.css'), 'utf8');
+
+  it('does not restyle the Library’s generic chips (the Downloaded badge broke when it did)', () => {
+    const rules = [...css.matchAll(/(^|\n)\.chip(?:[:\[\s.,{])[^{]*\{/g)];
+    // `.chip` is the Library's own label; the category buttons here have their own class.
+    expect(rules.filter((m) => /^\n?\.chip\s*\{/.test(m[0]))).toHaveLength(1);
+    expect(css).toContain('.category-chip {');
+    expect(css).toMatch(/\.download-chip \{[^}]*min-width: 0/);
   });
 });
 

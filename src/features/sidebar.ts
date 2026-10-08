@@ -3,6 +3,7 @@
  * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
  */
 import { hide, onRoute, rule, SIDEBAR, SIDEBAR_SECTIONS } from './css';
+import { hiddenCardAttribute, hideSidebarCards } from './sidebar-cards';
 import { definitions } from './define';
 import type { ToggleFeature } from './types';
 
@@ -48,27 +49,50 @@ export const SIDEBAR_FEATURES: readonly ToggleFeature[] = [
     hide(`${SIDEBAR_SECTIONS} > div:has(> [data-testid="news_sidebar"])`),
     ['headlines'],
   ),
-  toggle(
-    'hideWhoToFollow',
-    'Hide “Who to follow”',
-    'Remove suggested accounts from the sidebar. “Relevant people” on a post’s own page stays.',
-    // The card is the `aside` that holds user cells. The rule is anchored on the aside, which has
-    // a role, rather than on the section around it (see `cellWhere` in css.ts for why).
-    hide(
-      `html:not([data-bx-route="post"]) ${SIDEBAR} aside[role="complementary"]:has([data-testid="UserCell"])`,
+  {
+    ...toggle(
+      'hideWhoToFollow',
+      'Hide “Who to follow”',
+      'Remove suggested accounts from the sidebar. “Relevant people” on a post’s own page stays.',
+      // The `aside` that holds user cells is hidden at once by CSS (anchored on the aside, which
+      // has a role; see `cellWhere` in css.ts). `activate` then marks the whole card around it,
+      // border and spacing included, and the second rule hides that.
+      hide(
+        `html:not([data-bx-route="post"]) ${SIDEBAR} aside[role="complementary"]:has([data-testid="UserCell"])`,
+        `[${hiddenCardAttribute('whoToFollow')}]`,
+      ),
+      ['suggested accounts', 'recommended accounts', 'people'],
     ),
-    ['suggested accounts', 'recommended accounts', 'people'],
-  ),
-  toggle(
-    'hidePremiumPromo',
-    'Hide the Premium card',
-    'Remove the “Subscribe to Premium” and similar cards from the sidebar.',
-    hide(
-      `${SIDEBAR} aside[role="complementary"]:has(a[href^="/i/premium_sign_up"])`,
-      `${SIDEBAR} [data-testid="super-upsell-UpsellCardRenderProperties"]`,
+    activate: hideSidebarCards('whoToFollow', (column, { runtime }) =>
+      // “Relevant people” on a post's own page is useful, so that route keeps its card.
+      runtime.routes.route.id === 'post'
+        ? []
+        : [...column.querySelectorAll<HTMLElement>('aside[role="complementary"]')].filter((aside) =>
+            aside.querySelector('[data-testid="UserCell"]'),
+          ),
     ),
-    ['upsell', 'subscribe'],
-  ),
+  },
+  {
+    ...toggle(
+      'hidePremiumPromo',
+      'Hide the Premium card',
+      'Remove the “Subscribe to Premium” and similar cards from the sidebar.',
+      hide(
+        `${SIDEBAR} aside[role="complementary"]:has(a[href^="/i/premium_sign_up"])`,
+        `${SIDEBAR} [data-testid="super-upsell-UpsellCardRenderProperties"]`,
+        `[${hiddenCardAttribute('premiumCard')}]`,
+      ),
+      ['upsell', 'subscribe'],
+    ),
+    activate: hideSidebarCards('premiumCard', (column) => [
+      ...[...column.querySelectorAll<HTMLElement>('aside[role="complementary"]')].filter((aside) =>
+        aside.querySelector('a[href^="/i/premium_sign_up"]'),
+      ),
+      ...column.querySelectorAll<HTMLElement>(
+        '[data-testid="super-upsell-UpsellCardRenderProperties"]',
+      ),
+    ]),
+  },
   toggle(
     'hideFooter',
     'Hide footer links',
