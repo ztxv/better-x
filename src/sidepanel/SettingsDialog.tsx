@@ -6,11 +6,25 @@ import {
   ACCENTS,
   type AccentId,
   type AfterSave,
+  type OpenAs,
   type Settings,
   type SettingsPatch,
   type Theme,
   saveSettings,
 } from '../lib/settings';
+
+const OPEN_AS: Array<{ value: OpenAs; label: string; hint: string }> = [
+  {
+    value: 'sidepanel',
+    label: 'Side panel',
+    hint: 'Stays open beside the page while you browse X',
+  },
+  {
+    value: 'popup',
+    label: 'Popup',
+    hint: 'A compact window under the toolbar icon, closed by clicking elsewhere',
+  },
+];
 
 const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
   {
@@ -159,6 +173,30 @@ export function SettingsDialog({
             ))}
           </div>
           <Preview settings={settings} />
+        </section>
+
+        <section className="settings-section" aria-labelledby="open-title">
+          <h3 id="open-title">Open Better X as</h3>
+          <div className="radio-list" role="radiogroup" aria-labelledby="open-title">
+            {OPEN_AS.map((option) => (
+              <label key={option.value} className="radio-option">
+                <input
+                  type="radio"
+                  name="open-as"
+                  checked={settings.openAs === option.value}
+                  onChange={() => onChange({ openAs: option.value })}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.hint}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="setting-hint">
+            Applies the next time you click the toolbar icon. You can change it here again in either
+            mode.
+          </p>
         </section>
 
         <section className="settings-section" aria-labelledby="downloads-title">

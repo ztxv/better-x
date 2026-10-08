@@ -1,6 +1,7 @@
 import { DownloadRepository } from '../src/downloads/repository';
 import { DownloadService, type Downloader } from '../src/downloads/service';
-import { loadSettings } from '../src/lib/settings';
+import { followLaunchMode } from '../src/lib/launch-mode';
+import { loadSettings, type OpenAs } from '../src/lib/settings';
 import { BookmarkRepository } from '../src/storage/repository';
 import type { DownloadRecord, Request, Response } from '../src/types/model';
 
@@ -54,7 +55,14 @@ export default defineBackground(() => {
 
   // Registered synchronously so events that wake the worker are never missed.
   chrome.downloads?.onChanged.addListener((delta) => void service.onChanged(delta));
-  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  // The toolbar icon opens the side panel or the popup, as the user chose. Done on every worker
+  // start, because Chrome forgets a run-time popup when the browser restarts or the extension reloads.
+  let launchMode: OpenAs = 'sidepanel';
+  followLaunchMode(undefined, undefined, (mode) => (launchMode = mode));
+  // These listeners exist so Chrome starts the worker when the browser starts and when the
+  // extension is installed or updated: that start is what restores the toolbar mode.
+  chrome.runtime.onStartup.addListener(() => {});
+  chrome.runtime.onInstalled.addListener(() => {});
   // Pick up downloads that changed while the worker was stopped.
   void service.reconcile();
 
@@ -71,6 +79,16 @@ export default defineBackground(() => {
           case 'openPanel': {
             const windowId = sender.tab?.windowId;
             if (windowId === undefined) throw new Error('Could not find this window.');
+            // In popup mode the in-page "open library" shows the popup (Chrome 127 and later); if
+            // that is unavailable or refused, the side panel is the fallback. The mode is held in
+            // memory so the side panel path, which needs the click's gesture, waits for nothing.
+            if (launchMode === 'popup' && typeof chrome.action.openPopup === 'function')
+              try {
+                await chrome.action.openPopup({ windowId });
+                return;
+              } catch {
+                /* fall through to the side panel */
+              }
             return chrome.sidePanel.open({ windowId });
           }
           case 'savedIds':

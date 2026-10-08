@@ -8,15 +8,18 @@
 export const SETTINGS_KEY = 'bx.settings';
 /**
  * Version 2 added `features` (customization toggles); version 3 added `values` (the numbers of
- * slider features). A stored older object lacks them, so it loads with every feature at its
- * default and is rewritten at the current version on the next save; no other field changes
- * meaning, and nothing a user had set is lost.
+ * slider features); version 4 added `openAs` (whether the toolbar icon opens the side panel or a
+ * popup). A stored older object lacks them, so it loads with every feature at its default and
+ * the side panel, and is rewritten at the current version on the next save; no other field
+ * changes meaning, and nothing a user had set is lost.
  */
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
 export type AccentId = 'blue' | 'purple' | 'green' | 'orange' | 'pink';
+/** Where the toolbar icon opens Better X. */
+export type OpenAs = 'sidepanel' | 'popup';
 
 export interface Settings {
   version: typeof SETTINGS_VERSION;
@@ -29,6 +32,8 @@ export interface Settings {
   menuActions: { download: boolean; openLibrary: boolean };
   /** Ask where to save each file. Chrome's own "Ask where to save" setting can still prompt. */
   saveAs: boolean;
+  /** What the toolbar icon opens. Applied by the background worker; see `src/lib/launch-mode.ts`. */
+  openAs: OpenAs;
   /**
    * Customization toggles by feature id, only for those the user has set. A feature missing here
    * is at its default; ids the extension does not know are kept (a newer or older build may) but
@@ -50,6 +55,7 @@ export const DEFAULT_SETTINGS: Settings = {
   afterSave: 'downloadOffer',
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
+  openAs: 'sidepanel',
   features: {},
   values: {},
 };
@@ -115,6 +121,7 @@ export const ACCENTS: Record<
 
 const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
+const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -152,6 +159,7 @@ export function normalizeSettings(input: unknown): Settings {
       openLibrary: bool(menu.openLibrary, d.menuActions.openLibrary),
     },
     saveAs: bool(value.saveAs, d.saveAs),
+    openAs: pick(value.openAs, OPEN_AS, d.openAs),
     features: normalizeById(value.features, isBoolean),
     values: normalizeById(value.values, isNumber),
   };
@@ -208,12 +216,14 @@ export function saveSettings(patch: SettingsPatch): Promise<Settings> {
 
 /**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
- * numbers are kept: they change what X looks like, which resetting an accent color should not undo.
+ * numbers are kept (they change what X looks like, which resetting an accent color should not
+ * undo), and so is how the toolbar icon opens Better X.
  */
 export function resetSettings(): Promise<Settings> {
   const write = writes.then(async () => {
-    const { features, values } = await loadSettings();
-    const next = { ...DEFAULT_SETTINGS, features, values };
+    const { features, values, openAs } = await loadSettings();
+    // How the toolbar icon opens is not appearance: resetting a look must not change it.
+    const next = { ...DEFAULT_SETTINGS, features, values, openAs };
     await chrome.storage.local.set({ [SETTINGS_KEY]: next });
     return next;
   });

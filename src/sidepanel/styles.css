@@ -2244,3 +2244,56 @@ button:disabled {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* ------------------------------------------------------------------ toolbar popup */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.app-body {
+  display: contents;
+}
+/* The popup is the same app in a fixed window: the header and tabs stay, the body scrolls. Chrome
+   caps a popup at 800 x 600; 400 x 580 leaves room for its own frame. */
+body.is-popup {
+  width: 400px;
+  height: 580px;
+  overflow: hidden;
+}
+.app-shell[data-mode='popup'] {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  min-width: 0;
+  /* A fixed height, never `vh`: Chrome sizes a popup from its content, so a height that depends on
+     the popup's own height would collapse it. */
+  height: 580px;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-shell[data-mode='popup'] .app-header {
+  flex: none;
+  height: 52px;
+  padding: 0 10px 0 14px;
+}
+.app-shell[data-mode='popup'] .section-tabs {
+  flex: none;
+  padding: 6px 14px 0;
+}
+.app-shell[data-mode='popup'] .app-body {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.app-shell[data-mode='popup'] .customize {
+  padding: 12px 14px 24px;
+}
+.app-shell[data-mode='popup'] .customize-top {
+  margin: -12px -14px 0;
+  padding: 12px 14px 10px;
+}

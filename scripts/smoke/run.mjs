@@ -1244,7 +1244,7 @@ await panel.click('.customize .slider-reset');
 check('the reset button returns it to its default', await waitWidth('700px'), await primaryWidth());
 check(
   'the slider is stored as a number, within its range',
-  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 3),
+  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 4),
 );
 await panel.click('.customize .setting-toggle input');
 check(
