@@ -109,3 +109,12 @@ Everything below is CSS written from Control Panel for Twitter's selectors and c
 **Together**
 
 - [ ] Turn on a Quick setup, then use Saved: save, remove, download, open the Library. Reload the extension from the extensions page with an X tab open: the open tab goes back to normal on its next navigation or scroll.
+
+## Quality-of-life fixes (sidebar card, badge, settings backup, popup)
+
+Not verified on live X: the automated checks use X-shaped fixtures.
+
+- [ ] **Hide “Who to follow” leaves no gap.** Turn it on with the sidebar showing. The whole card goes: no empty bordered box, no blank band, and the card below moves up. Trends, Today's News, search and other cards stay. Turn it off: the card is back at once. Also check on a post's own page (“Relevant people” stays) and after X re-renders the sidebar (scroll, switch tabs, wait for trends to refresh). If a box or gap remains, open DevTools on that card and note which element has the border: it is what `climbToCard` in `src/features/sidebar-cards.ts` must reach. Do the same for **Hide the Premium card**.
+- [ ] **Downloaded badge.** Library → Downloaded, with a post that was imported from history: “Downloaded previously” sits inside its pill with even padding, at the narrowest side panel and in the popup.
+- [ ] **Settings backup.** Settings → Data & backup → Export customization settings, change a few switches, then Import that file: the preview counts make sense, Merge and Replace behave as described, and open X tabs update. A Library backup file is refused here, and the Library buttons still work.
+- [ ] **Popup mode.** Settings → Open Better X as → Popup. Click the toolbar icon: a compact window opens (no side panel). It closes when you click elsewhere. Library and Customize both work, scroll with many posts, and match the side panel. **Open in side panel** (header) opens the panel. Switch back to Side panel from inside the popup, and the icon opens the panel again. Restart Chrome in each mode: the icon still does what you chose.

@@ -50,7 +50,12 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 - What it covers: hide Ads, Grok, Premium upsells and suggested accounts; trim the menu (Explore, Communities, Lists, Messages, Notifications, Bookmarks, Jobs, Premium...); hide view, reply, repost, like and bookmark counts, follower counts, verification badges and X's own action buttons (Better X's Save stays); hide reposts, the Home composer and "Show new posts"; keep only search in the sidebar or hide it; follow Following instead of For You.
 - Sliders for timeline width, sidebar width, menu spacing, menu text size and post text size.
 - **Quick setups**: Clean, Minimal and Focus apply a whole combination in one click, with Undo.
+- **Move your setup**: Settings → Data & backup exports your switches, sliders and theme to a small JSON file and imports it elsewhere (merge or replace), with no account. It is separate from the Library backup.
 - Selectors come from Control Panel for Twitter and are checked against X-shaped test pages, not live x.com, so an X redesign can make a setting do nothing; it will not hide ordinary posts. See [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md) for what is and is not covered.
+
+**Open it your way**
+
+- Settings → **Open Better X as**: the toolbar icon opens the side panel (default) or a compact popup. The popup is the same app, and has a button to open the side panel.
 
 **Appearance**
 
