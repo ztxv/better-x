@@ -7,7 +7,7 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
-import { page as fixture, ELON } from './fixture.mjs';
+import { page as fixture, featuresPage, FEATURE_POSTS, ELON } from './fixture.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const EXT = path.resolve(process.argv[2] ?? path.join(ROOT, '.output/chrome-mv3'));
@@ -52,7 +52,7 @@ sw.on('console', (m) => m.type() === 'error' && swErrors.push(m.text()));
 console.log('extension', extId);
 
 let theme = 'light';
-async function openX() {
+async function openX({ path = '/home', body = () => fixture(theme), controls = 7 } = {}) {
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -67,16 +67,18 @@ async function openX() {
   page.on('request', (req) => {
     const url = req.url();
     if (url.startsWith('https://x.com/')) {
-      if (url === 'https://x.com/home')
-        return req.respond({ status: 200, contentType: 'text/html', body: fixture(theme) });
+      if (url === `https://x.com${path}`)
+        return req.respond({ status: 200, contentType: 'text/html', body: body() });
       return req.respond({ status: 204, body: '' });
     }
     req.continue();
   });
-  await page.goto('https://x.com/home', { waitUntil: 'networkidle2' });
-  await page.waitForFunction(() => document.querySelectorAll('.bx-control').length === 7, {
-    timeout: 15000,
-  });
+  await page.goto(`https://x.com${path}`, { waitUntil: 'networkidle2' });
+  await page.waitForFunction(
+    (n) => document.querySelectorAll('.bx-control').length === n,
+    { timeout: 15000 },
+    controls,
+  );
   return { page, errors };
 }
 const sel = (id) => `article[data-post="${id}"] .bx-control`;
@@ -735,6 +737,156 @@ await page.evaluate(() => {
 check('a replaced app wrapper is followed', await waitAttr(page, 'data-bx-layout', 'narrow'));
 await page.evaluate(() => (document.getElementById('bx-app').className = 'app-wide'));
 check('...and its later changes', await waitAttr(page, 'data-bx-layout', 'wide'));
+
+// --- customization: Hide Ads / Hide Grok / Hide For You, driven through the real Customize view
+// Real-Chrome checks of the rules on X-shaped markup. The fixture is not X: these show the rules
+// behave as designed on that markup, not that they match the live site.
+const features = await openX({
+  path: '/home?fixture=features',
+  body: () => featuresPage(theme),
+  controls: FEATURE_POSTS,
+});
+const fx = features.page;
+const shown = (p, s) => p.$eval(s, (n) => getComputedStyle(n).display !== 'none').catch(() => null);
+const waitShown = (p, s, want, timeout = 5000) =>
+  p
+    .waitForFunction(
+      (s, want) => {
+        const n = document.querySelector(s);
+        return !!n && (getComputedStyle(n).display !== 'none') === want;
+      },
+      { timeout },
+      s,
+      want,
+    )
+    .then(() => true)
+    .catch(() => false);
+/** Flips a Customize switch by its label, the way a user would, and waits for it to read back. */
+async function toggleFeature(title, on) {
+  await panel.bringToFront();
+  await panel.click('#customize-tab');
+  await panel.waitForSelector('.customize .setting-toggle');
+  const input = async () =>
+    (
+      await panel.evaluateHandle(
+        (t) =>
+          [...document.querySelectorAll('.customize .setting-toggle')]
+            .find((l) => l.querySelector('strong').textContent === t)
+            ?.querySelector('input'),
+        title,
+      )
+    ).asElement();
+  if ((await (await input()).evaluate((i) => i.checked)) !== on) await (await input()).click();
+  await panel.waitForFunction(
+    (t, v) =>
+      [...document.querySelectorAll('.customize .setting-toggle')]
+        .find((l) => l.querySelector('strong').textContent === t)
+        ?.querySelector('input').checked === v,
+    {},
+    title,
+    on,
+  );
+  await fx.bringToFront();
+}
+const styleCount = () => fx.$$eval('style#bx-features', (n) => n.length);
+const controlCount = () => fx.$$eval('.bx-control', (n) => n.length);
+
+check(
+  'customization is off by default: nothing is hidden',
+  (await shown(fx, '#inner-promo')) === true &&
+    (await shown(fx, '#trend-promo')) === true &&
+    (await shown(fx, '#menu-ads')) === true &&
+    (await styleCount()) === 0,
+);
+await toggleFeature('Hide Ads', true);
+check(
+  'Hide Ads hides the promoted post on the open tab',
+  await waitShown(fx, '#inner-promo', false),
+);
+check(
+  '...and leaves ordinary posts visible',
+  (await shown(fx, '#inner-plain1')) === true &&
+    (await shown(fx, '#inner-plain2')) === true &&
+    (await shown(fx, '#inner-mention')) === true,
+);
+check(
+  '...and does not hide the timeline cell X positions',
+  (await shown(fx, '#cell-promo')) === true,
+);
+check(
+  '...a tracked block that is not a post stays visible',
+  (await shown(fx, '#inner-nopost')) === true,
+);
+check(
+  '...the newer markup shape (no test IDs) is untouched',
+  (await shown(fx, '#tailwind-post')) === true,
+);
+check(
+  'Hide Ads hides the promoted trend and the Ads menu link, not their neighbours',
+  (await shown(fx, '#trend-promo')) === false &&
+    (await shown(fx, '#trend-plain')) === true &&
+    (await shown(fx, '#menu-ads')) === false &&
+    (await shown(fx, '#menu-settings')) === true,
+);
+check(
+  'the Ads link in the narrow layout’s dialog is only hidden in that layout',
+  (await shown(fx, '#sheet-ads')) === true,
+);
+await fx.setViewport({ width: 420, height: 900 });
+check('...narrow: hidden', await waitShown(fx, '#sheet-ads', false));
+check('...and its other links stay', (await shown(fx, '#sheet-settings')) === true);
+await fx.setViewport({ width: 1280, height: 900 });
+check('...wide again: visible', await waitShown(fx, '#sheet-ads', true));
+// Saving keeps working with a customization on.
+await fx.evaluate(() => document.querySelector('#cell-plain1 .bx-control').click());
+check(
+  'saving works with Hide Ads on',
+  await waitText(fx, '#bx-chip', /Saved/),
+  await text(fx, '#bx-chip'),
+);
+await fx.keyboard.press('Escape');
+await toggleFeature('Hide Ads', false);
+check(
+  'switching Hide Ads off restores the post, trend and menu link',
+  (await waitShown(fx, '#inner-promo', true)) &&
+    (await shown(fx, '#trend-promo')) === true &&
+    (await shown(fx, '#menu-ads')) === true &&
+    (await styleCount()) === 0,
+);
+for (let i = 0; i < 3; i++) {
+  await toggleFeature('Hide Ads', true);
+  await waitShown(fx, '#inner-promo', false);
+  await toggleFeature('Hide Ads', false);
+  await waitShown(fx, '#inner-promo', true);
+}
+await toggleFeature('Hide Ads', true);
+check(
+  'repeated toggling leaves one stylesheet and no duplicate controls',
+  (await styleCount()) === 1 && (await controlCount()) === FEATURE_POSTS,
+  `${await styleCount()} styles, ${await controlCount()} controls`,
+);
+await panel.bringToFront();
+await panel.reload({ waitUntil: 'networkidle0' });
+await panel.click('#customize-tab');
+check(
+  'the setting persists across reopening the panel',
+  await panel.evaluate(
+    () =>
+      [...document.querySelectorAll('.customize .setting-toggle')]
+        .find((l) => l.querySelector('strong').textContent === 'Hide Ads')
+        ?.querySelector('input').checked,
+  ),
+);
+check(
+  'the Library is still reachable and working after using Customize',
+  await (async () => {
+    await panel.click('#library-tab');
+    await panel.waitForSelector('.nav-all', { visible: true });
+    return (await panel.$$('.bookmark-item')).length > 0;
+  })(),
+);
+await toggleFeature('Hide Ads', false);
+await features.page.close();
 
 // --- two X tabs saving the same post at the same moment
 const second = await openX();
