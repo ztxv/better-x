@@ -192,3 +192,18 @@ By category (3 runs, recalculation, change from the default state): navigation +
 The rules that follow, all applied: put `:has()` on the timeline cell, which has a test ID, never on its inner `div` (`cellWhere` in `src/features/css.ts`); anchor on an element with a role or test ID; use a child combinator inside `:has(> …)`, which stays cheap; and make the `:has` argument something rare (a class, a tag) rather than `[data-testid]`, which every inserted node has. Route scoping (`html[data-bx-route="home"] …`) costs nothing on other routes, since the rule cannot match there. One rule keeps the old shape because no cheaper form was found that is still correct: `feed.hideManageTimelines` identifies a button by an icon path inside a bare `div` (+5.2 ms). Remaining per-feature costs over the default state, 3 runs: Premium upsells +3.4, Hide Ads +3.1, view counts +3.9, suggested modules +2.5, reposts +1.8, inline prompts +1.6, Grok posts +1.7, Who to follow +0.3, composer +1.2, simplify actions −5.9 (it hides rows, so less layout).
 
 A plain `npm run perf` is not used for any of the above; the figures are from alternating runs in one session.
+
+## Quality-of-life sprint (2026-10-08)
+
+Sidebar card marking, the settings backup, the popup entry and the launch-mode worker code, against the build just before (`8065108`), all features off, three rounds of 5 runs alternating. The machine was busier than in the earlier sections (cv up to 8%). On − off delta of medians:
+
+| Metric (plain / X-shaped)   | Before           | After            |
+| --------------------------- | ---------------- | ---------------- |
+| ScriptDuration (ms), plain  | 16.5, 17.0, 16.2 | 16.1, 16.7, 16.2 |
+| ScriptDuration (ms), X      | 17.1, 16.6, 16.6 | 16.9, 16.6, 17.0 |
+| TaskDuration (ms), X        | 61.0, 60.1, 56.0 | 58.6, 57.5, 58.0 |
+| RecalcStyleDuration (ms), X | 9.8, 9.3, 9.2    | 9.5, 9.2, 9.1    |
+| scrollMs, X                 | 143, 147, 145    | 143, 145, 148    |
+| DOM nodes, long tasks       | 1404, 0          | 1404, 0          |
+
+No measurable change. Nothing new runs on X unless a feature asks: the sidebar service observes the sidebar column only while "Hide Who to follow" or "Hide the Premium card" is on, the backup and popup code never load in the content script, and the worker's launch-mode code runs only at start and when the setting changes. A plain `npm run perf` read script 16.3 ms, task 49.4 ms (cv under 3%).
