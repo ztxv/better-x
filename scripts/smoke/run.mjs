@@ -1204,6 +1204,18 @@ check('a closed group is inert, so Tab skips it', closedGroup?.inert === true);
 // Sliders, by keyboard and by the reset button, restyling the open X tab live.
 const primaryWidth = () =>
   fx.$eval('[data-testid="primaryColumn"]', (n) => getComputedStyle(n).maxWidth);
+/** Interval polling, not animation frames: the X tab is in the background while the panel is used. */
+const waitWidth = (width) =>
+  fx
+    .waitForFunction(
+      (width) =>
+        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+        width,
+      { timeout: 5000, polling: 50 },
+      width,
+    )
+    .then(() => true)
+    .catch(() => false);
 await ui.search('Timeline width');
 check(
   'a slider is off until its switch is on',
@@ -1211,72 +1223,25 @@ check(
 );
 await panel.click('.customize .setting-toggle input');
 await panel.waitForFunction(() => !document.querySelector('.customize .slider').disabled);
-check(
-  '...then the X tab takes its number',
-  await fx
-    .waitForFunction(
-      () =>
-        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-        '700px',
-      { timeout: 5000 },
-    )
-    .then(() => true)
-    .catch(() => false),
-  await primaryWidth(),
-);
+check('...then the X tab takes its number', await waitWidth('700px'), await primaryWidth());
 await panel.focus('.customize .slider');
 for (let i = 0; i < 3; i++) await panel.keyboard.press('ArrowRight');
 check(
   'arrow keys move it one step each, and X follows',
-  await fx
-    .waitForFunction(
-      () =>
-        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-        '730px',
-      { timeout: 5000 },
-    )
-    .then(() => true)
-    .catch(() => false),
+  await waitWidth('730px'),
   await primaryWidth(),
 );
 await panel.keyboard.press('End');
+const atMax = await waitWidth('1000px');
+await panel.keyboard.press('Home');
+const atMin = await waitWidth('500px');
 check(
   'End goes to the maximum and Home to the minimum',
-  (await fx
-    .waitForFunction(
-      () =>
-        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-        '1000px',
-      { timeout: 5000 },
-    )
-    .then(() => true)
-    .catch(() => false)) &&
-    (await panel.keyboard.press('Home'),
-    await fx
-      .waitForFunction(
-        () =>
-          getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-          '500px',
-        { timeout: 5000 },
-      )
-      .then(() => true)
-      .catch(() => false)),
-  await primaryWidth(),
+  atMax && atMin,
+  `max ${atMax}, min ${atMin}, now ${await primaryWidth()}`,
 );
 await panel.click('.customize .slider-reset');
-check(
-  'the reset button returns it to its default',
-  await fx
-    .waitForFunction(
-      () =>
-        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-        '700px',
-      { timeout: 5000 },
-    )
-    .then(() => true)
-    .catch(() => false),
-  await primaryWidth(),
-);
+check('the reset button returns it to its default', await waitWidth('700px'), await primaryWidth());
 check(
   'the slider is stored as a number, within its range',
   await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 3),
@@ -1284,15 +1249,7 @@ check(
 await panel.click('.customize .setting-toggle input');
 check(
   'turning it off removes the width rule and keeps nothing behind',
-  await fx
-    .waitForFunction(
-      () =>
-        getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
-        'none',
-      { timeout: 5000 },
-    )
-    .then(() => true)
-    .catch(() => false),
+  await waitWidth('none'),
   await primaryWidth(),
 );
 
