@@ -153,6 +153,7 @@ entrypoints/
 src/
   runtime/           Shared X runtime: scopes, post stream, action row, routes, layout
   saved/             Save control, post-save chip, saved-post menu, downloads (on X)
+  features/          Customization features (Hide Ads, Hide Grok, Hide For You) and their registry
   x/                 X DOM extraction and URL rules (all selectors live here)
   media/             URL rules, metadata adapter, media resolution
   downloads/         History store, lifecycle service, file naming, wording

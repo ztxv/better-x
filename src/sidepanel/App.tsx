@@ -27,6 +27,7 @@ import { ClearDownloadsDialog } from './ClearDownloadsDialog';
 import { BookmarkEditor } from './BookmarkEditor';
 import { DownloadDialog, downloadRows } from './DownloadDialog';
 import { Customize } from './Customize';
+import { SectionTabs, type Section } from './SectionTabs';
 import { SettingsDialog } from './SettingsDialog';
 import { useDownloads, useSettings } from './hooks';
 import {
@@ -44,7 +45,6 @@ import {
 } from '../types/model';
 
 const emptyLibrary: Library = { bookmarks: [], collections: [] };
-type Section = 'library' | 'customize';
 type View =
   | { kind: 'all' }
   | { kind: 'downloaded' }
@@ -441,29 +441,7 @@ export function App() {
           <Settings2 size={18} />
         </button>
       </header>
-      <div className="section-tabs" role="tablist" aria-label="Better X">
-        {(['library', 'customize'] as const).map((id) => (
-          <button
-            key={id}
-            role="tab"
-            id={`${id}-tab`}
-            aria-selected={section === id}
-            aria-controls={id === 'customize' ? 'customize-panel' : 'library-panel'}
-            tabIndex={section === id ? 0 : -1}
-            className={section === id ? 'selected' : ''}
-            onClick={() => setSection(id)}
-            onKeyDown={(event) => {
-              if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-              event.preventDefault();
-              const next = id === 'library' ? 'customize' : 'library';
-              setSection(next);
-              document.getElementById(`${next}-tab`)?.focus();
-            }}
-          >
-            {id === 'library' ? 'Library' : 'Customize'}
-          </button>
-        ))}
-      </div>
+      <SectionTabs section={section} onChange={setSection} />
       {section === 'customize' && (
         <Customize settings={settings} onChange={(patch) => void updateSettings(patch)} />
       )}

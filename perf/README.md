@@ -104,3 +104,24 @@ Script time is about 0.3 ms (2%) higher; everything else is inside the round-to-
 **A regression was found and fixed on the way.** The first comparison showed ScriptDuration about 1.5–2 ms (10–14%) higher, in all rounds and with the order of the builds swapped, so it was not noise. Bisecting the sprint's commits put about 0.6 ms in `PostStream` and about 1.2 ms in `ActionRow`, and none in the pure extraction. Call counts (V8 precise coverage) were identical to the old build (400 identity reads, 200 controls, 200 alignments for the 200-post page), and a 20-post page showed only +0.3 ms, so the cost scaled with posts but not with how many times anything ran: it was in what each call did. Changing the lookup selector, snapshotting listener lists, and pruning only departed posts each made no measurable difference; replacing the `dataset` reads and writes in the mount path (about six DOM calls per control, to find an insert position) with JavaScript-side bookkeeping removed it. DOM `dataset` access is expensive enough to matter in per-post code.
 
 Heap readings moved between 0.8 and 1.25 MB across variants with no code reason; the JS heap is measured before any garbage collection, so differences under about 0.4 MB here say nothing about retention.
+
+## Customization MVP comparison (2026-10-08)
+
+The feature registry and host, the three features, and the settings schema change. Same session, alternating the build from just before (`e29e4bf`) with the final build, three rounds of 5 runs per mode, every feature off (the default). On − off delta of medians, one value per round:
+
+| Metric                   | Before           | After            |
+| ------------------------ | ---------------- | ---------------- |
+| ScriptDuration (ms)      | 14.4, 15.3, 15.7 | 15.4, 15.1, 15.2 |
+| TaskDuration (ms)        | 42.0, 49.7, 49.7 | 47.4, 47.4, 46.9 |
+| RecalcStyleDuration (ms) | 8.1, 8.9, 8.7    | 8.9, 8.8, 8.3    |
+| LayoutDuration (ms)      | 0.8, 0.8, 1.6    | 1.4, 1.1, 1.5    |
+| JSHeapUsedSize (MB)      | 1.19, 1.15, 1.18 | 1.20, 1.20, 1.20 |
+| scrollMs                 | 135, 141, 135    | 140, 144, 140    |
+| DOM nodes                | 1403             | 1404             |
+| Long tasks               | 0                | 0                |
+
+Script, task, recalculation and layout are inside the old build's own spread. Scroll time reads about 4 ms (3%) higher in all three rounds, which is at the edge of the spread and was not chased further. The one extra node is the feature host's `<style>` element, created detached and attached only while a feature with CSS is on.
+
+**With all three features on** (the same build, features on versus off, three rounds; the perf fixture has no promoted posts, Grok surfaces or Home tabs, so this measures the cost of the rules and hooks being present, not of hiding anything): script 15.5–16.4 ms against 15.0–15.5, task time equal within noise (46.5–49.9 against 49.2–53.0), recalculation 8.5–8.7 against 8.8–9.1, heap +0.02 MB, scroll 137–147 against 137–144, one more node (the attached stylesheet). The CSS-only features add no observers and no per-post work; the style rules (`:has(...)`) did not show up as extra recalculation here, but a real timeline with many promoted posts was not measured.
+
+**Found and fixed on the way.** A first measurement with all three on showed Hide For You adding about 2 ms of script time: on a Home page with no tabs it ran two document-wide selector queries on every batch of posts, and its wait for the tabs ran the same queries on every mutation. It now checks only that the tab list it already knew is still attached, finds tabs by walking the page's few `nav` elements, and confirms each click with one timer. A plain `npm run perf` the same evening read within 10% of these figures with cv up to 19%, so only the interleaved comparisons are used.
