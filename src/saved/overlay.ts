@@ -28,7 +28,7 @@ export function closeOverlay(ctx: SavedContext, restoreFocus = false) {
 
 /** True while `current` is still the open overlay for a control showing its post. */
 const stillOpen = (ctx: SavedContext, current: Overlay) =>
-  ctx.overlay === current && ctx.buttons.get(current.anchor) === current.tweetId;
+  ctx.overlay === current && ctx.actionRow.postOf(current.anchor) === current.tweetId;
 
 /** Shows `node` as the only overlay on the page, anchored to a save control. */
 export function openOverlay(

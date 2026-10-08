@@ -21,8 +21,12 @@ const flush = async () => {
   runFrames();
 };
 
+/** Every scope a test makes, disposed afterwards so one test's observers never touch the next. */
+const scopes: Scope[] = [];
+
 function setup() {
   const scope = new Scope();
+  scopes.push(scope);
   const stream = createPostStream(scope);
   const seen: Array<[string, StreamPost['reason']]> = [];
   stream.onPost(({ identity, reason }) => seen.push([identity.tweetId, reason]));
@@ -39,6 +43,7 @@ beforeEach(() => {
   document.body.innerHTML = '';
 });
 afterEach(() => {
+  scopes.splice(0).forEach((scope) => scope.dispose());
   vi.unstubAllGlobals();
   document.body.innerHTML = '';
 });

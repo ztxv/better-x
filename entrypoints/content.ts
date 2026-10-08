@@ -1,6 +1,4 @@
-import { createLayoutService } from '../src/runtime/layout';
-import { createPostStream } from '../src/runtime/posts';
-import { createRouteService } from '../src/runtime/route';
+import { startRuntime } from '../src/runtime';
 import { Scope } from '../src/runtime/scope';
 import { startSaved } from '../src/saved';
 import '../src/content/styles.css';
@@ -16,27 +14,7 @@ export default defineContentScript({
     const scope = new Scope(() => ctx.isValid);
     ctx.onInvalidated(() => scope.dispose());
 
-    const posts = createPostStream(scope);
-    startSaved(scope, posts);
-
-    // The runtime's view of where X is, mirrored as an attribute on <html> so it can be read (and
-    // later styled) from the page: <html data-bx-route="profile">. Nothing else consumes it yet.
-    const routes = createRouteService(scope);
-    const publishRoute = () =>
-      document.documentElement.setAttribute('data-bx-route', routes.route.id);
-    publishRoute();
-    scope.add(routes.onRoute(publishRoute));
-    scope.add(() => document.documentElement.removeAttribute('data-bx-route'));
-    // Likewise X's wide/narrow layout (narrow when its window is, e.g. beside the side panel):
-    // <html data-bx-layout="narrow">, absent until X's app wrapper has rendered.
-    const layout = createLayoutService(scope);
-    const publishLayout = () => {
-      const root = document.documentElement;
-      if (layout.layout) root.setAttribute('data-bx-layout', layout.layout);
-      else root.removeAttribute('data-bx-layout');
-    };
-    publishLayout();
-    scope.add(layout.onLayout(publishLayout));
-    scope.add(() => document.documentElement.removeAttribute('data-bx-layout'));
+    const runtime = startRuntime(scope);
+    startSaved(scope, runtime);
   },
 });

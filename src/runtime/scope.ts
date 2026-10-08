@@ -90,6 +90,22 @@ export class Scope {
   }
 
   /**
+   * setTimeout that is cleared on disposal. Returns a function that cancels this timer early; a
+   * timer that has already fired needs no cancelling.
+   */
+  setTimeout(callback: () => void, ms: number): Disposer {
+    const id = setTimeout(() => {
+      forget();
+      callback();
+    }, ms);
+    const forget = this.add(() => clearTimeout(id));
+    return () => {
+      forget();
+      clearTimeout(id);
+    };
+  }
+
+  /**
    * Runs every registered cleanup, exactly once. A cleanup that throws is reported and does not
    * stop the rest.
    */

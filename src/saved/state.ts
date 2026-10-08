@@ -18,8 +18,9 @@ export function renderState(ctx: SavedContext, control: HTMLButtonElement, id: s
 }
 
 export const renderAll = (ctx: SavedContext, id?: string) =>
-  ctx.buttons.forEach((buttonId, control) => {
-    if (!id || buttonId === id) renderState(ctx, control, buttonId);
+  ctx.actionRow.elements<HTMLButtonElement>('save').forEach((control) => {
+    const postId = ctx.actionRow.postOf(control);
+    if (postId && (!id || postId === id)) renderState(ctx, control, postId);
   });
 
 export async function refreshSaved(ctx: SavedContext) {

@@ -118,6 +118,32 @@ describe('Scope', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
+  describe('setTimeout', () => {
+    it('runs once when its time comes', () => {
+      vi.useFakeTimers();
+      const scope = new Scope();
+      const callback = vi.fn();
+      scope.setTimeout(callback, 100);
+      vi.advanceTimersByTime(100);
+      expect(callback).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('is cleared on dispose, or cancelled early', () => {
+      vi.useFakeTimers();
+      const scope = new Scope();
+      const pending = vi.fn();
+      const cancelled = vi.fn();
+      scope.setTimeout(pending, 100);
+      scope.setTimeout(cancelled, 100)();
+      scope.dispose();
+      vi.advanceTimersByTime(1000);
+      expect(pending).not.toHaveBeenCalled();
+      expect(cancelled).not.toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+  });
+
   describe('requestFrame', () => {
     it('runs a frame that is still pending when nothing is disposed', async () => {
       const scope = new Scope();

@@ -1,3 +1,4 @@
+import type { ActionRowService } from '../runtime/action-row';
 import type { Scope } from '../runtime/scope';
 import type { Settings } from '../lib/settings';
 import type { Overlay } from './overlay';
@@ -13,13 +14,10 @@ export interface SavedContext {
   saved: Set<string>;
   /** Post ids whose save is in flight. */
   saving: Set<string>;
-  /** Each injected save control and the post it currently shows. */
-  buttons: Map<HTMLButtonElement, string>;
+  /** Where the save control is mounted, and which post each one currently shows. */
+  actionRow: ActionRowService;
   /** The one open chip or menu, if any. */
   overlay: Overlay | null;
-  /** Controls waiting to be measured against X's own icons, and the frame that will do it. */
-  unaligned: Set<HTMLButtonElement>;
-  cancelAlign: () => void;
   settings: Settings;
   /** Settles once the stored settings have been applied (the defaults hold until then). */
   settingsReady: Promise<void>;
