@@ -6,7 +6,12 @@
  */
 
 export const SETTINGS_KEY = 'bx.settings';
-export const SETTINGS_VERSION = 1;
+/**
+ * Version 2 added `features` (customization toggles). A stored version 1 object has none, so it
+ * loads with every feature at its default and is rewritten as version 2 on the next save; no
+ * other field changes meaning.
+ */
+export const SETTINGS_VERSION = 2;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
@@ -23,6 +28,12 @@ export interface Settings {
   menuActions: { download: boolean; openLibrary: boolean };
   /** Ask where to save each file. Chrome's own "Ask where to save" setting can still prompt. */
   saveAs: boolean;
+  /**
+   * Customization toggles by feature id, only for those the user has set. A feature missing here
+   * is at its default; ids the extension does not know are kept (a newer or older build may) but
+   * ignored. The feature registry decides what each id means; see `src/features`.
+   */
+  features: Record<string, boolean>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,6 +44,7 @@ export const DEFAULT_SETTINGS: Settings = {
   afterSave: 'downloadOffer',
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
+  features: {},
 };
 
 /**
@@ -103,6 +115,18 @@ const pick = <T>(value: unknown, allowed: Set<T>, fallback: T): T =>
   allowed.has(value as T) ? (value as T) : fallback;
 const bool = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
 
+const FEATURE_ID = /^[a-z][A-Za-z0-9]{0,31}\.[a-z][A-Za-z0-9]{0,47}$/;
+const MAX_FEATURES = 128;
+
+/** Keeps only `id: boolean` entries with well-formed ids, so storage can never hold junk. */
+function normalizeFeatures(input: unknown): Record<string, boolean> {
+  const features: Record<string, boolean> = {};
+  if (!isRecord(input)) return features;
+  for (const [id, value] of Object.entries(input).slice(0, MAX_FEATURES))
+    if (FEATURE_ID.test(id) && typeof value === 'boolean') features[id] = value;
+  return features;
+}
+
 export function normalizeSettings(input: unknown): Settings {
   const value = isRecord(input) ? input : {};
   const menu = isRecord(value.menuActions) ? value.menuActions : {};
@@ -118,11 +142,14 @@ export function normalizeSettings(input: unknown): Settings {
       openLibrary: bool(menu.openLibrary, d.menuActions.openLibrary),
     },
     saveAs: bool(value.saveAs, d.saveAs),
+    features: normalizeFeatures(value.features),
   };
 }
 
-export type SettingsPatch = Partial<Omit<Settings, 'version' | 'menuActions'>> & {
+export type SettingsPatch = Partial<Omit<Settings, 'version' | 'menuActions' | 'features'>> & {
   menuActions?: Partial<Settings['menuActions']>;
+  /** Merged into the stored toggles: ids not mentioned keep their value. */
+  features?: Record<string, boolean>;
 };
 
 export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
@@ -130,6 +157,7 @@ export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
     ...current,
     ...patch,
     menuActions: { ...current.menuActions, ...patch.menuActions },
+    features: { ...current.features, ...patch.features },
   });
 }
 
@@ -148,9 +176,14 @@ export async function saveSettings(patch: SettingsPatch): Promise<Settings> {
   return next;
 }
 
+/**
+ * Restores appearance and Saved/download preferences. The customization toggles are kept: they
+ * change what X looks like, which resetting an accent color should not undo.
+ */
 export async function resetSettings(): Promise<Settings> {
-  await chrome.storage.local.set({ [SETTINGS_KEY]: DEFAULT_SETTINGS });
-  return DEFAULT_SETTINGS;
+  const next = { ...DEFAULT_SETTINGS, features: (await loadSettings()).features };
+  await chrome.storage.local.set({ [SETTINGS_KEY]: next });
+  return next;
 }
 
 /** Calls `listener` whenever any context changes settings. Returns an unsubscribe function. */

@@ -1,3 +1,5 @@
+import { featureRegistry } from '../src/features';
+import { startFeatures } from '../src/features/host';
 import { startRuntime } from '../src/runtime';
 import { Scope } from '../src/runtime/scope';
 import { startSaved } from '../src/saved';
@@ -16,5 +18,11 @@ export default defineContentScript({
 
     const runtime = startRuntime(scope);
     startSaved(scope, runtime);
+    // Customization is optional: if it cannot start, Saved and Downloads are already running.
+    try {
+      startFeatures(scope, runtime, featureRegistry);
+    } catch (error) {
+      console.error('[Better X] customization could not start', error);
+    }
   },
 });
