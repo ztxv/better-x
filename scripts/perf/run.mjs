@@ -6,7 +6,12 @@
  * request is aborted. Each run uses a fresh browser and profile; modes alternate (off, on, off,
  * on, …) so slow drift on the machine affects both equally.
  *
- * Usage: npm run build && node scripts/perf/run.mjs [--runs N] [--out file.json] [extension dir]
+ * `--shape x` serves the same 200 posts inside X's shell (timeline cells, tweet test IDs, action
+ * rows, navigation, sidebar) so customization rules have elements to match, and
+ * `--features default,typical,all` adds extension modes with those customizations switched on.
+ *
+ * Usage: npm run build && node scripts/perf/run.mjs [--runs N] [--out file.json] [--shape x]
+ *        [--features default,typical,all] [extension dir]
  * Default output: perf/runs/<timestamp>.json (git-ignored). CHROME_PATH overrides Chrome.
  */
 import puppeteer from 'puppeteer-core';
@@ -14,6 +19,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { photo, post } from '../smoke/fixture.mjs';
+import { actionRow, catalogPage, cell, tweetArticle } from '../smoke/catalog-fixture.mjs';
+import { COVERED_ELSEWHERE, SCENARIOS } from '../smoke/catalog-spec.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
 const args = process.argv.slice(2);
@@ -25,6 +32,9 @@ const option = (name) => {
 };
 const RUNS = Number(option('--runs') ?? process.env.PERF_RUNS ?? 5);
 const OUT = option('--out');
+const SHAPE = option('--shape') ?? 'plain';
+const FEATURE_MODES = option('--features')?.split(',') ?? null;
+if (!['plain', 'x'].includes(SHAPE)) throw new Error(`--shape is plain or x, not ${SHAPE}`);
 const EXT = path.resolve(args[0] ?? path.join(ROOT, '.output/chrome-mv3'));
 const CHROME =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -38,6 +48,61 @@ const TOTAL = INITIAL + BATCH * BATCHES;
  * baseline build (perf/baseline-0.2.0.json) can still be measured side by side. */
 const CONTROL = '.bx-control, .sfx-control';
 
+/** What each customization mode switches on. `typical` is the Minimal quick setup. */
+const TYPICAL = [
+  'cleanup.hideAds',
+  'cleanup.hideGrok',
+  'cleanup.hideGrokImageEdit',
+  'cleanup.hideGrokPosts',
+  'cleanup.hidePremiumUpsells',
+  'cleanup.hideSubscriptions',
+  'feed.hideInlinePrompts',
+  'feed.hideSuggestedModules',
+  'navigation.hidePremium',
+  'navigation.hideBusiness',
+  'sidebar.hidePremiumPromo',
+  'sidebar.hideWhoToFollow',
+  'navigation.hideCommunities',
+  'navigation.hideJobs',
+  'navigation.hideConnect',
+  'navigation.hideSpaces',
+  'navigation.hideHistory',
+  'navigation.hideCreatorStudio',
+  'navigation.hideBadges',
+  'feed.hideNewPostsPill',
+  'feed.hideManageTimelines',
+  'feed.hideProfileSuggestions',
+  'posts.hideViews',
+  'posts.hideReplyCount',
+  'posts.hideRepostCount',
+  'posts.hideLikeCount',
+  'posts.hideBookmarkCount',
+  'posts.hideFollowCounts',
+  'posts.hideVerifiedBadges',
+  'sidebar.keepOnlySearch',
+  'sidebar.hideFooter',
+];
+const ALL = [...new Set([...SCENARIOS.map((scenario) => scenario.feature), ...COVERED_ELSEWHERE])];
+/** default, typical, all, cat:<category> (one whole category), or ids:<id>+<id>. */
+const featureSet = (name) =>
+  name === 'typical'
+    ? TYPICAL
+    : name === 'all'
+      ? ALL
+      : name === 'default'
+        ? []
+        : name.startsWith('cat:')
+          ? ALL.filter((id) => id.startsWith(`${name.slice(4)}.`))
+          : name.startsWith('ids:')
+            ? name.slice(4).split('+')
+            : null;
+if (FEATURE_MODES)
+  for (const name of FEATURE_MODES)
+    if (!featureSet(name))
+      throw new Error(
+        `--features takes default, typical, all, cat:<category>, ids:<a>+<b>; not ${name}`,
+      );
+
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
   'base64',
@@ -48,19 +113,16 @@ function postHtml(index) {
   const handle = `user${index % 17}`;
   const media =
     index % 3 === 0 ? photo(`PerfMedia${String(index).padStart(6, '0')}`, 1, id, handle) : '';
-  return post({ id, handle, text: `Performance fixture post ${index}`, media });
+  const text = `Performance fixture post ${index}`;
+  if (SHAPE === 'x')
+    return cell(
+      `p${index}`,
+      tweetArticle(post({ id, handle, text, media, rowHtml: actionRow(index) })),
+    );
+  return post({ id, handle, text, media });
 }
 
-function fixture() {
-  const batches = Array.from({ length: BATCHES }, (_, b) =>
-    Array.from({ length: BATCH }, (_, i) => postHtml(INITIAL + b * BATCH + i)).join(''),
-  );
-  return `<!doctype html><html><head><meta charset="utf-8"><title>X perf fixture</title></head>
-  <body style="margin:0;background:#fff;color:#0f1419;font-family:sans-serif">
-  <main id="timeline" style="width:600px;margin:0 auto">
-  ${Array.from({ length: INITIAL }, (_, i) => postHtml(i)).join('')}
-  </main>
-  <script>
+const APPEND = (batches) => `<script>
     const batches = ${JSON.stringify(batches)};
     let next = 0;
     // Appends the next batch the way an infinite timeline does; driven by the harness, not timers.
@@ -69,7 +131,22 @@ function fixture() {
       document.getElementById('timeline').insertAdjacentHTML('beforeend', batches[next++]);
       return true;
     };
-  </script>
+  </script>`;
+
+function fixture() {
+  const batches = Array.from({ length: BATCHES }, (_, b) =>
+    Array.from({ length: BATCH }, (_, i) => postHtml(INITIAL + b * BATCH + i)).join(''),
+  );
+  if (SHAPE === 'x') {
+    const timeline = Array.from({ length: INITIAL }, (_, i) => postHtml(i)).join('');
+    return catalogPage({ timeline, extras: false }).replace('</body>', `${APPEND(batches)}</body>`);
+  }
+  return `<!doctype html><html><head><meta charset="utf-8"><title>X perf fixture</title></head>
+  <body style="margin:0;background:#fff;color:#0f1419;font-family:sans-serif">
+  <main id="timeline" style="width:600px;margin:0 auto">
+  ${Array.from({ length: INITIAL }, (_, i) => postHtml(i)).join('')}
+  </main>
+  ${APPEND(batches)}
   </body></html>`;
 }
 
@@ -84,7 +161,7 @@ const METRICS = [
 ];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function run(withExtension) {
+async function run(withExtension, features = []) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bx-perf-'));
   const browser = await puppeteer.launch({
     executablePath: CHROME,
@@ -96,10 +173,19 @@ async function run(withExtension) {
     defaultViewport: { width: 1280, height: 900 },
   });
   try {
-    if (withExtension)
-      await browser.waitForTarget(
+    if (withExtension) {
+      const target = await browser.waitForTarget(
         (t) => t.type() === 'service_worker' && t.url().startsWith('chrome-extension://'),
       );
+      if (features.length) {
+        const worker = await target.worker();
+        const on = Object.fromEntries(features.map((id) => [id, true]));
+        await worker.evaluate(
+          (features) => chrome.storage.local.set({ 'bx.settings': { version: 3, features } }),
+          on,
+        );
+      }
+    }
     const page = await browser.newPage();
     await page.setRequestInterception(true);
     page.on('request', (request) => {
@@ -210,21 +296,47 @@ function summarize(runs) {
 if (!fs.existsSync(path.join(EXT, 'manifest.json')))
   throw new Error(`No built extension at ${EXT}. Run npm run build first.`);
 const manifest = JSON.parse(fs.readFileSync(path.join(EXT, 'manifest.json'), 'utf8'));
-const results = { off: [], on: [] };
+/** Without --features there are two modes, as always; with it, one extension mode per name. */
+const MODES = FEATURE_MODES
+  ? [
+      { name: 'off', extension: false },
+      ...FEATURE_MODES.map((name) => ({
+        name: `on:${name}`,
+        extension: true,
+        features: featureSet(name),
+      })),
+    ]
+  : [
+      { name: 'off', extension: false },
+      { name: 'on', extension: true, features: [] },
+    ];
+const results = Object.fromEntries(MODES.map((mode) => [mode.name, []]));
 for (let i = 0; i < RUNS; i++) {
-  for (const mode of ['off', 'on']) {
-    const result = await run(mode === 'on');
-    results[mode].push(result);
-    console.log(`run ${i + 1}/${RUNS} ${mode.padEnd(3)} ${JSON.stringify(result)}`);
+  for (const mode of MODES) {
+    const result = await run(mode.extension, mode.features);
+    results[mode.name].push(result);
+    console.log(`run ${i + 1}/${RUNS} ${mode.name.padEnd(10)} ${JSON.stringify(result)}`);
   }
 }
 
-const off = summarize(results.off);
-const on = summarize(results.on);
-const delta = Object.fromEntries(
-  Object.keys(on)
-    .filter((key) => on[key] && off[key])
-    .map((key) => [key, +(on[key].median - off[key].median).toFixed(2)]),
+const summaries = Object.fromEntries(
+  MODES.map((mode) => [mode.name, summarize(results[mode.name])]),
+);
+const off = summaries.off;
+const medians = (name, base) =>
+  Object.fromEntries(
+    Object.keys(summaries[name])
+      .filter((key) => summaries[name][key] && summaries[base][key])
+      .map((key) => [key, +(summaries[name][key].median - summaries[base][key].median).toFixed(2)]),
+  );
+const onName = MODES[1].name;
+const on = summaries[onName];
+const delta = medians(onName, 'off');
+const deltas = Object.fromEntries(
+  MODES.slice(1).map((mode) => [
+    mode.name,
+    { vsOff: medians(mode.name, 'off'), vsDefault: medians(mode.name, onName) },
+  ]),
 );
 const chrome = await (async () => {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, pipe: true });
@@ -242,7 +354,21 @@ const report = {
     cpus: os.cpus()[0]?.model,
     node: process.version,
   },
-  fixture: { posts: TOTAL, initial: INITIAL, batch: BATCH, batches: BATCHES, photoEvery: 3 },
+  fixture: {
+    shape: SHAPE,
+    posts: TOTAL,
+    initial: INITIAL,
+    batch: BATCH,
+    batches: BATCHES,
+    photoEvery: 3,
+  },
+  ...(FEATURE_MODES
+    ? {
+        featureModes: Object.fromEntries(
+          MODES.filter((m) => m.features).map((m) => [m.name, m.features.length]),
+        ),
+      }
+    : {}),
   runsPerMode: RUNS,
   units: {
     initialMs: 'navigation start to load (+ all initial save controls when on)',
@@ -250,7 +376,7 @@ const report = {
     durations: 'ms (CDP Performance.getMetrics, whole page lifetime)',
     JSHeapUsedSize: 'MB (page main world; content script worlds share the heap)',
   },
-  summary: { off, on, deltaOfMedians: delta },
+  summary: FEATURE_MODES ? { ...summaries, deltas } : { off, on, deltaOfMedians: delta },
   runs: results,
 };
 
@@ -259,10 +385,22 @@ const out = OUT
   : path.join(ROOT, 'perf', 'runs', `${report.recordedAt.replace(/[:.]/g, '-')}.json`);
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
-console.log('\nmedian (cv%)         off              on               delta');
-for (const key of Object.keys(on)) {
-  if (!on[key] || !off[key]) continue;
-  const cell = (s) => `${s.median} (${s.cvPercent}%)`.padEnd(17);
-  console.log(`${key.padEnd(21)}${cell(off[key])}${cell(on[key])}${delta[key]}`);
+if (FEATURE_MODES) {
+  const names = MODES.map((mode) => mode.name);
+  console.log(`\nmedian (cv%)         ${names.map((n) => n.padEnd(17)).join('')}`);
+  for (const key of Object.keys(summaries[onName])) {
+    if (!summaries[onName][key]) continue;
+    const cells = names.map((n) =>
+      `${summaries[n][key].median} (${summaries[n][key].cvPercent}%)`.padEnd(17),
+    );
+    console.log(`${key.padEnd(21)}${cells.join('')}`);
+  }
+} else {
+  console.log('\nmedian (cv%)         off              on               delta');
+  for (const key of Object.keys(on)) {
+    if (!on[key] || !off[key]) continue;
+    const cell = (s) => `${s.median} (${s.cvPercent}%)`.padEnd(17);
+    console.log(`${key.padEnd(21)}${cell(off[key])}${cell(on[key])}${delta[key]}`);
+  }
 }
 console.log(`\nwrote ${path.relative(ROOT, out)}`);

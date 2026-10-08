@@ -37,8 +37,15 @@ const sw = await worker.worker();
 await sw.evaluate(() =>
   chrome.storage.local.set({
     'bx.settings': {
-      version: 2,
-      features: { 'cleanup.hideAds': true, 'cleanup.hideGrok': true, 'feed.hideForYou': true },
+      version: 3,
+      features: {
+        'cleanup.hideAds': true,
+        'cleanup.hideGrok': true,
+        'feed.hideForYou': true,
+        'appearance.timelineWidth': true,
+        'navigation.hideBookmarks': true,
+      },
+      values: { 'appearance.timelineWidth': 820 },
     },
   }),
 );
@@ -71,13 +78,14 @@ const state = () =>
   page.evaluate(() => ({
     controls: document.querySelectorAll('.bx-control').length,
     overlay: !!document.querySelector('#bx-chip, #bx-menu'),
-    markers: ['data-bx-route', 'data-bx-layout', 'data-bx-hide-for-you'].filter((a) =>
-      document.documentElement.hasAttribute(a),
+    markers: ['data-bx-route', 'data-bx-layout', 'data-bx-sidebar', 'data-bx-hide-for-you'].filter(
+      (a) => document.documentElement.hasAttribute(a),
     ),
     styles: document.querySelectorAll('style#bx-features, style#bx-accent').length,
     promoShown: getComputedStyle(document.getElementById('inner-promo')).display !== 'none',
     grokShown: getComputedStyle(document.getElementById('nav-grok')).display !== 'none',
     forYouShown: getComputedStyle(document.getElementById('tab-foryou')).display !== 'none',
+    width: getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth,
     following: document.getElementById('tab-following-link').getAttribute('aria-selected'),
     path: location.pathname,
   }));
@@ -90,6 +98,7 @@ check(
     !before.promoShown &&
     !before.grokShown &&
     !before.forYouShown &&
+    before.width === '820px' &&
     before.following === 'true',
   JSON.stringify(before),
 );
@@ -101,7 +110,10 @@ check(
   after.controls === 0 && !after.overlay && after.markers.length === 0 && after.styles === 0,
   JSON.stringify(after),
 );
-check('...what it hid is shown again', after.promoShown && after.grokShown && after.forYouShown);
+check(
+  '...what it hid is shown again, and the width it set is gone',
+  after.promoShown && after.grokShown && after.forYouShown && after.width === 'none',
+);
 check(
   '...and X is left where it was: still on Home, still on Following, no errors',
   after.path === '/home' && after.following === 'true' && errors.length === 0,

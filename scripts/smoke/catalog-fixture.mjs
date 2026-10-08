@@ -20,7 +20,9 @@ const NOTIF_AD = 'M18.766 2H7.323l-4.8 12h5.324l-1.5 8z';
 const MANAGE_PLUS = 'M11 11V4h2v7h7v2h-7v7h-2v-7H4v-2h7z';
 
 /** An action row the way X lays it out, with a count under each button and an inline-styled share. */
-const actionRow = (n) => `<div role="group" id="row-${n}" style="display:flex;max-width:460px">
+export const actionRow = (
+  n,
+) => `<div role="group" id="row-${n}" style="display:flex;max-width:460px">
   <div id="reply-wrap-${n}"><button data-testid="reply" id="reply-${n}">${svg()}<span id="reply-count-${n}">12</span></button></div>
   <div id="repost-wrap-${n}"><button data-testid="retweet" id="repost-${n}">${svg()}<span id="repost-count-${n}">3</span></button></div>
   <div id="like-wrap-${n}"><button data-testid="like" id="like-${n}">${svg()}<span id="like-count-${n}">45</span></button></div>
@@ -29,10 +31,10 @@ const actionRow = (n) => `<div role="group" id="row-${n}" style="display:flex;ma
   <div id="share-wrap-${n}" style="display:inline-flex"><button data-testid="share" id="share-${n}">${svg()}</button></div>
 </div>`;
 
-const tweetArticle = (html, attrs = 'data-testid="tweet" tabindex="0"') =>
+export const tweetArticle = (html, attrs = 'data-testid="tweet" tabindex="0"') =>
   html.replace('<article ', `<article ${attrs} `);
 
-const cell = (id, inner) =>
+export const cell = (id, inner) =>
   `<div data-testid="cellInnerDiv" id="cell-${id}"><div id="inner-${id}">${inner}</div></div>`;
 
 const social = (id, icon, text) =>
@@ -79,7 +81,12 @@ const placeLinks = (p) => `
 
 export const CATALOG_POSTS = 5;
 
-export function catalogPage() {
+/**
+ * The catalog page. `timeline` replaces the timeline's cells and `extras: false` leaves out the
+ * notifications, the post's own page and the other one-off sections, which is how the performance
+ * harness gets an X-shaped shell around a long timeline.
+ */
+export function catalogPage({ timeline, extras = true } = {}) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>X catalog fixture</title></head>
   <body style="margin:0;background:#fff;color:#0f1419;font-family:Georgia,serif">
   <style>
@@ -151,7 +158,7 @@ export function catalogPage() {
         <div id="explore-search"><input type="search" placeholder="Search"></div>
         <h2 role="heading" id="profile-name">Name</h2><div dir="ltr" id="post-count">1,234 posts</div>
       </div>
-      <div id="composer-wrap"><div data-testid="tweetTextarea_0" id="composer-box">What is happening?</div></div>
+      <div id="composer-wrap"><div data-testid="tweetTextarea_0" class="DraftEditor-root" id="composer-box">What is happening?</div></div>
       <div id="top-bar" data-testid="TopNavBar"><div><div>x</div><div id="mobile-tabs">tabs</div></div></div>
       <div id="profile-tabs-wrap"><nav id="profile-nav"><div id="tab-posts"><a href="/u">Posts</a></div>
         <div id="tab-subs"><a href="/u/superfollows">Subscriptions</a></div>
@@ -183,7 +190,9 @@ export function catalogPage() {
       <div aria-live="polite" role="status" id="composer-upsell"><a href="/i/premium_sign_up">Upgrade</a></div>
       <div aria-live="polite" role="status" id="composer-status"><span>Posting…</span></div>
       <div id="explore-section-wrap"><section><h1>Explore</h1><div aria-label="Timeline: Explore"><div id="explore-content">Trending</div></div></section></div>
-      <div id="timeline">
+      <div id="timeline">${
+        timeline ??
+        `
         ${timelinePost('plain', 1)}
         ${timelinePost('repost', 2, social('repost', REPOST_ICON, 'You reposted'))}
         ${timelinePost('pinned', 3, social('pinned', PINNED_ICON, 'Pinned'))}
@@ -195,7 +204,11 @@ export function catalogPage() {
         ${cell('wtf-more', '<a href="/i/connect_people?x" id="wtf-more">Show more</a>')}
         ${cell('heading-post', `<h2 role="heading" id="heading-post-title">A thread</h2>${tweetArticle(post({ id: '1400000000000000001', handle: 'threader', text: 'Post with a heading in its cell' }))}`)}
         ${cell('plain-text', '<div id="plain-text-content"><div>Just a cell of text</div></div>')}
-      </div>
+      `
+      }</div>
+      ${
+        extras
+          ? `
       <div id="notifications">
         ${cell('notif-like', `<div data-testid="notification">${svg(NOTIF_LIKE)}Someone liked your post</div>`)}
         ${cell('notif-repost', `<div data-testid="notification">${svg(NOTIF_REPOST)}Someone reposted your post</div>`)}
@@ -221,6 +234,9 @@ export function catalogPage() {
           'data-testid="tweet" tabindex="-1"',
         )}
       </div>
+`
+          : ''
+      }
       <div id="badges"><svg data-testid="icon-verified" id="badge" width="12" height="12"></svg></div>
       <div id="imagine"><div data-testid="tweet" id="imagine-post"><span data-testid="icon-subscriber" id="subscriber-badge">sub</span><div aria-labelledby="x" id="imagine-wrap"><a id="imagine-image" href="/i/imagine/z">Edit image</a></div>
         <div data-testid="tweetText" id="imagine-text"><span>text </span><a id="imagine-text-link" href="https://grok.com/imagine/q">Imagine</a><a id="plain-link" href="https://example.com">link</a></div></div></div>
@@ -229,10 +245,10 @@ export function catalogPage() {
       <div id="sec-search"><div role="search">Search</div></div>
       <div id="sec-news"><div data-testid="news_sidebar">News</div></div>
       <div id="sec-trends"><section><div aria-label="Timeline: Trending now"><div><div data-testid="trend" id="side-trend">#news</div></div></div></section></div>
-      <div id="sec-wtf"><aside role="complementary"><div data-testid="UserCell">Someone to follow</div></aside></div>
-      <div id="sec-premium"><aside role="complementary"><a href="/i/premium_sign_up">Subscribe to Premium</a></aside></div>
-      <div id="sec-super"><div><div data-testid="super-upsell-UpsellCardRenderProperties">Upsell</div></div></div>
-      <div id="sec-other"><aside role="complementary"><a href="https://example.com/">Something else</a></aside></div>
+      <div id="sec-wtf"><aside role="complementary" id="aside-wtf"><div data-testid="UserCell">Someone to follow</div></aside></div>
+      <div id="sec-premium"><aside role="complementary" id="aside-premium"><a href="/i/premium_sign_up">Subscribe to Premium</a></aside></div>
+      <div id="sec-super"><div><div data-testid="super-upsell-UpsellCardRenderProperties" id="super-card">Upsell</div></div></div>
+      <div id="sec-other"><aside role="complementary" id="aside-other"><a href="https://example.com/">Something else</a></aside></div>
       <div id="sec-footer"><nav aria-label="Footer" id="footer-nav"><a href="/tos">Terms</a></nav></div>
     </div></div></div></div></div></aside>
   </div>

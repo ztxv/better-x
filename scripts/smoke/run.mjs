@@ -1191,7 +1191,7 @@ await panel.click('.category-chips .chip:nth-child(5)');
 check(
   'a category chip shows just that category',
   (await panel.$$('.customize-group')).length === 1 &&
-    (await panel.$eval('.customize-group h2', (n) => n.textContent)) === 'Sidebar',
+    (await panel.$eval('.customize-group .group-name', (n) => n.textContent)) === 'Sidebar',
 );
 await panel.click('.category-chips .chip:first-child');
 const groupState = () =>

@@ -309,17 +309,17 @@ export const SCENARIOS = [
     keeps: ['sec-search', 'sec-trends', 'sec-wtf'],
   }),
   s('sidebar.hideWhoToFollow', 'home', {
-    hides: ['sec-wtf'],
-    keeps: ['sec-search', 'sec-premium', 'sec-other', 'sec-trends'],
+    hides: ['aside-wtf'],
+    keeps: ['sec-search', 'aside-premium', 'aside-other', 'sec-trends', 'sec-wtf'],
   }),
   s('sidebar.hideWhoToFollow', 'post page keeps Relevant people', {
     route: 'post',
     hides: [],
-    keeps: ['sec-wtf'],
+    keeps: ['aside-wtf'],
   }),
   s('sidebar.hidePremiumPromo', 'premium cards', {
-    hides: ['sec-premium', 'sec-super'],
-    keeps: ['sec-search', 'sec-wtf', 'sec-other', 'sec-trends'],
+    hides: ['aside-premium', 'super-card'],
+    keeps: ['sec-search', 'aside-wtf', 'aside-other', 'sec-trends'],
   }),
   s('sidebar.hideFooter', 'footer links', {
     hides: ['footer-nav'],
