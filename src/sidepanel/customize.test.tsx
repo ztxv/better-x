@@ -43,7 +43,7 @@ const switchFor = (title: string) =>
   )!;
 const titles = () => [...host.querySelectorAll('.setting-toggle strong')].map((n) => n.textContent);
 const groupTitles = () =>
-  [...host.querySelectorAll('.customize-group h2')].map((n) => n.textContent);
+  [...host.querySelectorAll('.customize-group .group-name')].map((n) => n.textContent);
 const group = (category: string) =>
   host.querySelector<HTMLElement>(`section[data-category="${category}"]`)!;
 const search = () => host.querySelector<HTMLInputElement>('input[type="search"]')!;
@@ -143,9 +143,9 @@ describe('Customize', () => {
   it('stays mounted, with its state, while the Library is showing', () => {
     render();
     type(search(), 'sidebar');
-    const before = host.querySelector('main')!;
+    const before = host.querySelector<HTMLElement>('#customize-panel')!;
     act(() => root.render(createElement(Harness, { initial: DEFAULT_SETTINGS, hidden: true })));
-    expect(host.querySelector('main')).toBe(before);
+    expect(host.querySelector('#customize-panel')).toBe(before);
     expect(before.hidden).toBe(true);
     expect(search().value).toBe('sidebar');
     act(() => root.render(createElement(Harness, { initial: DEFAULT_SETTINGS, hidden: false })));
@@ -320,12 +320,12 @@ describe('Customize categories and groups', () => {
       initial: normalizeSettings({ features: { 'posts.hideViews': true } }),
       onPatch: (patch) => patches.push(patch),
     });
-    act(() => button(/Reset customization/).click());
+    act(() => button(/Turn everything off/).click());
     expect(patches).toEqual([]);
     act(() => button('Keep').click());
     expect(patches).toEqual([]);
-    act(() => button(/Reset customization/).click());
-    act(() => button('Reset all').click());
+    act(() => button(/Turn everything off/).click());
+    act(() => button('Turn off').click());
     expect(patches).toHaveLength(1);
     expect(Object.keys(patches[0]!.features!)).toHaveLength(FEATURES.length);
     expect(Object.values(patches[0]!.features!).every((v) => v === null)).toBe(true);

@@ -2,7 +2,7 @@
  * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
  * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
  */
-import { CELL, hide, links, onRoute, POST, PRIMARY_COLUMN } from './css';
+import { cellWhere, hide, links, onRoute, POST, PRIMARY_COLUMN } from './css';
 import { definitions } from './define';
 import type { ToggleFeature } from './types';
 
@@ -36,7 +36,7 @@ export const CLEANUP_FEATURES: readonly ToggleFeature[] = [
     'hideGrokPosts',
     'Hide posts sharing Grok chats',
     'Remove posts that link to a shared Grok conversation.',
-    hide(`${CELL} > div:has(${POST} a[href^="/i/grok/share/"])`),
+    hide(cellWhere(`:has(${POST} a[href^="/i/grok/share/"])`)),
     ['ai', 'conversation'],
   ),
   toggle(
@@ -57,7 +57,13 @@ export const CLEANUP_FEATURES: readonly ToggleFeature[] = [
       '[data-testid="profileAnalyticsUpsell"]',
       '[data-testid="verified_profile_visitor_upsell"]',
       `[aria-live="polite"][role="status"]:has(a${PREMIUM_LINK})`,
-      `${PROFILE} ${PRIMARY_COLUMN} nav + div:has(a[href^="/i/premium"])`,
+      // The upsell under the profile tabs; its link is a few levels down, so each depth is tried
+      // with a child combinator, which Chrome keeps cheap (a descendant `:has` would not be).
+      ...[
+        'a[href^="/i/premium"]',
+        'div > a[href^="/i/premium"]',
+        'div > div > a[href^="/i/premium"]',
+      ].map((link) => `${PROFILE} ${PRIMARY_COLUMN} nav + div:has(> ${link})`),
     ),
     ['subscribe', 'blue', 'analytics', 'upgrade'],
   ),

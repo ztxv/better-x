@@ -33,26 +33,28 @@ export function FeatureGroup({
   return (
     <section className="customize-group" data-category={category} data-open={open}>
       <div className="group-head">
-        <button
-          type="button"
-          className="group-toggle"
-          id={`group-${category}`}
-          aria-expanded={open}
-          aria-controls={`group-panel-${category}`}
-          onClick={() => onOpen(!open)}
-        >
-          <span className="group-icon">
-            <Icon size={15} />
-          </span>
-          <span className="group-title">
-            <h2>{title}</h2>
-            <small>{CATEGORY_HINTS[category]}</small>
-          </span>
-          <span className="group-count" data-any={on > 0} aria-label={`${on} of ${total} on`}>
-            {on}/{total}
-          </span>
-          <ChevronDown size={15} className="group-chevron" aria-hidden="true" />
-        </button>
+        <h2 className="group-heading">
+          <button
+            type="button"
+            className="group-toggle"
+            id={`group-${category}`}
+            aria-expanded={open}
+            aria-controls={`group-panel-${category}`}
+            onClick={() => onOpen(!open)}
+          >
+            <span className="group-icon">
+              <Icon size={15} />
+            </span>
+            <span className="group-title">
+              <span className="group-name">{title}</span>
+              <small>{CATEGORY_HINTS[category]}</small>
+            </span>
+            <span className="group-count" data-any={on > 0} aria-label={`${on} of ${total} on`}>
+              {on}/{total}
+            </span>
+            <ChevronDown size={15} className="group-chevron" aria-hidden="true" />
+          </button>
+        </h2>
         {changed && (
           <button
             type="button"

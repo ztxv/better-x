@@ -3,7 +3,7 @@ import { createLayoutService, type LayoutService } from './layout';
 import { createPostStream, type PostStream } from './posts';
 import { createRouteService, type RouteService } from './route';
 import { markSidebar } from './sidebar';
-import type { Scope } from './scope';
+import type { Disposer, Scope } from './scope';
 
 /** The services every Better X feature builds on. */
 export interface Runtime {
@@ -25,7 +25,20 @@ export function startRuntime(scope: Scope): Runtime {
   const actionRow = createActionRow(scope, posts);
   const routes = createRouteService(scope);
   const layout = createLayoutService(scope);
-  markSidebar(scope);
+  // The sidebar marker looks again at the moments X's columns can have appeared.
+  markSidebar(scope, [
+    (retry) => routes.onRoute(retry),
+    (retry) => layout.onLayout(retry),
+    (retry) => {
+      // One look when the first post shows up (the column exists by then), not one per post.
+      let stop: Disposer = () => {};
+      stop = posts.onPost(() => {
+        stop();
+        retry();
+      });
+      return () => stop();
+    },
+  ]);
 
   const root = document.documentElement;
   const publishRoute = () => root.setAttribute('data-bx-route', routes.route.id);

@@ -159,7 +159,7 @@ export function Customize({
   }, [hidden]);
 
   return (
-    <main
+    <div
       className="customize"
       id="customize-panel"
       role="tabpanel"
@@ -311,7 +311,7 @@ export function Customize({
         <div className="customize-footer">
           {confirmReset ? (
             <>
-              <span>Turn every customization off?</span>
+              <span>Turn every setting off?</span>
               <button
                 type="button"
                 className="link-button danger"
@@ -319,7 +319,7 @@ export function Customize({
                   change(resetPatch(featureRegistry));
                 }}
               >
-                Reset all
+                Turn off
               </button>
               <button type="button" className="link-button" onClick={() => setConfirmReset(false)}>
                 Keep
@@ -327,11 +327,11 @@ export function Customize({
             </>
           ) : (
             <button type="button" className="link-button" onClick={() => setConfirmReset(true)}>
-              <RotateCcw size={13} /> Reset customization
+              <RotateCcw size={13} /> Turn everything off
             </button>
           )}
         </div>
       )}
-    </main>
+    </div>
   );
 }

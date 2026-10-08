@@ -1,9 +1,14 @@
 import { observe } from './observe';
-import type { Scope } from './scope';
-import { waitFor } from './wait';
+import type { Disposer, Scope } from './scope';
 
 const PRIMARY = '[data-testid="primaryColumn"]';
 const SIDEBAR = '[data-testid="sidebarColumn"]';
+
+/**
+ * Something that asks for another look for X's columns: a route change, a layout change, the
+ * first post. Called with the function to run; returns how to stop listening.
+ */
+export type RetryTrigger = (retry: () => void) => Disposer;
 
 /**
  * Publishes whether X is showing its sidebar column as `data-bx-sidebar` on <html> (present when
@@ -11,8 +16,17 @@ const SIDEBAR = '[data-testid="sidebarColumn"]';
  * and removes the column as its window narrows or widens; the column is a sibling of the primary
  * column, so one childList observer on their shared parent sees every change. If X replaces the
  * primary column, or the parent itself, the observers are bound again. Removed with the scope.
+ *
+ * Until the primary column exists nothing observes the document: a page that never has one (a
+ * login flow, a failure page) must not pay for a wait that never ends, and a timeline adds posts
+ * far faster than anything else on the page. The `triggers` ask for another look at the moments
+ * the column can have appeared instead (the first post, a navigation, a layout change).
  */
-export function markSidebar(scope: Scope, doc: Document = document): void {
+export function markSidebar(
+  scope: Scope,
+  triggers: readonly RetryTrigger[] = [],
+  doc: Document = document,
+): void {
   const root = doc.documentElement;
   let binding: Scope | null = null;
 
@@ -22,16 +36,17 @@ export function markSidebar(scope: Scope, doc: Document = document): void {
   };
 
   function bind() {
-    binding?.dispose();
     if (!scope.alive()) return;
-    const own = (binding = scope.child());
     const primary = doc.querySelector(PRIMARY);
     const container = primary?.parentElement;
     if (!primary || !container) {
+      // Not there (yet). Observers from an earlier bind stay, so the column coming back to the
+      // same parent is seen; anything else is for a trigger to notice.
       root.removeAttribute('data-bx-sidebar');
-      waitFor(PRIMARY, { signal: own.signal, root: doc, attributes: false }).then(bind, () => {});
       return;
     }
+    binding?.dispose();
+    const own = (binding = scope.child());
     publish(container);
     observe(own, container, { childList: true }, () => {
       if (!primary.isConnected || primary.parentElement !== container) bind();
@@ -44,6 +59,7 @@ export function markSidebar(scope: Scope, doc: Document = document): void {
       });
   }
 
+  for (const trigger of triggers) scope.add(trigger(() => bind()));
   bind();
   scope.add(() => root.removeAttribute('data-bx-sidebar'));
 }

@@ -53,3 +53,14 @@ export const SIDEBAR_SECTIONS = `${SIDEBAR} > div > div > div > div > div`;
 /** One cell of a timeline's virtualized list; X positions the cell, so features hide its child. */
 export const CELL = '[data-testid="cellInnerDiv"]';
 export const POST = '[data-testid="tweet"]';
+
+/**
+ * The child of each timeline cell that satisfies `condition` (a `:has()` / `:not()` chain on the
+ * cell), optionally only under `scope`. X positions a cell itself, so a rule hides the cell's
+ * child. The condition goes on the cell, never on the child: written as `cell > div:has(x)` the
+ * rule makes Chrome re-test every ancestor `div` of anything added to the page, which measured
+ * at about 5 ms of style work per rule over a 200-post timeline; on the cell, which has a test ID,
+ * only cells are re-tested (about 1.5 ms). See perf/README.md.
+ */
+export const cellWhere = (condition: string, scope = ''): string =>
+  `${scope ? `${scope} ` : ''}${CELL}${condition} > div`;

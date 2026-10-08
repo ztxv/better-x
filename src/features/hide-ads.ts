@@ -2,7 +2,7 @@
  * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
  * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
  */
-import { CELL, onRoute } from './css';
+import { cellWhere, onRoute } from './css';
 import type { ToggleFeature } from './types';
 
 /**
@@ -43,8 +43,8 @@ export const hideAds: ToggleFeature = {
   keywords: ['promoted', 'sponsored', 'advertising'],
   defaultEnabled: false,
   css: `
-${CELL} > div:has([data-testid="placementTracking"] [data-testid="tweet"]),
-${onRoute('notifications')} ${CELL} > div:has([data-testid="notification"] svg path[d^="${PROMOTED_NOTIFICATION_ICON}"]),
+${cellWhere(':has([data-testid="placementTracking"] [data-testid="tweet"])')},
+${cellWhere(`:has([data-testid="notification"] svg path[d^="${PROMOTED_NOTIFICATION_ICON}"])`, onRoute('notifications'))},
 [data-testid="trend"]:has(path[d="${PROMOTED_ICON}"]),
 [role="menu"] a${ADS_LINK},
 html[data-bx-layout="narrow"] [role="dialog"] a${ADS_LINK} {

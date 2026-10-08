@@ -189,21 +189,36 @@ export async function loadSettings(): Promise<Settings> {
   }
 }
 
-export async function saveSettings(patch: SettingsPatch): Promise<Settings> {
-  const next = applyPatch(await loadSettings(), patch);
-  await chrome.storage.local.set({ [SETTINGS_KEY]: next });
-  return next;
+/**
+ * Writes happen one at a time: each is a read, a merge and a write, so two that overlapped (a
+ * slider written while the previous number is still being stored) could each read the old value
+ * and the earlier one could be stored last. Chained on one promise, the later patch always wins.
+ */
+let writes: Promise<unknown> = Promise.resolve();
+
+export function saveSettings(patch: SettingsPatch): Promise<Settings> {
+  const write = writes.then(async () => {
+    const next = applyPatch(await loadSettings(), patch);
+    await chrome.storage.local.set({ [SETTINGS_KEY]: next });
+    return next;
+  });
+  writes = write.catch(() => {});
+  return write;
 }
 
 /**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
  * numbers are kept: they change what X looks like, which resetting an accent color should not undo.
  */
-export async function resetSettings(): Promise<Settings> {
-  const { features, values } = await loadSettings();
-  const next = { ...DEFAULT_SETTINGS, features, values };
-  await chrome.storage.local.set({ [SETTINGS_KEY]: next });
-  return next;
+export function resetSettings(): Promise<Settings> {
+  const write = writes.then(async () => {
+    const { features, values } = await loadSettings();
+    const next = { ...DEFAULT_SETTINGS, features, values };
+    await chrome.storage.local.set({ [SETTINGS_KEY]: next });
+    return next;
+  });
+  writes = write.catch(() => {});
+  return write;
 }
 
 /** Calls `listener` whenever any context changes settings. Returns an unsubscribe function. */

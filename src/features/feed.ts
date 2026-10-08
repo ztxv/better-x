@@ -2,7 +2,7 @@
  * Selectors and icon paths adapted from Control Panel for Twitter (MIT, Copyright (c) 2019,
  * Jonny Buchanan). See THIRD_PARTY_NOTICES.md.
  */
-import { CELL, hide, onRoute, POST, PRIMARY_COLUMN } from './css';
+import { cellWhere, hide, onRoute, POST, PRIMARY_COLUMN } from './css';
 import { definitions } from './define';
 import type { ToggleFeature } from './types';
 
@@ -23,7 +23,10 @@ const REPOST_NOTIFICATION_ICON = 'M4.75 3.79l4.603 4.3-1.706 1.8';
  * the rule hides the cell's child, as Hide Ads does.
  */
 const sharedPost = (route: string) =>
-  `${route} ${CELL} > div:has(${POST} [data-testid="socialContext"]):not(:has(path[d^="${PINNED_ICON}"], path[d^="${COMMUNITY_ICON}"]))`;
+  cellWhere(
+    `:has(${POST} [data-testid="socialContext"]):not(:has(path[d^="${PINNED_ICON}"], path[d^="${COMMUNITY_ICON}"]))`,
+    route,
+  );
 
 /**
  * Home and timeline cleanup, hidden with CSS only. Nothing here changes what X loads, so a hidden
@@ -45,7 +48,9 @@ export const FEED_FEATURES: readonly ToggleFeature[] = [
     'hidePostBox',
     'Hide the Home composer',
     'Remove the “What is happening?” box at the top of Home. The Post button still opens the composer.',
-    hide(`${HOME} ${PRIMARY_COLUMN} > div > div:has([data-testid^="tweetTextarea"])`),
+    // Found by the editor's class, which almost nothing else on the page has; a `data-testid`
+    // test would make Chrome re-test the composer's ancestors for every post that is added.
+    hide(`${HOME} ${PRIMARY_COLUMN} > div > div:has(.DraftEditor-root)`),
     ['compose', 'tweet box', 'write'],
   ),
   toggle(
@@ -61,7 +66,7 @@ export const FEED_FEATURES: readonly ToggleFeature[] = [
     'hideInlinePrompts',
     'Hide timeline prompts',
     'Remove the “Subscribe”, “Verify” and other prompts X inserts between posts.',
-    hide(`${CELL} > div:has([data-testid="inlinePrompt"])`),
+    hide(cellWhere(':has([data-testid="inlinePrompt"])')),
     ['upsell', 'promotion'],
   ),
   toggle(
@@ -69,7 +74,10 @@ export const FEED_FEATURES: readonly ToggleFeature[] = [
     'Hide “Who to follow” in the timeline',
     'Remove suggested-account modules from Home: their heading, the accounts and “Show more”.',
     hide(
-      `${HOME} ${CELL} > div:not(:has(${POST})):is(:has(h2[role="heading"]), :has([data-testid="UserCell"]), :has(a[href*="/i/connect_people"]))`,
+      cellWhere(
+        `:not(:has(${POST})):is(:has(h2[role="heading"]), :has([data-testid="UserCell"]), :has(a[href*="/i/connect_people"]))`,
+        HOME,
+      ),
     ),
     ['recommended accounts', 'suggested accounts', 'people'],
   ),
@@ -110,7 +118,10 @@ export const FEED_FEATURES: readonly ToggleFeature[] = [
     'Hide “liked your post” notifications',
     'Remove like notifications from your Notifications page.',
     hide(
-      `${onRoute('notifications')} ${CELL} > div:has([data-testid="notification"] svg path[d^="${LIKE_NOTIFICATION_ICON}"])`,
+      cellWhere(
+        `:has([data-testid="notification"] svg path[d^="${LIKE_NOTIFICATION_ICON}"])`,
+        onRoute('notifications'),
+      ),
     ),
     ['likes'],
   ),
@@ -119,7 +130,10 @@ export const FEED_FEATURES: readonly ToggleFeature[] = [
     'Hide “reposted your post” notifications',
     'Remove repost notifications from your Notifications page.',
     hide(
-      `${onRoute('notifications')} ${CELL} > div:has([data-testid="notification"] svg path[d^="${REPOST_NOTIFICATION_ICON}"])`,
+      cellWhere(
+        `:has([data-testid="notification"] svg path[d^="${REPOST_NOTIFICATION_ICON}"])`,
+        onRoute('notifications'),
+      ),
     ),
     ['retweets'],
   ),

@@ -52,8 +52,10 @@ export const SIDEBAR_FEATURES: readonly ToggleFeature[] = [
     'hideWhoToFollow',
     'Hide “Who to follow”',
     'Remove suggested accounts from the sidebar. “Relevant people” on a post’s own page stays.',
+    // The card is the `aside` that holds user cells. The rule is anchored on the aside, which has
+    // a role, rather than on the section around it (see `cellWhere` in css.ts for why).
     hide(
-      `html:not([data-bx-route="post"]) ${SIDEBAR_SECTIONS} > div:has(aside[role="complementary"] [data-testid="UserCell"])`,
+      `html:not([data-bx-route="post"]) ${SIDEBAR} aside[role="complementary"]:has([data-testid="UserCell"])`,
     ),
     ['suggested accounts', 'recommended accounts', 'people'],
   ),
@@ -62,8 +64,8 @@ export const SIDEBAR_FEATURES: readonly ToggleFeature[] = [
     'Hide the Premium card',
     'Remove the “Subscribe to Premium” and similar cards from the sidebar.',
     hide(
-      `${SIDEBAR_SECTIONS} > div:has(aside[role="complementary"] a[href^="/i/premium_sign_up"])`,
-      `${SIDEBAR_SECTIONS} > div:has(> div > div[data-testid="super-upsell-UpsellCardRenderProperties"])`,
+      `${SIDEBAR} aside[role="complementary"]:has(a[href^="/i/premium_sign_up"])`,
+      `${SIDEBAR} [data-testid="super-upsell-UpsellCardRenderProperties"]`,
     ),
     ['upsell', 'subscribe'],
   ),

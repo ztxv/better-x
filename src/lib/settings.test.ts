@@ -221,3 +221,38 @@ describe('settings: version 3 slider values', () => {
     expect(after.values).toEqual({ 'appearance.postTextSize': 18 });
   });
 });
+
+describe('settings: overlapping writes', () => {
+  it('keep every change when saved without waiting, and the later one wins for the same id', async () => {
+    const saves = [
+      saveSettings({ values: { 'appearance.timelineWidth': 1000 } }),
+      saveSettings({ values: { 'appearance.timelineWidth': 500 } }),
+      saveSettings({ features: { 'cleanup.hideAds': true } }),
+      saveSettings({ values: { 'appearance.sidebarWidth': 300 } }),
+    ];
+    await Promise.all(saves);
+    const stored = await loadSettings();
+    expect(stored.values).toEqual({
+      'appearance.timelineWidth': 500,
+      'appearance.sidebarWidth': 300,
+    });
+    expect(stored.features).toEqual({ 'cleanup.hideAds': true });
+  });
+
+  it('still saves after a write that failed', async () => {
+    const original = chrome.storage.local.set;
+    let fail = true;
+    chrome.storage.local.set = (async (values: Record<string, unknown>) => {
+      if (fail) {
+        fail = false;
+        throw new Error('quota');
+      }
+      return original(values);
+    }) as typeof chrome.storage.local.set;
+    const first = saveSettings({ accent: 'pink' });
+    const second = saveSettings({ accent: 'green' });
+    await expect(first).rejects.toThrow('quota');
+    await second;
+    expect((await loadSettings()).accent).toBe('green');
+  });
+});
