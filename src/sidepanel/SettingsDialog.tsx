@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Check, Download, History, Layers2, RotateCcw, Trash, Upload, X } from 'lucide-react';
+import { SettingsBackup } from './SettingsBackup';
 import { Toggle } from './Toggle';
 import {
   ACCENTS,
@@ -8,6 +9,7 @@ import {
   type Settings,
   type SettingsPatch,
   type Theme,
+  saveSettings,
 } from '../lib/settings';
 
 const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
@@ -215,19 +217,20 @@ export function SettingsDialog({
           />
           <p className="setting-hint">Remove bookmark is always available.</p>
           <button className="text-button reset-button" onClick={onReset}>
-            <RotateCcw size={13} /> Reset customization
+            <RotateCcw size={13} /> Reset appearance and Saved settings
           </button>
         </section>
 
         <section className="settings-section data-section" aria-labelledby="data-title">
-          <h3 id="data-title">Data</h3>
+          <h3 id="data-title">Data &amp; backup</h3>
+          <h4 className="data-group">Library</h4>
           <button onClick={onExport}>
             <Download size={15} />
-            Export JSON
+            Export Library
           </button>
           <button onClick={onImport}>
             <Upload size={15} />
-            Import JSON
+            Import Library
           </button>
           <p className="setting-hint">
             Backups hold bookmarks, collections, and download history, not the media files.
@@ -240,6 +243,7 @@ export function SettingsDialog({
             <History size={15} />
             Clear download history…
           </button>
+          <SettingsBackup settings={settings} apply={saveSettings} />
         </section>
       </section>
     </div>

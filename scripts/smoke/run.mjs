@@ -1331,6 +1331,192 @@ check(
 await panel.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
 await panel.setViewport({ width: 400, height: 900 });
 
+// --- customization settings export and import, through the real Settings dialog
+await panel.bringToFront();
+const settingsNow = () =>
+  panel.evaluate(async () => (await chrome.storage.local.get('bx.settings'))['bx.settings']);
+const setSettings = (value) =>
+  panel.evaluate((v) => chrome.storage.local.set({ 'bx.settings': v }), value);
+const openSettings = async () => {
+  if (!(await panel.$('.settings-sheet')))
+    await panel.click('button[aria-label="Settings and data"]');
+  await panel.waitForSelector('.settings-sheet');
+};
+const dialogButton = (label) =>
+  panel.evaluateHandle(
+    (t) =>
+      [...document.querySelectorAll('.settings-sheet button')].find(
+        (b) => b.textContent.trim() === t,
+      ),
+    label,
+  );
+const clickDialog = async (label) => (await dialogButton(label)).asElement().click();
+const importFile = async (contents, name) => {
+  const file = path.join(OUT, name);
+  fs.writeFileSync(file, contents);
+  const input = await panel.$('.settings-sheet input[aria-label="Settings backup file"]');
+  await input.uploadFile(file);
+};
+const backupStatus = () => panel.$eval('.backup-status', (n) => n.textContent).catch(() => '');
+await setSettings({
+  version: 3,
+  theme: 'dark',
+  accent: 'pink',
+  downloadsEnabled: false,
+  afterSave: 'quiet',
+  features: { 'cleanup.hideAds': true, 'appearance.timelineWidth': true },
+  values: { 'appearance.timelineWidth': 820 },
+});
+await openSettings();
+check(
+  'Data & backup keeps Library and customization backups apart, with their own labels',
+  await panel.evaluate(() => {
+    const t = document.querySelector('.data-section').textContent;
+    return [
+      'Export Library',
+      'Import Library',
+      'Export customization settings',
+      'Import customization settings',
+    ].every((l) => t.includes(l));
+  }),
+);
+await clickDialog('Export customization settings');
+const exported = async () => {
+  for (let i = 0; i < 80; i++) {
+    const name = fs
+      .readdirSync(DL)
+      .find((f) => /^better-x-settings-\d{4}-\d{2}-\d{2}\.json$/.test(f));
+    if (name) return name;
+    await sleep(100);
+  }
+  return null;
+};
+const exportName = await exported();
+const exportedData = exportName && JSON.parse(fs.readFileSync(path.join(DL, exportName), 'utf8'));
+check(
+  'Export writes better-x-settings-DATE.json with the switches, numbers and look, and nothing else',
+  exportedData?.format === 'better-x-settings' &&
+    exportedData.version === 1 &&
+    exportedData.features['cleanup.hideAds'] === true &&
+    exportedData.values['appearance.timelineWidth'] === 820 &&
+    exportedData.appearance.accent === 'pink' &&
+    !JSON.stringify(exportedData).match(/downloadsEnabled|afterSave|bookmarks|chrome-extension/),
+  exportName,
+);
+check('...and says so', /Exported 3 settings/.test(await backupStatus()), await backupStatus());
+
+// Wipe the customization, then bring it back by importing the file.
+await setSettings({
+  version: 3,
+  theme: 'light',
+  downloadsEnabled: false,
+  afterSave: 'quiet',
+  features: {},
+  values: {},
+});
+await waitShown(fx, '#inner-promo', true);
+await importFile(JSON.stringify(exportedData), 'import-1.json');
+await panel.waitForSelector('.backup-preview');
+check(
+  'Import previews what the file holds, merge selected, and has changed nothing yet',
+  (await panel.$eval(
+    '.backup-preview',
+    (n) => /5 settings found/.test(n.textContent) && /5 recognized/.test(n.textContent),
+  )) &&
+    (await panel.$eval('.backup-modes input', (n) => n.checked)) &&
+    Object.keys((await settingsNow()).features).length === 0,
+);
+await clickDialog('Merge');
+await panel.waitForFunction(() =>
+  /changes? applied/.test(document.querySelector('.backup-status')?.textContent ?? ''),
+);
+check(
+  'Merging applies the file to the open X tab at once',
+  (await waitShown(fx, '#inner-promo', false)) &&
+    (await fx
+      .waitForFunction(
+        () =>
+          getComputedStyle(document.querySelector('[data-testid="primaryColumn"]')).maxWidth ===
+          '820px',
+        { timeout: 5000, polling: 50 },
+      )
+      .then(() => true)
+      .catch(() => false)),
+);
+const afterMerge = await settingsNow();
+check(
+  '...keeps what the file does not hold (Saved and download preferences) and sets the look',
+  afterMerge.downloadsEnabled === false &&
+    afterMerge.afterSave === 'quiet' &&
+    afterMerge.accent === 'pink' &&
+    afterMerge.theme === 'dark',
+);
+// Replace: a different switch is on; the file makes itself the whole customization.
+await setSettings({
+  ...afterMerge,
+  features: { 'posts.hideViews': true, 'cleanup.hideAds': false },
+});
+await importFile(JSON.stringify(exportedData), 'import-2.json');
+await panel.waitForSelector('.backup-preview');
+await panel.evaluate(() => document.querySelectorAll('.backup-modes input')[1].click());
+await clickDialog('Replace');
+await panel.waitForFunction(() =>
+  /changes? applied/.test(document.querySelector('.backup-status')?.textContent ?? ''),
+);
+const afterReplace = await settingsNow();
+check(
+  'Replace restores what the file does not name to its default',
+  afterReplace.features['posts.hideViews'] === undefined &&
+    afterReplace.features['cleanup.hideAds'] === true,
+  JSON.stringify(afterReplace.features),
+);
+// Same file again: nothing to do.
+await importFile(JSON.stringify(exportedData), 'import-3.json');
+await panel.waitForSelector('.backup-preview');
+await clickDialog('Merge');
+await panel.waitForFunction(() =>
+  /No changes needed/.test(document.querySelector('.backup-status')?.textContent ?? ''),
+);
+check('Importing the same file again changes nothing', true);
+// Bad files change nothing and say why.
+const beforeBad = JSON.stringify(await settingsNow());
+for (const [contents, message] of [
+  ['{not json', /not valid JSON/],
+  [JSON.stringify({ format: 'better-x-settings', version: 99, features: {} }), /newer Better X/],
+  [JSON.stringify({ format: 'better-x', version: 1, bookmarks: [] }), /Library backup/],
+  [
+    JSON.stringify({
+      format: 'better-x-settings',
+      version: 1,
+      features: { 'cleanup.hideAds': 'yes' },
+      values: { 'appearance.timelineWidth': 9999 },
+    }),
+    null,
+  ],
+]) {
+  await importFile(contents, 'bad.json');
+  await sleep(300);
+  if (message) {
+    check(
+      `A bad file is refused (${message.source.slice(0, 18)}…) and nothing changes`,
+      message.test(await backupStatus()) && JSON.stringify(await settingsNow()) === beforeBad,
+      await backupStatus(),
+    );
+  } else {
+    await panel.waitForSelector('.backup-preview');
+    check(
+      'A file with only invalid values previews as nothing to apply',
+      (await panel.$eval(
+        '.backup-preview',
+        (n) => /2 with an invalid value/.test(n.textContent) || /invalid/.test(n.textContent),
+      )) && JSON.stringify(await settingsNow()) === beforeBad,
+    );
+    await clickDialog('Cancel');
+  }
+}
+await panel.keyboard.press('Escape');
+await setSettings({ version: 3 });
+
 check(
   'no page errors from any of it',
   features.errors.length === 0,
