@@ -7,16 +7,15 @@ import type { FeatureDef } from './types';
 const HIDE_ATTR = 'data-bx-hide-for-you';
 /** Consecutive clicks on Following that did not leave it selected, before giving up. */
 const MAX_FAILED_CLICKS = 2;
+/** How long after a click to confirm Following took, so a click that did nothing is noticed. */
+const VERIFY_MS = 400;
 
 /**
- * Where X puts the Home tabs: in the primary column on the wide layout, in the top bar on the
- * narrow one (Control Panel for Twitter uses the same split). The tabs are `For you` first and
- * `Following` second, then any pinned lists.
+ * Where X puts the Home tabs: a `nav` holding a tab list, in the primary column on the wide
+ * layout and in the top bar on the narrow one (Control Panel for Twitter uses the same split). The
+ * tabs are `For you` first and `Following` second, then any pinned lists.
  */
-const TABLISTS = {
-  wide: '[data-testid="primaryColumn"] nav [role="tablist"]',
-  narrow: '[data-testid="TopNavBar"] nav [role="tablist"]',
-};
+const HOME_NAV_AREA = '[data-testid="TopNavBar"], [data-testid="primaryColumn"]';
 
 const isSelected = (tab: Element) => tab.getAttribute('aria-selected') === 'true';
 
@@ -31,8 +30,9 @@ const isSelected = (tab: Element) => tab.getAttribute('aria-selected') === 'true
  * each time without ever looping.
  *
  * It follows the shared runtime: the Home page and layout come from the route and layout
- * services, a small managed observer watches only the tab list's selection, and the post stream's
- * batches re-check cheaply when X re-renders the tabs. Switching it off hides nothing, clicks
+ * services, a small managed observer watches only the tab list's selection, a short timer confirms
+ * each click took, and the post stream's batches notice when X has replaced the tabs (an
+ * `isConnected` check, no document query). Switching it off hides nothing, clicks
  * nothing and does not navigate; X's tabs are as they were.
  */
 export const hideForYou: FeatureDef = {
@@ -56,13 +56,22 @@ html[${HIDE_ATTR}] :is([data-testid="primaryColumn"], [data-testid="TopNavBar"])
     let watching: Scope | null = null;
     let failedClicks = 0;
 
+    /**
+     * The Home tab list for the current layout (the other layout's if only that one exists). It runs
+     * whenever the page changes while waiting for the tabs, so it walks the page's few `nav`
+     * elements instead of querying the whole document.
+     */
     const findTablist = (): HTMLElement | null => {
-      const order = layout.layout === 'narrow' ? ['narrow', 'wide'] : ['wide', 'narrow'];
-      for (const where of order) {
-        const found = document.querySelector<HTMLElement>(TABLISTS[where as keyof typeof TABLISTS]);
-        if (found) return found;
+      let other: HTMLElement | null = null;
+      for (const nav of document.getElementsByTagName('nav')) {
+        const list = nav.querySelector<HTMLElement>('[role="tablist"]');
+        const area = list && nav.closest(HOME_NAV_AREA);
+        if (!list || !area) continue;
+        const inTopBar = area.getAttribute('data-testid') === 'TopNavBar';
+        if (inTopBar === (layout.layout === 'narrow')) return list;
+        other ??= list;
       }
-      return null;
+      return other;
     };
 
     function watch(list: HTMLElement) {
@@ -93,6 +102,7 @@ html[${HIDE_ATTR}] :is([data-testid="primaryColumn"], [data-testid="TopNavBar"])
         if (failedClicks >= MAX_FAILED_CLICKS) return setHidden(false);
         failedClicks++;
         following.click();
+        scope.setTimeout(ensure, VERIFY_MS);
       }
       setHidden(true);
     }
@@ -122,7 +132,13 @@ html[${HIDE_ATTR}] :is([data-testid="primaryColumn"], [data-testid="TopNavBar"])
 
     scope.add(routes.onRoute((change) => change.pageChanged && enter()));
     scope.add(layout.onLayout(enter));
-    scope.add(posts.onBatch(() => routes.page.id === 'home' && ensure()));
+    // X re-renders the tabs (for example when pinned lists load). Noticed cheaply: a batch of posts is
+    // when it happens, and the only question is whether the tabs we knew are still on the page.
+    scope.add(
+      posts.onBatch(() => {
+        if (tablist && !tablist.isConnected && routes.page.id === 'home') enter();
+      }),
+    );
     enter();
   },
 };

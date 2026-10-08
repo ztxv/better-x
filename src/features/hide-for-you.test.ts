@@ -179,14 +179,25 @@ describe('Hide For You: making Following the Home timeline', () => {
 
 describe('Hide For You: never strands anyone on a hidden tab', () => {
   it('shows For you again when Following cannot be selected, after two tries only', async () => {
-    harness = setup(tabsMarkup('foryou'));
-    harness.stubborn.value = true;
-    await harness.turn(true);
-    for (let i = 0; i < 10; i++) harness.batch();
-    await settle();
-    expect(harness.clicks).toEqual(['following', 'following']);
-    expect(selected('foryou')).toBe('true');
-    expect(hidden()).toBe(false);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      harness = setup(tabsMarkup('foryou'));
+      harness.stubborn.value = true;
+      await harness.turn(true);
+      expect(harness.clicks).toEqual(['following']);
+      expect(hidden()).toBe(true);
+      // Each click is checked a moment later; the second try fails too, so For you comes back.
+      vi.advanceTimersByTime(500);
+      expect(harness.clicks).toEqual(['following', 'following']);
+      vi.advanceTimersByTime(500);
+      expect(hidden()).toBe(false);
+      expect(selected('foryou')).toBe('true');
+      for (let i = 0; i < 10; i++) harness.batch();
+      vi.advanceTimersByTime(5000);
+      expect(harness.clicks).toEqual(['following', 'following']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does nothing when it cannot tell which tab is Following', async () => {
