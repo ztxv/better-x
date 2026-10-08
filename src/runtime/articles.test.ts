@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Scope } from '../runtime/scope';
+import { Scope } from './scope';
 import { watchArticles } from './articles';
 
 /** Frames run only when the test says so, so ordering against the observer is deterministic. */

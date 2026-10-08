@@ -1,5 +1,5 @@
-import { observe } from '../runtime/observe';
-import type { Scope } from '../runtime/scope';
+import { observe } from './observe';
+import type { Scope } from './scope';
 
 export interface ArticleWatch {
   /** The root whose subtree is observed. */

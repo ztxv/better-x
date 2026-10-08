@@ -2,7 +2,8 @@ import icon from '../brand/mark.svg?raw';
 import { request } from '../lib/api';
 import { PRODUCT_NAME } from '../lib/brand';
 import type { Bookmark, BookmarkDraft } from '../types/model';
-import { actionRow, extractPost, postIdentity, X_SELECTORS } from '../x/selectors';
+import type { StreamPost } from '../runtime/posts';
+import { actionRow, extractPost, X_SELECTORS } from '../x/selectors';
 import { showChip, showSaveError } from './chip';
 import type { SavedContext } from './context';
 import { showMenu } from './menu';
@@ -97,11 +98,8 @@ export function queueAlign(ctx: SavedContext, control?: HTMLButtonElement) {
   });
 }
 
-export function enhance(ctx: SavedContext, article: HTMLElement) {
-  // Quoted posts are nested articles in X's newer layout; only the outer post gets a control.
-  if (article.parentElement?.closest(X_SELECTORS.post)) return;
-  const identity = postIdentity(article);
-  if (!identity) return;
+/** Gives the post a save control, or points an existing one at the post it now shows. */
+export function enhance(ctx: SavedContext, { article, identity }: StreamPost) {
   const existing = article.querySelector<HTMLButtonElement>('.bx-control');
   if (existing?.closest(X_SELECTORS.post) === article) {
     if (ctx.buttons.get(existing) !== identity.tweetId) {
@@ -142,10 +140,4 @@ export function enhance(ctx: SavedContext, article: HTMLElement) {
   });
   row.append(control);
   queueAlign(ctx, control);
-}
-
-export function scan(ctx: SavedContext, root: ParentNode) {
-  if (root instanceof HTMLElement && root.matches(X_SELECTORS.post)) enhance(ctx, root);
-  root.querySelectorAll<HTMLElement>(X_SELECTORS.post).forEach((article) => enhance(ctx, article));
-  for (const [control] of ctx.buttons) if (!control.isConnected) ctx.buttons.delete(control);
 }

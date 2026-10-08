@@ -1,4 +1,3 @@
-import { watchArticles } from '../content/articles';
 import { el } from '../content/popover';
 import {
   ACCENTS,
@@ -7,19 +6,19 @@ import {
   watchSettings,
   type Settings,
 } from '../lib/settings';
+import type { PostStream } from '../runtime/posts';
 import type { Scope } from '../runtime/scope';
 import { LIBRARY_REVISION_KEY } from '../storage/db';
-import { X_SELECTORS } from '../x/selectors';
 import type { SavedContext } from './context';
-import { enhance, queueAlign, scan } from './control';
+import { enhance, queueAlign } from './control';
 import { closeOverlay } from './overlay';
 import { refreshSaved } from './state';
 
 /**
- * Starts the Saved feature: a save control on every post, the post-save chip, the saved-post
+ * Starts the Saved feature, on the shared stream of posts: a save control on every post, the post-save chip, the saved-post
  * menu and downloads. Everything it keeps running is owned by `scope`.
  */
-export function startSaved(scope: Scope): SavedContext {
+export function startSaved(scope: Scope, posts: PostStream): SavedContext {
   const ctx: SavedContext = {
     scope,
     saved: new Set(),
@@ -53,16 +52,13 @@ export function startSaved(scope: Scope): SavedContext {
 
   /* ------------------------------------------------------------------- posts */
 
-  watchArticles(scope, {
-    root: document.documentElement,
-    selector: X_SELECTORS.post,
-    enhance: (article) => enhance(ctx, article),
-    afterBatch() {
+  scope.add(posts.onPost((post) => enhance(ctx, post), { replay: true }));
+  scope.add(
+    posts.onBatch(() => {
       for (const [control] of ctx.buttons) if (!control.isConnected) ctx.buttons.delete(control);
       if (ctx.overlay && !ctx.overlay.anchor.isConnected) closeOverlay(ctx);
-    },
-  });
-  scan(ctx, document);
+    }),
+  );
   void refreshSaved(ctx);
 
   let resizeTimer = 0;

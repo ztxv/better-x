@@ -1,4 +1,5 @@
 import { createLayoutService } from '../src/runtime/layout';
+import { createPostStream } from '../src/runtime/posts';
 import { createRouteService } from '../src/runtime/route';
 import { Scope } from '../src/runtime/scope';
 import { startSaved } from '../src/saved';
@@ -15,7 +16,8 @@ export default defineContentScript({
     const scope = new Scope(() => ctx.isValid);
     ctx.onInvalidated(() => scope.dispose());
 
-    startSaved(scope);
+    const posts = createPostStream(scope);
+    startSaved(scope, posts);
 
     // The runtime's view of where X is, mirrored as an attribute on <html> so it can be read (and
     // later styled) from the page: <html data-bx-route="profile">. Nothing else consumes it yet.
