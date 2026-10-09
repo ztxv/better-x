@@ -121,6 +121,29 @@ export const SCENARIOS = [
     hides: places('history'),
     keeps: [...others('settings'), ...sheet('history')],
   }),
+  s('navigation.hideXMoney', 'by link target and by label, in every menu', {
+    hides: [...places('money'), ...places('money-text')],
+    keeps: [...others('premium', 'creators', 'settings', 'articles'), ...sheet('money')],
+  }),
+  s('navigation.hideXMoney', 'narrow dialog', {
+    layout: 'narrow',
+    hides: [...places('money'), ...places('money-text'), ...sheet('money'), ...sheet('money-text')],
+    keeps: [...others('premium', 'creators', 'articles')],
+  }),
+  s('navigation.hideArticles', 'by link target and by label; profile tab and money stay', {
+    hides: [...places('articles'), ...places('articles-text')],
+    keeps: [...others('settings', 'money'), 'profile-articles-tab', ...sheet('articles')],
+  }),
+  s('navigation.hideArticles', 'narrow dialog', {
+    layout: 'narrow',
+    hides: [
+      ...places('articles'),
+      ...places('articles-text'),
+      ...sheet('articles'),
+      ...sheet('articles-text'),
+    ],
+    keeps: [...others('money'), 'profile-articles-tab'],
+  }),
   s('navigation.hideComposeButton', 'both buttons', {
     hides: ['nav-post', 'fab-post'],
     keeps: ['nav-home', 'composer-wrap'],

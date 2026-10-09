@@ -76,6 +76,10 @@ const placeLinks = (p) => `
   ${navItem(`${p}-connect`, '/i/connect_people', 'Connect')}
   ${navItem(`${p}-spaces`, '/i/spaces/start', 'Spaces')}
   ${navItem(`${p}-history`, '/i/history', 'History')}
+  ${navItem(`${p}-money`, '/i/money', 'X Money')}
+  ${navItem(`${p}-articles`, '/i/articles', 'Articles')}
+  ${navItem(`${p}-money-text`, '/i/some_new_money_page', 'Money')}
+  ${navItem(`${p}-articles-text`, '/i/some_new_reading_page', 'Articles')}
   ${navItem(`${p}-settings`, '/settings', 'Settings')}
   ${navItem(`${p}-home`, '/home', 'Home')}`;
 
@@ -156,6 +160,7 @@ export function catalogPage({ timeline, extras = true } = {}) {
         <div id="manage-timelines">${svg(MANAGE_PLUS)}</div>
         <div id="not-manage">${svg('M1 1h2')}</div>
         <nav id="explore-tabs"><div role="tablist"><div><a role="tab" href="/explore">For you</a></div></div></nav>
+        <nav id="profile-tabs"><div role="tablist"><div><a id="profile-articles-tab" role="tab" href="/u/articles">Articles</a></div></div></nav>
         <div id="explore-search"><input type="search" placeholder="Search"></div>
         <h2 role="heading" id="profile-name">Name</h2><div dir="ltr" id="post-count">1,234 posts</div>
       </div>

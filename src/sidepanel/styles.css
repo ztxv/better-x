@@ -2297,3 +2297,112 @@ body.is-popup {
   margin: -12px -14px 0;
   padding: 12px 14px 10px;
 }
+
+/* ------------------------------------------------------- Account insights and Smart filtering */
+.smart-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--border);
+}
+.smart-panel h3 {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.smart-panel h3:first-child {
+  margin-top: 0;
+}
+.smart-panel .setting-hint {
+  margin: 0;
+  font-size: 12px;
+}
+.smart-panel .setting-hint.is-error {
+  color: var(--danger);
+}
+.smart-cache {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.picker {
+  position: relative;
+}
+.picker-list {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.picker-list li {
+  padding: 7px 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.picker-list li[data-active='true'],
+.picker-list li:hover {
+  background: var(--hover);
+}
+.picker-list small {
+  color: var(--muted);
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chip-row li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  font-size: 12px;
+}
+.chip-row .icon-button {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+}
+.check-row {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+}
+.handle-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.handle-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}

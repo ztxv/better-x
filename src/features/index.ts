@@ -6,6 +6,7 @@ import { hideAds } from './hide-ads';
 import { hideForYou } from './hide-for-you';
 import { hideGrok } from './hide-grok';
 import { INSIGHT_FEATURES } from './insights';
+import { NAV_ITEM_FEATURES } from './nav-items';
 import { NAVIGATION_FEATURES } from './navigation';
 import { POST_FEATURES } from './posts';
 import { createFeatureRegistry } from './registry';
@@ -18,6 +19,7 @@ import type { FeatureDef } from './types';
  */
 export const FEATURES: readonly FeatureDef[] = [
   ...NAVIGATION_FEATURES,
+  ...NAV_ITEM_FEATURES,
   hideForYou,
   ...FEED_FEATURES,
   ...POST_FEATURES,

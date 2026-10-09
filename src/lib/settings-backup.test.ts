@@ -79,6 +79,8 @@ describe('settings backup: export', () => {
       },
       values: { 'appearance.timelineWidth': 800 },
       appearance: { theme: 'dark', accent: 'pink' },
+      insights: { lookup: 'hover' },
+      filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
     });
   });
 
@@ -94,13 +96,19 @@ describe('settings backup: export', () => {
       'openAs',
       'chrome-extension',
       '/Users/',
+      'cookie',
+      'csrf',
+      'authorization',
+      'bx.accounts',
     ])
       expect(text).not.toContain(forbidden);
     expect(Object.keys(JSON.parse(text)).sort()).toEqual([
       'appearance',
       'exportedAt',
       'features',
+      'filter',
       'format',
+      'insights',
       'values',
       'version',
     ]);
@@ -131,6 +139,15 @@ describe('settings backup: reading a file', () => {
       features: { 'cleanup.hideAds': true, 'feed.hideForYou': false, 'sidebar.hideFooter': true },
       values: { 'appearance.sidebarWidth': 300, 'appearance.navSpacing': 0 },
       appearance: { theme: 'light', accent: 'green' },
+      smart: true,
+      insights: { lookup: 'hover' },
+      filter: {
+        countries: [],
+        mode: 'collapse',
+        posts: true,
+        quotes: true,
+        alwaysShow: [],
+      },
     });
     const stored = await importFile(JSON.parse(text), 'replace');
     expect(stored.features).toEqual(configured.features);
@@ -210,7 +227,7 @@ describe('settings backup: refusing files', () => {
     ['version 0', file(valid({ version: 0 })), /valid version/],
     ['a fractional version', file(valid({ version: 1.5 })), /valid version/],
     ['a version as text', file(valid({ version: '1' })), /valid version/],
-    ['a newer version', file(valid({ version: 2 })), /newer Better X/],
+    ['a newer version', file(valid({ version: SETTINGS_BACKUP_VERSION + 1 })), /newer Better X/],
     ['features as a list', file(valid({ features: [true] })), /“features”/],
     ['values as text', file(valid({ values: 'wide' })), /“values”/],
     ['appearance as a number', file(valid({ appearance: 3 })), /“appearance”/],

@@ -84,7 +84,7 @@ export function SettingsBackup({
     try {
       // The file is read again against what is stored now, so a change made since the preview
       // is not overwritten with a stale comparison; the write itself is one storage set.
-      await apply(importPatch(backup, mode, featureRegistry));
+      await apply(importPatch(backup, mode, featureRegistry, await loadSettings()));
       const ignored = preview.unsupported + preview.invalid;
       setStatus({
         text: changes
@@ -129,7 +129,8 @@ export function SettingsBackup({
       />
       <p className="setting-hint">
         Transfer your Better X customization settings between browsers without an account. They hold
-        your switches, sliders and theme, not your library.
+        your switches, sliders, theme, account insights and country filter choices, not your
+        library, and never any cached account data.
       </p>
 
       {pending && (

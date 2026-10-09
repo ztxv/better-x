@@ -20,6 +20,8 @@ import { CATEGORY_SHORT, CATEGORY_TITLES, type FeatureCategory } from '../featur
 import type { Settings, SettingsPatch } from '../lib/settings';
 import { featureState, matchesQuery, searchTerms } from './customizeModel';
 import { FeatureGroup } from './FeatureGroup';
+import { FilterPanel } from './FilterPanel';
+import { InsightsPanel } from './InsightsPanel';
 import { Presets } from './Presets';
 import { SliderRow } from './SliderRow';
 import { Toggle } from './Toggle';
@@ -307,6 +309,12 @@ export function Customize({
                 </div>
               );
             })}
+            {!searching && id === 'insights' && (
+              <InsightsPanel settings={settings} onChange={change} />
+            )}
+            {!searching && id === 'filtering' && (
+              <FilterPanel settings={settings} onChange={change} />
+            )}
           </FeatureGroup>
         );
       })}
