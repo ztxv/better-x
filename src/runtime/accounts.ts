@@ -155,8 +155,13 @@ export function createAccountsRuntime(
     if (subscribed) return;
     subscribed = getService().subscribe((changed) => {
       const articles = new Set<HTMLElement>();
-      if (changed.has(ALL_HANDLES)) for (const article of interest.keys()) articles.add(article);
-      else
+      if (changed.has(ALL_HANDLES)) {
+        // The cache was emptied: what is on screen is asked for again, at the usual pace.
+        for (const article of interest.keys()) {
+          articles.add(article);
+          if (visible.has(article)) lookup(article);
+        }
+      } else
         for (const handle of changed)
           for (const article of byHandle.get(handle) ?? []) articles.add(article);
       if (!articles.size) return;

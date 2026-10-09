@@ -29,26 +29,33 @@ const ARTICLES_LABEL = '[aria-label="Articles"]';
 const MONEY_TEXT = /^(x\s+)?money$/i;
 const ARTICLES_TEXT = /^articles$/i;
 
-/** Where navigation links live: the side nav and bottom bar, menus, and the narrow layout's dialog. */
-const NAV_ROOTS = 'header[role="banner"] nav, #layers nav, [role="menu"], #layers [role="dialog"]';
+/** Where navigation links live: the side nav and bottom bar, popup menus, and the More dialog. */
+const NAV_ROOTS =
+  'header[role="banner"] nav, #layers nav, [role="menu"], [aria-labelledby="modal-header"]';
+/** The narrow layout's menu is a dialog; it is only navigation while the layout is narrow. */
+const NARROW_MENU = '#layers [role="dialog"]';
 
-function scanNav(root: ParentNode, mark: Array<[RegExp, string]>) {
-  for (const container of root.querySelectorAll(NAV_ROOTS)) {
-    for (const link of container.querySelectorAll<HTMLAnchorElement>('a[href]')) {
-      // An entry's own label is its visible text; a link that wraps more is not a plain entry.
-      const text = link.textContent?.trim() ?? '';
-      if (!text || text.length > 24) continue;
-      for (const [pattern, name] of mark) {
-        if (pattern.test(text)) link.setAttribute('data-bx-nav', name);
+function scanNav(mark: Array<[RegExp, string]>) {
+  const scan = (selector: string, suffix: string) => {
+    for (const container of document.querySelectorAll(selector)) {
+      for (const link of container.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+        // An entry's own label is its visible text; a link that wraps more is not a plain entry.
+        const text = link.textContent?.trim() ?? '';
+        if (!text || text.length > 24) continue;
+        for (const [pattern, name] of mark)
+          if (pattern.test(text)) link.setAttribute('data-bx-nav', name + suffix);
       }
     }
-  }
+  };
+  scan(NAV_ROOTS, '');
+  // Marked apart, so the rule can apply to it only while the layout is narrow.
+  scan(NARROW_MENU, '-dialog');
 }
 
 /** Marks navigation links by their visible label, now and as X redraws its navigation. */
 function markByLabel(name: string, pattern: RegExp) {
   return ({ scope, runtime }: FeatureContext) => {
-    const run = () => scanNav(document, [[pattern, name]]);
+    const run = () => scanNav([[pattern, name]]);
     run();
     let queued = false;
     const later = () => {
@@ -67,14 +74,17 @@ function markByLabel(name: string, pattern: RegExp) {
     const banner = document.querySelector('header[role="banner"]');
     if (banner) observe(scope, banner, { childList: true, subtree: true }, later);
     scope.add(() => {
-      for (const link of document.querySelectorAll(`[data-bx-nav="${name}"]`))
+      for (const link of document.querySelectorAll(`[data-bx-nav^="${name}"]`))
         link.removeAttribute('data-bx-nav');
     });
   };
 }
 
 const rule = (href: string, label: string, name: string) =>
-  hide(links(href), links(label), [`[data-bx-nav="${name}"]`]);
+  hide(links(href), links(label), [
+    `[data-bx-nav="${name}"]`,
+    `html[data-bx-layout="narrow"] [data-bx-nav="${name}-dialog"]`,
+  ]);
 
 export const hideXMoney: ToggleFeature = {
   id: 'navigation.hideXMoney',

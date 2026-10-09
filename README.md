@@ -45,13 +45,21 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 **Customize X**
 
-- A **Customize** tab beside the Library with 64 settings in six groups: navigation, home and feed, posts, sidebar, appearance, and ads / Grok / Premium. Search them, filter by group, open and close groups. Every setting starts off.
+- A **Customize** tab beside the Library with 71 settings in eight groups: navigation, home and feed, posts, account insights, smart filtering, sidebar, appearance, and ads / Grok / Premium. Search them, filter by group, open and close groups. Every setting starts off.
 - Changes apply to every open X tab at once, without reloading, and turning a setting off puts back what it changed. Nothing is removed from X's page; it is hidden with style rules, so nothing needs undoing.
 - What it covers: hide Ads, Grok, Premium upsells and suggested accounts; trim the menu (Explore, Communities, Lists, Messages, Notifications, Bookmarks, Jobs, Premium...); hide view, reply, repost, like and bookmark counts, follower counts, verification badges and X's own action buttons (Better X's Save stays); hide reposts, the Home composer and "Show new posts"; keep only search in the sidebar or hide it; follow Following instead of For You.
 - Sliders for timeline width, sidebar width, menu spacing, menu text size and post text size.
 - **Quick setups**: Clean, Minimal and Focus apply a whole combination in one click, with Undo.
 - **Move your setup**: Settings → Data & backup exports your switches, sliders and theme to a small JSON file and imports it elsewhere (merge or replace), with no account. It is separate from the Library backup.
 - Selectors come from Control Panel for Twitter and are checked against X-shaped test pages, not live x.com, so an X redesign can make a setting do nothing; it will not hide ordinary posts. See [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md) for what is and is not covered.
+
+**Account insights and Smart filtering**
+
+- **Account insights** (off by default): small badges after a post's @handle built from what X itself shows on a profile's “About this account” page: a flag for the country or region the account is **based in**, an Apple / Android / Web mark for how the account is **connected**, and a note when X says the location may not be accurate. Click or point at a badge for a small card (based in, connected via, joined, username changes, affiliation), with only the facts X sent.
+- These are three different things and Better X keeps them apart: _based in_ is X's estimate for the account (not nationality, not where a post was written); _connected via_ is the account's platform (not the app used for one post); a location note is X's, and not proof of a VPN or of anything.
+- Lookups ask x.com with your own session, the way X's own page does, are cached locally, shared between lookups of the same account, spaced out, and paused when X says to wait. By default nothing is looked up until you point at or click a badge's globe; you can choose manual, on pointer rest, or automatic for posts on screen. No third-party service, account or telemetry is involved.
+- **Smart filtering** (off by default): choose countries or regions, and posts from accounts X places there are **collapsed** (with a Show post button), hidden, or highlighted. A quoted post is judged by its own author, apart from the post quoting it. **Always Show** accounts, your own posts, and the post you opened are never touched; accounts X has not answered for are never filtered. It changes only what you see.
+- **Hide X Money** and **Hide Articles** remove those two menu entries and nothing else.
 
 **Open it your way**
 
@@ -132,15 +140,15 @@ The video lookup uses an undocumented X endpoint, so it can change without notic
 
 All data lives in your browser. Exports contain metadata only, never media files or local file paths.
 
-| Permission                                                      | Why                                                                                                             |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `storage`                                                       | Settings, and a small change marker that keeps open tabs and the library in sync.                               |
-| `sidePanel`                                                     | Open the library from the toolbar icon.                                                                         |
-| `downloads`                                                     | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded. |
-| `x.com`, `twitter.com` (content script)                         | Add the save control and read only the post you choose to save.                                                 |
-| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com` | Verify a chosen file and find a public post's video. Contacted only when you click Download.                    |
+| Permission                                                      | Why                                                                                                                                                                                                             |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`                                                       | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
+| `sidePanel`                                                     | Open the library from the toolbar icon.                                                                                                                                                                         |
+| `downloads`                                                     | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
+| `x.com`, `twitter.com` (content script)                         | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
+| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com` | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
 
-No browsing history, no all-site access, no credentials, no analytics, no remote code.
+No browsing history, no all-site access, no analytics, no remote code. Better X never stores or sends a cookie, token or header: account lookups read X's `ct0` page token for the one request and keep nothing. The cached account facts (public data X showed on profiles) stay on this device, are not part of any backup, and can be cleared in Customize → Account insights.
 
 ## Settings
 
@@ -153,7 +161,7 @@ No browsing history, no all-site access, no credentials, no analytics, no remote
 | Ask where to save     | Off                    | Chrome's own "Ask where to save" setting may still prompt.  |
 | Saved-post menu       | Download, Open library | **Remove bookmark** is always available.                    |
 
-Reset customization never touches your data. The Customize tab's own settings (the 64 switches and sliders) are separate: they are kept by that reset, and **Turn everything off** at the bottom of the tab clears them.
+Reset customization never touches your data. The Customize tab's own settings (the switches, sliders and country filter choices) are separate: they are kept by that reset, and **Turn everything off** at the bottom of the tab clears them.
 
 ## Architecture
 
@@ -213,6 +221,9 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 - One collection per bookmark; tags can be multiple.
 - No sync between browsers. Use JSON export and import to move a library.
 - X's markup changes over time and may require selector updates.
+- Account insights read X's internal `AboutAccountQuery`. It could not be tried against live x.com from here (X refuses automated browsers); if X changes the query id, headers or response, the badges and the country filter stop working and nothing is shown or filtered. See docs/MANUAL-CHECKLIST.md.
+- Flags are Unicode flag glyphs: Windows shows two letters (for example “DE”) instead of a flag.
+- The post's own client (“Twitter for iPhone”) is not shown; see docs/ARCHITECTURE.md.
 
 ## Roadmap
 

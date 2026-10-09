@@ -273,7 +273,9 @@ await page.waitForFunction(
     (document.getElementById('bx-features')?.textContent.match(/\/\* [a-z]+\.\w+ \*\//g) ?? [])
       .length >= n,
   { timeout: 10000 },
-  allIds.length - 2, // Hide For You has no stylesheet entry when its activation wins the race
+  // Hide For You has no stylesheet entry when its activation wins the race, and Account insights
+  // and the country filter have no stylesheet at all (scripts/smoke/insights.mjs covers them).
+  allIds.filter((id) => !/^(insights|filtering)\./.test(id)).length - 2,
 );
 await frames(page);
 const sheetAll = await styleSheetState(page);

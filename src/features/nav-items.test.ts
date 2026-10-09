@@ -88,6 +88,16 @@ describe('navigation entries X added', () => {
     expect(document.querySelectorAll('[data-bx-nav]')).toHaveLength(0);
   });
 
+  it('hide a link in the narrow layout’s dialog only while the layout is narrow', async () => {
+    document.getElementById('layers')!.innerHTML =
+      '<div role="dialog"><a id="dlg-money" href="/i/x"><span>X Money</span></a></div>';
+    activate(hideXMoney);
+    expect(marked('money')).not.toContain('dlg-money');
+    expect(marked('money-dialog')).toEqual(['dlg-money']);
+    expect(hideXMoney.css).toContain('html[data-bx-layout="narrow"] [data-bx-nav="money-dialog"]');
+    expect(hideXMoney.css).not.toMatch(/(^|\n)\[data-bx-nav="money-dialog"\]/);
+  });
+
   it('reach into X’s overlay root, where menus and dialogs are drawn', async () => {
     activate(hideXMoney);
     document.getElementById('layers')!.innerHTML =

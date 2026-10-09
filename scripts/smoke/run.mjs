@@ -1162,7 +1162,7 @@ await ui.search('');
 const total = (await ui.titles()).length;
 check(
   'Customize lists every setting, grouped',
-  total > 60 && (await panel.$$('.customize-group')).length === 6,
+  total > 60 && (await panel.$$('.customize-group')).length === 8,
   String(total),
 );
 await ui.search('sidebar');
@@ -1187,7 +1187,11 @@ check(
   'Escape clears the search',
   (await panel.$eval('.customize input[type="search"]', (i) => i.value)) === '',
 );
-await panel.click('.category-chips .category-chip:nth-child(5)');
+await panel.evaluate(() =>
+  [...document.querySelectorAll('.category-chips .category-chip')]
+    .find((chip) => chip.textContent.startsWith('Sidebar'))
+    .click(),
+);
 check(
   'a category chip shows just that category',
   (await panel.$$('.customize-group')).length === 1 &&
@@ -1244,7 +1248,7 @@ await panel.click('.customize .slider-reset');
 check('the reset button returns it to its default', await waitWidth('700px'), await primaryWidth());
 check(
   'the slider is stored as a number, within its range',
-  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 4),
+  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 5),
 );
 await panel.click('.customize .setting-toggle input');
 check(
@@ -1396,7 +1400,7 @@ const exportedData = exportName && JSON.parse(fs.readFileSync(path.join(DL, expo
 check(
   'Export writes better-x-settings-DATE.json with the switches, numbers and look, and nothing else',
   exportedData?.format === 'better-x-settings' &&
-    exportedData.version === 1 &&
+    exportedData.version === 2 &&
     exportedData.features['cleanup.hideAds'] === true &&
     exportedData.values['appearance.timelineWidth'] === 820 &&
     exportedData.appearance.accent === 'pink' &&
@@ -1421,7 +1425,7 @@ check(
   'Import previews what the file holds, merge selected, and has changed nothing yet',
   (await panel.$eval(
     '.backup-preview',
-    (n) => /5 settings found/.test(n.textContent) && /5 recognized/.test(n.textContent),
+    (n) => /9 settings found/.test(n.textContent) && /9 recognized/.test(n.textContent),
   )) &&
     (await panel.$eval('.backup-modes input', (n) => n.checked)) &&
     Object.keys((await settingsNow()).features).length === 0,

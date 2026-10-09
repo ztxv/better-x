@@ -85,23 +85,50 @@ const TYPICAL = [
 const ALL = [...new Set([...SCENARIOS.map((scenario) => scenario.feature), ...COVERED_ELSEWHERE])];
 /** default, typical, all, cat:<category> (one whole category), or ids:<id>+<id>. */
 const featureSet = (name) =>
-  name === 'typical'
-    ? TYPICAL
-    : name === 'all'
-      ? ALL
-      : name === 'default'
-        ? []
-        : name.startsWith('cat:')
-          ? ALL.filter((id) => id.startsWith(`${name.slice(4)}.`))
-          : name.startsWith('ids:')
-            ? name.slice(4).split('+')
-            : null;
+  name in EXTRA_MODES
+    ? EXTRA_MODES[name].features
+    : name === 'typical'
+      ? TYPICAL
+      : name === 'all'
+        ? ALL
+        : name === 'default'
+          ? []
+          : name.startsWith('cat:')
+            ? ALL.filter((id) => id.startsWith(`${name.slice(4)}.`))
+            : name.startsWith('ids:')
+              ? name.slice(4).split('+')
+              : null;
 if (FEATURE_MODES)
   for (const name of FEATURE_MODES)
     if (!featureSet(name))
       throw new Error(
         `--features takes default, typical, all, cat:<category>, ids:<a>+<b>; not ${name}`,
       );
+
+/**
+ * Account insights modes. The fixture's accounts (user0..user16) are answered locally with
+ * response bodies shaped like X's; `cold` starts with an empty account cache, `warm` with every
+ * account already cached. Lookups run in the automatic (on-screen) mode, the heaviest one.
+ */
+const INSIGHT_IDS = [
+  'insights.flags',
+  'insights.connection',
+  'insights.details',
+  'insights.warnings',
+];
+const PLACES = ['Germany', 'United States', 'India', 'Japan', 'Brazil', 'France', 'Nigeria'];
+const placeOf = (n) => PLACES[n % PLACES.length];
+const EXTRA_MODES = {
+  'insights-cold': { features: INSIGHT_IDS, cache: 'cold' },
+  'insights-warm': { features: INSIGHT_IDS, cache: 'warm' },
+  'filter-cold': { features: ['filtering.country'], filter: ['Germany', 'India'], cache: 'cold' },
+  'filter-warm': { features: ['filtering.country'], filter: ['Germany', 'India'], cache: 'warm' },
+  'both-warm': {
+    features: [...INSIGHT_IDS, 'filtering.country'],
+    filter: ['Germany', 'India'],
+    cache: 'warm',
+  },
+};
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
@@ -117,7 +144,11 @@ function postHtml(index) {
   if (SHAPE === 'x')
     return cell(
       `p${index}`,
-      tweetArticle(post({ id, handle, text, media, rowHtml: actionRow(index) })),
+      // The name block is drawn the way X draws it (the @handle is its own link), so badges can sit in it.
+      tweetArticle(post({ id, handle, text, media, rowHtml: actionRow(index) })).replace(
+        /<div data-testid="User-Name">.*?<\/div>/s,
+        `<div data-testid="User-Name"><div><div><a href="/${handle}" role="link"><span>${handle} Name</span></a></div></div><div style="display:flex"><div><a href="/${handle}" role="link" tabindex="-1"><span>@${handle}</span></a></div><div aria-hidden="true"><span>·</span></div></div></div>`,
+      ),
     );
   return post({ id, handle, text, media });
 }
@@ -161,7 +192,7 @@ const METRICS = [
 ];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function run(withExtension, features = []) {
+async function run(withExtension, features = [], extra = {}) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'bx-perf-'));
   const browser = await puppeteer.launch({
     executablePath: CHROME,
@@ -180,16 +211,72 @@ async function run(withExtension, features = []) {
       if (features.length) {
         const worker = await target.worker();
         const on = Object.fromEntries(features.map((id) => [id, true]));
+        const seed =
+          extra.cache === 'warm'
+            ? Object.fromEntries(
+                Array.from({ length: 17 }, (_, n) => [
+                  `user${n}`,
+                  {
+                    state: 'ok',
+                    at: Date.now(),
+                    info: {
+                      handle: `user${n}`,
+                      id: String(900 + n),
+                      basedIn: { kind: 'country', name: placeOf(n) },
+                      connection: { platform: 'web', raw: 'web' },
+                    },
+                  },
+                ]),
+              )
+            : null;
         await worker.evaluate(
-          (features) => chrome.storage.local.set({ 'bx.settings': { version: 3, features } }),
+          (features, filter, seed) =>
+            chrome.storage.local.set({
+              'bx.settings': {
+                version: 5,
+                features,
+                insights: { lookup: 'visible' },
+                filter: { countries: filter ?? [], mode: 'collapse', posts: true, quotes: true },
+              },
+              ...(seed ? { 'bx.accounts': { v: 1, entries: seed } } : {}),
+            }),
           on,
+          extra.filter ?? null,
+          seed,
         );
       }
     }
     const page = await browser.newPage();
+    let aboutRequests = 0;
+    await page.setCookie({ name: 'ct0', value: 'perf', url: 'https://x.com/' });
     await page.setRequestInterception(true);
     page.on('request', (request) => {
       const url = new URL(request.url());
+      const about = /AboutAccountQuery\?variables=([^&]+)/.exec(url.href);
+      if (about) {
+        aboutRequests++;
+        const handle = JSON.parse(decodeURIComponent(about[1])).screenName;
+        const n = Number(/^user(\d+)$/.exec(handle)?.[1] ?? 0);
+        return request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              user_result_by_screen_name: {
+                result: {
+                  rest_id: String(900 + n),
+                  core: { screen_name: handle, name: handle },
+                  about_profile: {
+                    account_based_in: placeOf(n),
+                    location_accurate: n % 5 !== 0,
+                    source: n % 2 ? 'web' : `${placeOf(n)} App Store`,
+                  },
+                },
+              },
+            },
+          }),
+        });
+      }
       if (url.href === 'https://x.com/home')
         return request.respond({ status: 200, contentType: 'text/html', body: PAGE });
       if (/(^|\.)twimg\.com$/.test(url.hostname))
@@ -235,7 +322,12 @@ async function run(withExtension, features = []) {
       );
     }
     const scrollMs = Date.now() - scrollStarted;
-    // Let trailing frames and idle work settle so they count consistently in both modes.
+    // A cold cache is still being filled (paced, two at a time): wait for every account so the
+    // metrics cover the whole job, then let trailing frames and idle work settle.
+    if (extra.cache === 'cold') {
+      const deadline = Date.now() + 40000;
+      while (aboutRequests < 17 && Date.now() < deadline) await sleep(100);
+    }
     await sleep(500);
 
     const { metrics } = await cdp.send('Performance.getMetrics');
@@ -245,6 +337,15 @@ async function run(withExtension, features = []) {
       initialMs,
       scrollMs,
       controls: await controls(),
+      ...(extra.cache
+        ? {
+            aboutRequests,
+            badges: await page.evaluate(() => document.querySelectorAll('.bx-acct').length),
+            filtered: await page.evaluate(
+              () => document.querySelectorAll('[data-bx-filter]').length,
+            ),
+          }
+        : {}),
       longTaskCount: longTasks.length,
       longTaskTotalMs: Math.round(longTasks.reduce((a, b) => a + b, 0)),
     };
@@ -304,6 +405,7 @@ const MODES = FEATURE_MODES
         name: `on:${name}`,
         extension: true,
         features: featureSet(name),
+        extra: EXTRA_MODES[name] ?? {},
       })),
     ]
   : [
@@ -313,7 +415,7 @@ const MODES = FEATURE_MODES
 const results = Object.fromEntries(MODES.map((mode) => [mode.name, []]));
 for (let i = 0; i < RUNS; i++) {
   for (const mode of MODES) {
-    const result = await run(mode.extension, mode.features);
+    const result = await run(mode.extension, mode.features, mode.extra);
     results[mode.name].push(result);
     console.log(`run ${i + 1}/${RUNS} ${mode.name.padEnd(10)} ${JSON.stringify(result)}`);
   }

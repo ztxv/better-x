@@ -54,3 +54,53 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Control Panel's own bundled `dedent()` (tiny-dedent, MIT, Copyright (c) 2021 Victor) is not used
 in Better X.
+
+## X-Posed
+
+- Source: <https://github.com/xaitax/x-account-location-device>
+- License: MIT, as declared in its README and `package.json` (Alexander Hagenah). The repository
+  ships no LICENSE file and no copyright year, so none is reproduced here.
+
+Better X does not include X-Posed's code as a whole and shares none of its interface or structure.
+What it takes is knowledge of X's data, with the credit it asks for in its license:
+
+- The shape of X's `AboutAccountQuery` response (`user_result_by_screen_name.result.about_profile`
+  with `account_based_in`, `source`, `location_accurate`, `username_changes`, and the identity and
+  verification fields beside it) and the query's name and id. Written as `src/x/about-account.ts`
+  and `src/x/about-transport.ts`.
+- The rate-limit idea in `src/x/about-transport.ts` (`readRate`): honor `x-rate-limit-reset` and
+  `retry-after`, and fall back to a minute.
+- The spellings of countries that X and other sources use for the same country, in the `ALIASES`
+  table of `src/insights/places.ts`, and the list of region labels in `REGION_LABELS`.
+- The approach to telling a quoted post's author apart from the quoting post's (the quote card is
+  the nearest `role="link"` block). Re-implemented in `src/x/selectors.ts`.
+
+## X Profile Location
+
+- Source: <https://github.com/asmyshlyaev177/x-profile-location>
+- License: MIT, Copyright (c) 2026 Aleksandr Smyshliaev (permission notice as for Control Panel
+  above, with that name and year).
+
+What Better X adapts: the way a `source` string is read ("web", "Japan App Store", "Nigeria Android
+App") into a platform and an optional store country (`parseConnection` in
+`src/x/about-account.ts`), and, for tests only, response bodies recorded from x.com by its end-to-end
+suite (`src/x/about-account.test.ts` uses the `about_profile` objects it recorded). Its optional
+shared community cache and its server are not used or included.
+
+## X-Source-label and Twitter Region Viewer
+
+- X-Source-label (<https://github.com/Yu08083/X-Source-label>, MIT, Copyright (c) 2026 @yu_) was
+  studied for the per-post client label (`TweetResultByRestId`). Nothing from it is included: the
+  posting client is not built (see docs/ARCHITECTURE.md).
+- Twitter Region Viewer (<https://github.com/masooddalman/Twitter-Region-Viewer>) was studied and
+  nothing from it is included. It has no license, and it works by loading `/about` pages in hidden
+  frames with `declarativeNetRequest` rules that remove X's frame protections, which Better X does
+  not do.
+
+## Lucide and Simple Icons
+
+- The small glyphs drawn on the X page (globe, map pin, alert, refresh, shield and others) are
+  Lucide's (ISC License), inlined in `src/insights/icons.ts`.
+- The Apple and Android marks are Simple Icons' paths (CC0 1.0), from the `simple-icons` package
+  (a build-time dependency). They identify the platform X reports; the marks remain their owners'
+  trademarks.
