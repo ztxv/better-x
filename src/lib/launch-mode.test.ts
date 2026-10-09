@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { freshEnvironment } from '../test/fakes';
 import { applyLaunchMode, followLaunchMode, POPUP_PAGE, type LaunchApi } from './launch-mode';
-import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './settings';
+import { DEFAULT_SETTINGS, loadSettings, saveSettings, SETTINGS_VERSION } from './settings';
 
 /** Records what Chrome would be told, in order. */
 function fakeApi() {
@@ -134,7 +134,7 @@ describe('settings version 4', () => {
       'bx.settings': { version: 3, accent: 'green', features: { 'cleanup.hideAds': true } },
     });
     expect(await loadSettings()).toMatchObject({
-      version: 4,
+      version: SETTINGS_VERSION,
       openAs: 'sidepanel',
       accent: 'green',
       features: { 'cleanup.hideAds': true },

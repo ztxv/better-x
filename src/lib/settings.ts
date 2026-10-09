@@ -5,21 +5,58 @@
  * Settings never hold library data, so resetting them never deletes anything.
  */
 
+import { placeKey, resolveSelectable } from '../insights/places';
+
 export const SETTINGS_KEY = 'bx.settings';
 /**
  * Version 2 added `features` (customization toggles); version 3 added `values` (the numbers of
  * slider features); version 4 added `openAs` (whether the toolbar icon opens the side panel or a
- * popup). A stored older object lacks them, so it loads with every feature at its default and
- * the side panel, and is rewritten at the current version on the next save; no other field
- * changes meaning, and nothing a user had set is lost.
+ * popup); version 5 added `insights` (how account lookups are triggered) and `filter` (the country
+ * filter's list, mode and exceptions). A stored older object lacks them, so it loads with every
+ * feature at its default and the side panel, and is rewritten at the current version on the next
+ * save; no other field changes meaning, and nothing a user had set is lost.
  */
-export const SETTINGS_VERSION = 4;
+export const SETTINGS_VERSION = 5;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
 export type AccentId = 'blue' | 'purple' | 'green' | 'orange' | 'pink';
 /** Where the toolbar icon opens Better X. */
 export type OpenAs = 'sidepanel' | 'popup';
+
+/**
+ * When account lookups happen. `manual`: only when a person clicks a badge's lookup control.
+ * `hover`: when the pointer rests on one (or it takes focus). `visible`: automatically for posts
+ * on screen, at a bounded rate. The country filter needs an account's country to act, so while it
+ * is on (with countries chosen) posts on screen are looked up whatever this says.
+ */
+export type LookupMode = 'manual' | 'hover' | 'visible';
+/** What happens to a post (or quote) from a selected country. */
+export type FilterMode = 'collapse' | 'hide' | 'highlight';
+
+export interface InsightsSettings {
+  lookup: LookupMode;
+}
+
+/** An account the country filter never acts on. `id` (X's numeric id) is kept once it is known. */
+export interface AlwaysShowEntry {
+  handle: string;
+  id?: string;
+}
+
+export interface FilterSettings {
+  /** Country names and region labels, canonical, no duplicates. */
+  countries: string[];
+  mode: FilterMode;
+  /** Act on posts whose author is in a selected place. */
+  posts: boolean;
+  /** Act on quoted posts whose author is in a selected place (independently of the post). */
+  quotes: boolean;
+  alwaysShow: AlwaysShowEntry[];
+}
+
+export const MAX_COUNTRIES = 250;
+export const MAX_ALWAYS_SHOW = 200;
 
 export interface Settings {
   version: typeof SETTINGS_VERSION;
@@ -34,6 +71,10 @@ export interface Settings {
   saveAs: boolean;
   /** What the toolbar icon opens. Applied by the background worker; see `src/lib/launch-mode.ts`. */
   openAs: OpenAs;
+  /** How account lookups are triggered. The Account insights toggles live in `features`. */
+  insights: InsightsSettings;
+  /** The country filter's list and behavior. Whether it runs is the `filtering.country` toggle. */
+  filter: FilterSettings;
   /**
    * Customization toggles by feature id, only for those the user has set. A feature missing here
    * is at its default; ids the extension does not know are kept (a newer or older build may) but
@@ -56,6 +97,8 @@ export const DEFAULT_SETTINGS: Settings = {
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
   openAs: 'sidepanel',
+  insights: { lookup: 'hover' },
+  filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
   features: {},
   values: {},
 };
@@ -122,6 +165,8 @@ export const ACCENTS: Record<
 const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
 const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
+const LOOKUPS = new Set<LookupMode>(['manual', 'hover', 'visible']);
+const FILTER_MODES = new Set<FilterMode>(['collapse', 'hide', 'highlight']);
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -144,6 +189,56 @@ const isBoolean = (value: unknown): value is boolean => typeof value === 'boolea
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
 
+/** Selected places as canonical names: only real countries and region labels, once each. */
+export function normalizeCountries(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of input.slice(0, MAX_COUNTRIES * 2)) {
+    const place = resolveSelectable(item);
+    if (!place || seen.has(placeKey(place))) continue;
+    seen.add(placeKey(place));
+    result.push(place.name);
+    if (result.length >= MAX_COUNTRIES) break;
+  }
+  return result;
+}
+
+/** A handle as people type it ("@Name" or "Name"), lowercase, or null when X could not have it. */
+export function normalizeHandle(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const handle = input.trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z0-9_]{1,15}$/.test(handle) ? handle : null;
+}
+
+export function normalizeAlwaysShow(input: unknown): AlwaysShowEntry[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const result: AlwaysShowEntry[] = [];
+  for (const item of input.slice(0, MAX_ALWAYS_SHOW * 2)) {
+    const entry: Record<string, unknown> = isRecord(item) ? item : { handle: item };
+    const handle = normalizeHandle(entry.handle);
+    if (!handle || seen.has(handle)) continue;
+    seen.add(handle);
+    const id = typeof entry.id === 'string' && /^\d{1,25}$/.test(entry.id) ? entry.id : undefined;
+    result.push(id ? { handle, id } : { handle });
+    if (result.length >= MAX_ALWAYS_SHOW) break;
+  }
+  return result;
+}
+
+function normalizeFilter(input: unknown): FilterSettings {
+  const value = isRecord(input) ? input : {};
+  const d = DEFAULT_SETTINGS.filter;
+  return {
+    countries: normalizeCountries(value.countries),
+    mode: pick(value.mode, FILTER_MODES, d.mode),
+    posts: bool(value.posts, d.posts),
+    quotes: bool(value.quotes, d.quotes),
+    alwaysShow: normalizeAlwaysShow(value.alwaysShow),
+  };
+}
+
 export function normalizeSettings(input: unknown): Settings {
   const value = isRecord(input) ? input : {};
   const menu = isRecord(value.menuActions) ? value.menuActions : {};
@@ -160,15 +255,27 @@ export function normalizeSettings(input: unknown): Settings {
     },
     saveAs: bool(value.saveAs, d.saveAs),
     openAs: pick(value.openAs, OPEN_AS, d.openAs),
+    insights: {
+      lookup: pick(
+        isRecord(value.insights) ? value.insights.lookup : undefined,
+        LOOKUPS,
+        d.insights.lookup,
+      ),
+    },
+    filter: normalizeFilter(value.filter),
     features: normalizeById(value.features, isBoolean),
     values: normalizeById(value.values, isNumber),
   };
 }
 
 export type SettingsPatch = Partial<
-  Omit<Settings, 'version' | 'menuActions' | 'features' | 'values'>
+  Omit<Settings, 'version' | 'menuActions' | 'features' | 'values' | 'insights' | 'filter'>
 > & {
   menuActions?: Partial<Settings['menuActions']>;
+  /** Merged field by field into the stored insights settings. */
+  insights?: Partial<InsightsSettings>;
+  /** Merged field by field; a list given here replaces the stored list. */
+  filter?: Partial<FilterSettings>;
   /**
    * Merged into the stored toggles: ids not mentioned keep their value, and `null` forgets an id
    * (so the feature is back at its default).
@@ -183,6 +290,8 @@ export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
     ...current,
     ...patch,
     menuActions: { ...current.menuActions, ...patch.menuActions },
+    insights: { ...current.insights, ...patch.insights },
+    filter: { ...current.filter, ...patch.filter },
     features: { ...current.features, ...patch.features },
     values: { ...current.values, ...patch.values },
   });
@@ -215,15 +324,37 @@ export function saveSettings(patch: SettingsPatch): Promise<Settings> {
 }
 
 /**
+ * Changes settings from what is stored right now: `change` receives the current settings and
+ * returns a patch (or null for none). Use it, not `saveSettings`, when the patch replaces a list
+ * that another tab may have changed since this one read it.
+ */
+export function updateSettings(
+  change: (current: Settings) => SettingsPatch | null,
+): Promise<Settings> {
+  const write = writes.then(async () => {
+    const current = await loadSettings();
+    const patch = change(current);
+    if (!patch) return current;
+    const next = applyPatch(current, patch);
+    await chrome.storage.local.set({ [SETTINGS_KEY]: next });
+    return next;
+  });
+  writes = write.catch(() => {});
+  return write;
+}
+
+/**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
  * numbers are kept (they change what X looks like, which resetting an accent color should not
- * undo), and so is how the toolbar icon opens Better X.
+ * undo), and so are how the toolbar icon opens Better X and the account insights and country
+ * filter settings.
  */
 export function resetSettings(): Promise<Settings> {
   const write = writes.then(async () => {
-    const { features, values, openAs } = await loadSettings();
-    // How the toolbar icon opens is not appearance: resetting a look must not change it.
-    const next = { ...DEFAULT_SETTINGS, features, values, openAs };
+    const { features, values, openAs, insights, filter } = await loadSettings();
+    // How the toolbar icon opens, and what the country filter is set to, are not appearance:
+    // resetting a look must not change them.
+    const next = { ...DEFAULT_SETTINGS, features, values, openAs, insights, filter };
     await chrome.storage.local.set({ [SETTINGS_KEY]: next });
     return next;
   });

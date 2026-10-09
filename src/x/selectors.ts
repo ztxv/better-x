@@ -448,6 +448,92 @@ function replyIn(article: HTMLElement): ReplyContext | null {
   };
 }
 
+/* ----------------------------------------------------------------- authors, for account data */
+
+const PROFILE_PATH = /^\/([A-Za-z0-9_]{1,15})\/?$/;
+const RESERVED_PATH = new Set(['i', 'home', 'explore', 'search', 'settings', 'messages', 'intent']);
+
+/** The handle a profile link points at (relative or absolute), lowercase; null for any other link. */
+export function handleOfHref(href: string | null): string | null {
+  if (!href) return null;
+  let path = href;
+  if (!href.startsWith('/')) {
+    try {
+      const url = new URL(href);
+      if (!/(^|\.)(x|twitter)\.com$/.test(url.hostname)) return null;
+      path = url.pathname;
+    } catch {
+      return null;
+    }
+  }
+  const handle = PROFILE_PATH.exec(path.split(/[?#]/)[0] ?? '')?.[1];
+  return handle && !RESERVED_PATH.has(handle.toLowerCase()) ? handle.toLowerCase() : null;
+}
+
+/** The handle shown in the name block of a post or a quote: its first profile link, else its "@handle" text. */
+function nameBlockHandle(block: Element): string | null {
+  for (const link of block.querySelectorAll('a[href]')) {
+    const handle = handleOfHref(link.getAttribute('href'));
+    if (handle) return handle;
+  }
+  for (const span of block.querySelectorAll('span')) {
+    if (span.childElementCount || span.closest(X_SELECTORS.text)) continue;
+    const typed = span.textContent?.match(HANDLE);
+    if (typed?.[1] && span.textContent?.trim().startsWith('@')) return typed[1].toLowerCase();
+  }
+  return null;
+}
+
+/** The post's own name block ("Name @handle · time"), never a quoted post's. */
+export function postNameBlock(article: HTMLElement): HTMLElement | null {
+  return own(article, X_SELECTORS.author)[0] ?? null;
+}
+
+/**
+ * The handle (lowercase) of the account that wrote this post, read from the post's own name
+ * block; never from a quoted post's. Falls back to the handle in the post's permalink. Null when
+ * neither is a real handle.
+ */
+export function postAuthorHandle(article: HTMLElement, fallback: string | null): string | null {
+  const block = postNameBlock(article);
+  const fromBlock = block ? nameBlockHandle(block) : null;
+  if (fromBlock) return fromBlock;
+  const handle = fallback && /^[A-Za-z0-9_]{1,15}$/.test(fallback) ? fallback.toLowerCase() : null;
+  // `/i/web/status/ID` permalinks read as a handle called "web"; that is not an account.
+  return handle && !RESERVED_PATH.has(handle) && handle !== 'web' ? handle : null;
+}
+
+export interface QuotedAuthor {
+  /** The element X draws the quoted post in. */
+  block: HTMLElement;
+  /** The quoted post's author, lowercase, or null when it cannot be read. */
+  handle: string | null;
+}
+
+/**
+ * The posts quoted inside `article`, each with its own author (never the quoting post's). Only
+ * direct quotes are returned, not quotes inside quotes.
+ */
+export function quotedAuthors(article: HTMLElement): QuotedAuthor[] {
+  const candidates = new Set([
+    ...own<HTMLElement>(article, '[data-testid="quoteTweet"]'),
+    ...own<HTMLElement>(article, '[role="link"]').filter(isQuoteBlock),
+    ...own<HTMLElement>(article, X_SELECTORS.post),
+  ]);
+  // One quote can be marked up as several nested elements; the outermost is the whole card.
+  return [...candidates]
+    .filter((block) => ![...candidates].some((other) => other !== block && other.contains(block)))
+    .map((block) => ({
+      block,
+      handle: nameBlockHandle(block.querySelector(X_SELECTORS.author) ?? block),
+    }));
+}
+
+/** True when `element` is part of the quoted post `block` rather than the post that quotes it. */
+export function isInsideQuote(element: Element, article: HTMLElement): boolean {
+  return owner(element, article) !== article;
+}
+
 /* ---------------------------------------------------------------------- public API */
 
 export function extractPost(article: HTMLElement): BookmarkDraft | null {

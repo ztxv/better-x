@@ -27,6 +27,7 @@
     "happy-dom": "^20.14.5",
     "prettier": "^3.9.9",
     "puppeteer-core": "^25.12.0",
+    "simple-icons": "^16.34.0",
     "typescript": "^5.7.2",
     "vitest": "^5.0.3",
     "wxt": "^0.21.4"

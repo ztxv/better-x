@@ -1,3 +1,4 @@
+import { createAccountsRuntime, type AccountsDeps, type AccountsRuntime } from './accounts';
 import { createActionRow, type ActionRowService } from './action-row';
 import { createLayoutService, type LayoutService } from './layout';
 import { createPostStream, type PostStream } from './posts';
@@ -7,11 +8,15 @@ import type { Disposer, Scope } from './scope';
 
 /** The services every Better X feature builds on. */
 export interface Runtime {
+  /** The scope the whole runtime lives in; for services shared by several features. */
+  scope: Scope;
   posts: PostStream;
   actionRow: ActionRowService;
   routes: RouteService;
   layout: LayoutService;
   sidebar: SidebarService;
+  /** Account data for the accounts whose posts are on the page; see `./accounts`. */
+  accounts: AccountsRuntime;
 }
 
 /**
@@ -21,7 +26,7 @@ export interface Runtime {
  * wrapper has rendered) and `data-bx-sidebar` (present while X shows its sidebar column). They
  * are removed when the scope ends.
  */
-export function startRuntime(scope: Scope): Runtime {
+export function startRuntime(scope: Scope, deps: { accounts?: AccountsDeps } = {}): Runtime {
   const posts = createPostStream(scope);
   const actionRow = createActionRow(scope, posts);
   const routes = createRouteService(scope);
@@ -41,6 +46,8 @@ export function startRuntime(scope: Scope): Runtime {
     },
   ]);
 
+  const accounts = createAccountsRuntime(scope, posts, deps.accounts);
+
   const root = document.documentElement;
   const publishRoute = () => root.setAttribute('data-bx-route', routes.route.id);
   const publishLayout = () => {
@@ -56,5 +63,5 @@ export function startRuntime(scope: Scope): Runtime {
     root.removeAttribute('data-bx-layout');
   });
 
-  return { posts, actionRow, routes, layout, sidebar };
+  return { scope, posts, actionRow, routes, layout, sidebar, accounts };
 }
