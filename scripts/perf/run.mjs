@@ -33,6 +33,8 @@ const option = (name) => {
 const RUNS = Number(option('--runs') ?? process.env.PERF_RUNS ?? 5);
 const OUT = option('--out');
 const SHAPE = option('--shape') ?? 'plain';
+/** Idle time before the metrics are read; a longer one shows what an idle page costs. */
+const SETTLE_MS = Number(option('--settle') ?? 500);
 const FEATURE_MODES = option('--features')?.split(',') ?? null;
 if (!['plain', 'x'].includes(SHAPE)) throw new Error(`--shape is plain or x, not ${SHAPE}`);
 const EXT = path.resolve(args[0] ?? path.join(ROOT, '.output/chrome-mv3'));
@@ -83,28 +85,6 @@ const TYPICAL = [
   'sidebar.hideFooter',
 ];
 const ALL = [...new Set([...SCENARIOS.map((scenario) => scenario.feature), ...COVERED_ELSEWHERE])];
-/** default, typical, all, cat:<category> (one whole category), or ids:<id>+<id>. */
-const featureSet = (name) =>
-  name in EXTRA_MODES
-    ? EXTRA_MODES[name].features
-    : name === 'typical'
-      ? TYPICAL
-      : name === 'all'
-        ? ALL
-        : name === 'default'
-          ? []
-          : name.startsWith('cat:')
-            ? ALL.filter((id) => id.startsWith(`${name.slice(4)}.`))
-            : name.startsWith('ids:')
-              ? name.slice(4).split('+')
-              : null;
-if (FEATURE_MODES)
-  for (const name of FEATURE_MODES)
-    if (!featureSet(name))
-      throw new Error(
-        `--features takes default, typical, all, cat:<category>, ids:<a>+<b>; not ${name}`,
-      );
-
 /**
  * Account insights modes. The fixture's accounts (user0..user16) are answered locally with
  * response bodies shaped like X's; `cold` starts with an empty account cache, `warm` with every
@@ -129,6 +109,28 @@ const EXTRA_MODES = {
     cache: 'warm',
   },
 };
+
+/** default, typical, all, cat:<category> (one whole category), or ids:<id>+<id>. */
+const featureSet = (name) =>
+  name in EXTRA_MODES
+    ? EXTRA_MODES[name].features
+    : name === 'typical'
+      ? TYPICAL
+      : name === 'all'
+        ? ALL
+        : name === 'default'
+          ? []
+          : name.startsWith('cat:')
+            ? ALL.filter((id) => id.startsWith(`${name.slice(4)}.`))
+            : name.startsWith('ids:')
+              ? name.slice(4).split('+')
+              : null;
+if (FEATURE_MODES)
+  for (const name of FEATURE_MODES)
+    if (!featureSet(name))
+      throw new Error(
+        `--features takes default, typical, all, cat:<category>, ids:<a>+<b>; not ${name}`,
+      );
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
@@ -325,10 +327,20 @@ async function run(withExtension, features = [], extra = {}) {
     // A cold cache is still being filled (paced, two at a time): wait for every account so the
     // metrics cover the whole job, then let trailing frames and idle work settle.
     if (extra.cache === 'cold') {
+      // Only posts that were on screen are looked up, so the count is not known in advance: wait
+      // until no new lookup has started for 2 s (they start about every 500 ms).
+      let last = -1;
+      let quietSince = Date.now();
       const deadline = Date.now() + 40000;
-      while (aboutRequests < 17 && Date.now() < deadline) await sleep(100);
+      while (Date.now() < deadline && Date.now() - quietSince < 2000) {
+        if (aboutRequests !== last) {
+          last = aboutRequests;
+          quietSince = Date.now();
+        }
+        await sleep(100);
+      }
     }
-    await sleep(500);
+    await sleep(SETTLE_MS);
 
     const { metrics } = await cdp.send('Performance.getMetrics');
     const byName = Object.fromEntries(metrics.map((m) => [m.name, m.value]));

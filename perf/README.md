@@ -207,3 +207,41 @@ Sidebar card marking, the settings backup, the popup entry and the launch-mode w
 | DOM nodes, long tasks       | 1404, 0          | 1404, 0          |
 
 No measurable change. Nothing new runs on X unless a feature asks: the sidebar service observes the sidebar column only while "Hide Who to follow" or "Hide the Premium card" is on, the backup and popup code never load in the content script, and the worker's launch-mode code runs only at start and when the setting changes. A plain `npm run perf` read script 16.3 ms, task 49.4 ms (cv under 3%).
+
+## Account insights and Smart filtering (2026-10-09)
+
+The harness changed for this sprint, so these figures are **not comparable with the sections above**: the X-shaped fixture's name block is now drawn the way X draws it (the `@handle` is its own link, so badges have a place to go), `x.com` also answers `AboutAccountQuery` locally, and `--settle` sets the idle time before reading. Everything below was measured in this one session, X-shaped, 200 posts in 10 batches, accounts `user0`…`user16`, lookups in the automatic (on-screen) mode, which is the heaviest.
+
+**1. Shipped but off, against the build just before (`3f6e1ab`)**: three rounds of 4 runs, old then new.
+
+| Metric (median of three rounds) | Before     | After      |
+| ------------------------------- | ---------- | ---------- |
+| ScriptDuration (ms)             | 16.05      | 17.4       |
+| TaskDuration (ms)               | 127.4      | 129.9      |
+| RecalcStyleDuration (ms)        | 20.3       | 20.2       |
+| LayoutDuration (ms)             | 18.1       | 18.2       |
+| DOM nodes, long tasks           | 17024, 0   | 17024, 0   |
+| scrollMs / initialMs            | 438 / 42.5 | 444.5 / 44 |
+
+About +1.3 ms of script and +2.5 ms of task time (about 2%), consistent in each round and with a run-to-run spread of 1–3%. It is the larger content script being parsed and the account tracker registering one listener; nothing observes or styles anything until a feature is on. Bundle: 480.4 kB → 581.8 kB in total (content script 113.8 kB, including the Apple and Android marks only: the Simple Icons barrel is tree-shaken).
+
+**2. Features on, 5 runs per mode** (medians; `off` is no extension):
+
+| Mode                                                | Script ms | Task ms | Style ms | Layout ms | Nodes  | Heap MB | Lookups | Badges / collapsed |
+| --------------------------------------------------- | --------- | ------- | -------- | --------- | ------ | ------- | ------- | ------------------ |
+| off (no extension)                                  | 0.4       | 71.6    | 11.4     | 13.0      | 15,620 | 1.5     | 0       | 0                  |
+| default (all features off)                          | 17.0      | 128.1   | 20.2     | 18.1      | 17,024 | 2.4     | 0       | 0                  |
+| **badges, warm cache** (flag, mark, card, warnings) | 22.0      | 150.1   | 21.2     | 21.3      | 19,144 | 2.7     | 0       | 200                |
+| **badges, cold cache**                              | 34.2      | 225.7   | 22.7     | 24.9      | 18,006 | 2.8     | 7       | 83                 |
+| **country filter, warm cache** (Germany + India)    | 22.6      | 139.0   | 20.6     | 20.0      | 17,706 | 2.7     | 0       | 70 collapsed       |
+| **country filter, cold cache**                      | 31.0      | 176.6   | 21.7     | 21.2      | 17,291 | 2.9     | 7       | 24 collapsed       |
+| badges + filter, warm cache                         | 26.7      | 150.2   | 21.2     | 22.7      | 19,922 | 3.3     | 0       | 200 + 70           |
+
+Reading it:
+
+- Only posts that were on screen are looked up: the fixture has 17 accounts and 7 were requested, because the harness scrolls straight to the end of each batch. Each account is requested once however many posts it has (200 posts, 7 requests). With a warm cache there are no requests at all.
+- A warm cache costs about +5 ms of script and +22 ms of main-thread task time over the whole 200-post session, and 2,100 DOM nodes for 200 badges (about 10 each). The filter alone costs about +5.6 ms of script.
+- A cold cache costs about +17 ms of script and +97 ms of task time, once per account, spread over the 7 staggered answers (no long task; the longest is a few milliseconds). Seven fetches alone cost about 10 ms of task time with no extension (measured separately); the rest is staggered paint and layout as badges arrive one answer at a time, against one batch with a warm cache. A longer idle time (`--settle 4000`) did not change the default figure, so this is not idle time.
+- No long tasks in any mode, and `scrollMs` is unchanged within spread.
+- Memory: about +0.3 MB (warm) to +0.5 MB (cold) of JS heap for the service and cache of 17 accounts; the cache is capped at 3,000 entries (about 250 B each when stored).
+- Request pacing is the service's: two at a time, 500 ms apart, newest on-screen post first, dropped if the post scrolled away, paused by X's own rate-limit answers.
