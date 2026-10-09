@@ -3,12 +3,14 @@ import type { Scope } from '../runtime/scope';
 
 /** Groups features in the Customize view, in the order the view lists them. */
 export type FeatureCategory =
-  'navigation' | 'feed' | 'posts' | 'sidebar' | 'appearance' | 'cleanup';
+  'navigation' | 'feed' | 'posts' | 'insights' | 'filtering' | 'sidebar' | 'appearance' | 'cleanup';
 
 export const CATEGORY_TITLES: Record<FeatureCategory, string> = {
   navigation: 'Navigation',
   feed: 'Home & feed',
   posts: 'Posts',
+  insights: 'Account insights',
+  filtering: 'Smart filtering',
   sidebar: 'Sidebar',
   appearance: 'Appearance',
   cleanup: 'Ads, Grok & Premium',
@@ -19,6 +21,8 @@ export const CATEGORY_SHORT: Record<FeatureCategory, string> = {
   navigation: 'Navigation',
   feed: 'Home',
   posts: 'Posts',
+  insights: 'Insights',
+  filtering: 'Filtering',
   sidebar: 'Sidebar',
   appearance: 'Appearance',
   cleanup: 'Ads & Grok',
@@ -28,6 +32,8 @@ export const CATEGORY_HINTS: Record<FeatureCategory, string> = {
   navigation: 'Menu items and buttons you do not use',
   feed: 'What shows up in your timelines',
   posts: 'Counts, buttons and details on posts',
+  insights: 'Where an account is based and how it connects, from X',
+  filtering: 'Collapse, hide or highlight posts by account country',
   sidebar: 'The column beside your timeline',
   appearance: 'Widths, spacing and type',
   cleanup: 'Promotions, Grok and upsells',

@@ -1,9 +1,11 @@
 import { APPEARANCE_FEATURES } from './appearance';
 import { CLEANUP_FEATURES } from './cleanup';
 import { FEED_FEATURES } from './feed';
+import { FILTERING_FEATURES } from './filtering';
 import { hideAds } from './hide-ads';
 import { hideForYou } from './hide-for-you';
 import { hideGrok } from './hide-grok';
+import { INSIGHT_FEATURES } from './insights';
 import { NAVIGATION_FEATURES } from './navigation';
 import { POST_FEATURES } from './posts';
 import { createFeatureRegistry } from './registry';
@@ -19,6 +21,8 @@ export const FEATURES: readonly FeatureDef[] = [
   hideForYou,
   ...FEED_FEATURES,
   ...POST_FEATURES,
+  ...INSIGHT_FEATURES,
+  ...FILTERING_FEATURES,
   ...SIDEBAR_FEATURES,
   ...APPEARANCE_FEATURES,
   hideAds,

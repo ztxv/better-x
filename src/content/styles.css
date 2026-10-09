@@ -96,7 +96,9 @@
 /* The post-save chip and the saved-post menu share one surface that follows X's own theme
    (Default, or Dim/Lights out via data-theme="dark"), never the OS theme. */
 .bx-chip,
-.bx-menu {
+.bx-menu,
+.bx-acctcard,
+.bx-filter-card {
   --bx-color: var(--bx-accent, #1d9bf0);
   --bx-surface: #fff;
   --bx-text: #0f1419;
@@ -127,7 +129,9 @@
   animation: bx-overlay-enter 140ms ease-out;
 }
 .bx-chip[data-theme='dark'],
-.bx-menu[data-theme='dark'] {
+.bx-menu[data-theme='dark'],
+.bx-acctcard[data-theme='dark'],
+.bx-filter-card[data-theme='dark'] {
   --bx-surface: #16181c;
   --bx-text: #e7e9ea;
   --bx-muted: #8b98a5;
@@ -141,11 +145,15 @@
     0 8px 28px rgba(0, 0, 0, 0.55);
 }
 .bx-chip *,
-.bx-menu * {
+.bx-menu *,
+.bx-acctcard *,
+.bx-filter-card * {
   box-sizing: border-box;
 }
 .bx-chip svg,
-.bx-menu svg {
+.bx-menu svg,
+.bx-acctcard svg,
+.bx-filter-card svg {
   flex: none;
   width: 15px;
   height: 15px;
@@ -156,7 +164,9 @@
   stroke-linejoin: round;
 }
 .bx-chip button,
-.bx-menu button {
+.bx-menu button,
+.bx-acctcard button,
+.bx-filter-card button {
   margin: 0;
   border: 0;
   background: transparent;
@@ -169,6 +179,8 @@
 }
 .bx-chip button:focus-visible,
 .bx-menu button:focus-visible,
+.bx-acctcard button:focus-visible,
+.bx-filter-card button:focus-visible,
 .bx-chip a:focus-visible,
 .bx-menu a:focus-visible,
 .bx-status:focus-visible {
@@ -442,11 +454,272 @@
   .bx-chip,
   .bx-chip *,
   .bx-menu,
-  .bx-menu * {
+  .bx-menu *,
+  .bx-acctcard,
+  .bx-acctcard *,
+  .bx-acct,
+  .bx-acct *,
+  .bx-filter-card,
+  .bx-filter-card * {
     animation: none !important;
     transition: none !important;
   }
   .bx-control:active:not([aria-busy='true']) {
     transform: none;
   }
+}
+
+/* ------------------------------------------------------------------------- account badges */
+/* A badge sits in the post's name row right after the @handle: flag, platform mark, warning.
+   It never wraps, never shrinks and takes no part in X's profile link. */
+.bx-acct {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 0 6px;
+  padding: 0 4px;
+  min-height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+button.bx-acct {
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+button.bx-acct:hover,
+button.bx-acct[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--bx-accent, #1d9bf0) 12%, transparent);
+}
+button.bx-acct:focus-visible {
+  outline: 2px solid var(--bx-accent, #1d9bf0);
+  outline-offset: 1px;
+}
+.bx-acct[aria-busy='true'] {
+  opacity: 0.55;
+}
+.bx-acct-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1;
+}
+.bx-acct svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.bx-acct[data-state='idle'],
+.bx-acct[data-state='failed'] {
+  opacity: 0.6;
+}
+.bx-acct[data-state='idle']:hover,
+.bx-acct[data-state='failed']:hover,
+.bx-acct[data-state='idle']:focus-visible {
+  opacity: 1;
+}
+.bx-acct-item[data-kind='warning'] {
+  color: #d97706;
+}
+
+/* ------------------------------------------------------------------------ account card */
+.bx-acctcard {
+  width: 288px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  border-radius: 14px;
+  padding: 0;
+}
+.bx-acct-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 12px 8px 14px;
+}
+.bx-acct-title {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+.bx-acct-title strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bx-acct-handle {
+  color: var(--bx-muted);
+}
+.bx-acct-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: var(--bx-muted) !important;
+}
+.bx-acct-close:hover {
+  background: var(--bx-hover) !important;
+}
+.bx-acct-body {
+  padding: 0 14px 6px;
+}
+.bx-acct-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.bx-acct-row {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.bx-acct-term {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--bx-muted);
+}
+.bx-acct-detail {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.bx-acct-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bx-acct-flag {
+  font-size: 15px;
+}
+.bx-acct-note,
+.bx-acct-empty {
+  margin: 8px 0 0;
+  color: var(--bx-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.bx-acct-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 6px 8px 8px 14px;
+  border-top: 1px solid var(--bx-line);
+  color: var(--bx-muted);
+  font-size: 12px;
+}
+.bx-acct-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--bx-accent-text) !important;
+  font-weight: 600 !important;
+}
+.bx-acct-refresh:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bx-color) 12%, transparent) !important;
+}
+.bx-acct-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.bx-acctcard[data-side='above'] {
+  --bx-enter: 3px;
+}
+.bx-acctcard[data-side='below'] {
+  --bx-enter: -3px;
+}
+
+/* ------------------------------------------------------------------------ smart filtering */
+/* A timeline cell (or a quoted post) is marked with one attribute; these rules do the rest. X
+   positions the cell itself, so its child is what is hidden. No :has(), no tag selectors. */
+[data-testid='cellInnerDiv'][data-bx-filter='collapse'] > div:not(.bx-filter-card),
+[data-testid='cellInnerDiv'][data-bx-filter='hide'] > div {
+  display: none !important;
+}
+[data-testid='cellInnerDiv'][data-bx-filter='highlight'] > div {
+  background: color-mix(in srgb, var(--bx-accent, #1d9bf0) 7%, transparent);
+  box-shadow: inset 3px 0 0 var(--bx-accent, #1d9bf0);
+}
+[data-bx-quote='collapse'],
+[data-bx-quote='hide'] {
+  display: none !important;
+}
+[data-bx-quote='highlight'] {
+  outline: 2px solid var(--bx-accent, #1d9bf0);
+  outline-offset: 2px;
+}
+
+.bx-filter-card {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  padding: 12px 16px;
+  border: 0 solid var(--bx-line);
+  border-bottom-width: 1px;
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+  color: var(--bx-muted);
+  z-index: auto;
+}
+.bx-filter-card[data-kind='quote'] {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-width: 1px;
+  border-radius: 16px;
+}
+.bx-filter-card svg {
+  width: 18px;
+  height: 18px;
+}
+.bx-fc-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+.bx-fc-text strong {
+  color: var(--bx-text);
+  font-size: 14px;
+}
+.bx-fc-text span {
+  font-size: 13px;
+}
+.bx-fc-show {
+  flex: none;
+  min-height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--bx-line) !important;
+  border-radius: 999px;
+  color: var(--bx-text) !important;
+  font-weight: 600 !important;
+}
+.bx-fc-show:hover {
+  background: var(--bx-hover) !important;
 }

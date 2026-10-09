@@ -1,6 +1,8 @@
 import {
   Ban,
   Compass,
+  Filter,
+  Globe,
   Home,
   MessageSquareText,
   Palette,
@@ -26,6 +28,8 @@ const CATEGORY_ICONS: Record<FeatureCategory, ComponentType<{ size?: number }>> 
   navigation: Compass,
   feed: Home,
   posts: MessageSquareText,
+  insights: Globe,
+  filtering: Filter,
   sidebar: PanelRight,
   appearance: Palette,
   cleanup: Ban,

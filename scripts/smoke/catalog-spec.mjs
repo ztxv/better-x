@@ -491,4 +491,13 @@ export const SCENARIOS = [
 ];
 
 /** Features covered by other checks: Hide Ads / Grok / For You have their own sections. */
-export const COVERED_ELSEWHERE = new Set(['cleanup.hideGrok', 'feed.hideForYou']);
+export const COVERED_ELSEWHERE = new Set([
+  'cleanup.hideGrok',
+  'feed.hideForYou',
+  // Account insights and the country filter act on lookups, not on static markup: scripts/smoke/insights.mjs.
+  'insights.flags',
+  'insights.connection',
+  'insights.details',
+  'insights.warnings',
+  'filtering.country',
+]);
