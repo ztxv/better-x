@@ -127,6 +127,17 @@ export const NAVIGATION_FEATURES: readonly ToggleFeature[] = [
     hide(links('[href="/i/spaces/start"]')),
   ),
   toggle(
+    'hideCalls',
+    'Hide Calls',
+    'Remove Calls from the menu.',
+    hide(
+      links(
+        ':is([href="/i/calls"], [href^="/i/calls/"], [href^="/i/chat/call"], [data-testid="AppTabBar_Calls_Link"])',
+      ),
+    ),
+    ['call', 'voice', 'video'],
+  ),
+  toggle(
     'hideHistory',
     'Hide History',
     'Remove History from menus.',

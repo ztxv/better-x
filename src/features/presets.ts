@@ -51,6 +51,7 @@ export const PRESETS: readonly Preset[] = [
       'navigation.hideJobs',
       'navigation.hideConnect',
       'navigation.hideSpaces',
+      'navigation.hideCalls',
       'navigation.hideHistory',
       'navigation.hideCreatorStudio',
       'navigation.hideBadges',

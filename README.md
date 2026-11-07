@@ -6,8 +6,19 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 > **Not affiliated with X Corp.** "X" and "Twitter" are trademarks of their respective owners.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/library.png" alt="The Better X library in the side panel, showing a saved post" width="320">
+  &nbsp;
+  <img src="docs/screenshots/settings.png" alt="The Better X settings panel" width="320">
+</p>
+
+<!-- TODO: add a screenshot of the Save and Download buttons on a post on x.com -->
+
 ## Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Install](#install)
 - [Moving from Saved for X](#moving-from-saved-for-x)
@@ -20,6 +31,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 - [Testing](#testing)
 - [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
+- [License](#license)
 
 ## Features
 
@@ -75,7 +87,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 Requires Node.js 20.19+ and Chrome 116+.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ztxv/better-x.git
 cd better-x
 npm ci
 npm run build
@@ -175,7 +187,7 @@ entrypoints/
 src/
   runtime/           Shared X runtime: scopes, post stream, action row, routes, layout
   saved/             Save control, post-save chip, saved-post menu, downloads (on X)
-  features/          The 64 customization features by category, their registry, CSS helpers and quick setups
+  features/          The 65 customization features by category, their registry, CSS helpers and quick setups
   x/                 X DOM extraction and URL rules (all selectors live here)
   media/             URL rules, metadata adapter, media resolution
   downloads/         History store, lifecycle service, file naming, wording
@@ -209,7 +221,7 @@ npm run format    # Prettier
 ## Testing
 
 - **Unit tests (Vitest):** DOM extraction including avatar regressions, URL rules, the metadata adapter against recorded responses, media resolution outcomes, the download lifecycle with a scripted `chrome.downloads`, repository atomicity, settings (including migration from versions 1 and 2), backup round-trips, opening a version 1 database, the feature registry and catalog (ids, ranges, selector rules), slider values, quick setups, the sidebar marker, and the Customize view (search, groups, sliders, keyboard, motion limits).
-- **End-to-end (`npm run smoke`):** loads the unpacked build in installed Chrome against an X-shaped page, then saves and downloads real media from X's CDNs. Covers photos, GIFs, a blob-player video, partial batches, quoted media, keyboard use, placement, two tabs saving at once, live settings, dark theme, reduced motion, and stopping the worker mid-download. A second run (`scripts/smoke/catalog.mjs`) checks every customization on a 64-feature X-shaped page: what each hides, what it must leave alone, route, layout and sidebar changes, and that all of them together leave Save alone. Another reloads the extension under an open tab and checks everything is taken off the page.
+- **End-to-end (`npm run smoke`):** loads the unpacked build in installed Chrome against an X-shaped page, then saves and downloads real media from X's CDNs. Covers photos, GIFs, a blob-player video, partial batches, quoted media, keyboard use, placement, two tabs saving at once, live settings, dark theme, reduced motion, and stopping the worker mid-download. A second run (`scripts/smoke/catalog.mjs`) checks every customization on a 65-feature X-shaped page: what each hides, what it must leave alone, route, layout and sidebar changes, and that all of them together leave Save alone. Another reloads the extension under an open tab and checks everything is taken off the page.
 
 The smoke test does not use a signed-in X account. Verify against real x.com after changes to selectors or media handling.
 
@@ -230,3 +242,7 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 - **More X customization:** the settings that need X's internals (feature flags, React state, network responses), such as separated reposts, sorting, restoring the post source and counts, and dark-theme variants. Listed in [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md); design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Indexed search for very large libraries.
 - Optional sync, opt-in only.
+
+## License
+
+[MIT](LICENSE). You can use, modify, and redistribute the project, including for commercial use, under the terms in `LICENSE`. Third-party credits are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

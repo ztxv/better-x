@@ -75,6 +75,7 @@ const placeLinks = (p) => `
   ${navItem(`${p}-creators`, '/u/creators/studio', 'Creator Studio')}
   ${navItem(`${p}-connect`, '/i/connect_people', 'Connect')}
   ${navItem(`${p}-spaces`, '/i/spaces/start', 'Spaces')}
+  ${navItem(`${p}-calls`, '/i/calls', 'Calls')}
   ${navItem(`${p}-history`, '/i/history', 'History')}
   ${navItem(`${p}-money`, '/i/money', 'X Money')}
   ${navItem(`${p}-articles`, '/i/articles', 'Articles')}

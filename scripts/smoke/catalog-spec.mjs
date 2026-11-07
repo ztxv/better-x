@@ -117,6 +117,10 @@ export const SCENARIOS = [
     hides: places('spaces'),
     keeps: [...others('settings'), ...sheet('spaces')],
   }),
+  s('navigation.hideCalls', 'menus', {
+    hides: places('calls'),
+    keeps: [...others('settings'), ...sheet('calls')],
+  }),
   s('navigation.hideHistory', 'menus', {
     hides: places('history'),
     keeps: [...others('settings'), ...sheet('history')],
