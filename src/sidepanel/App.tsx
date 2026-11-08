@@ -30,6 +30,7 @@ import { BookmarkEditor } from './BookmarkEditor';
 import { DownloadDialog, downloadRows } from './DownloadDialog';
 import { Customize } from './Customize';
 import { SectionTabs, type Section } from './SectionTabs';
+import { Themes } from './Themes';
 import { SettingsDialog } from './SettingsDialog';
 import { useDownloads, useSettings } from './hooks';
 import {
@@ -506,6 +507,11 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
           settings={settings}
           onChange={(patch) => void updateSettings(patch)}
           hidden={section !== 'customize'}
+        />
+        <Themes
+          settings={settings}
+          onChange={(patch) => void updateSettings(patch)}
+          hidden={section !== 'themes'}
         />
         <div
           className="library-view"
