@@ -1,10 +1,11 @@
 /*
  * Better X theme probe. Paste the whole file into the DevTools console on a signed-in x.com tab
  * (Home timeline, scrolled a little; repeat on a post, a profile, Messages, a modal). It reads the
- * page and prints one JSON report; it sends nothing anywhere and changes nothing except, for one
- * moment, Better X's own `data-bx-theme` attribute, which it puts back as it was.
+ * page and saves one JSON report to your Downloads folder (better-x-probe-….json; also copied to
+ * the clipboard). It sends nothing anywhere and changes nothing except, for one moment, Better X's
+ * own `data-bx-theme` attribute, which it puts back as it was.
  *
- * Paste the JSON back to whoever maintains src/themes/surfaces.ts. What it tells them:
+ * Send the file to whoever maintains src/themes/surfaces.ts. What it tells them:
  *   - mode: how X signals Lights out / Default right now;
  *   - stock: which elements carry each of X's stock dark colors, by class list, test id, inline
  *     style and shadow root, i.e. the real selectors to theme;
@@ -70,6 +71,8 @@
       for (const prop of PROPS) {
         const value = cs[prop];
         if (!(value in STOCK)) continue;
+        // Fill only paints SVG; every other element merely inherits the default black.
+        if (prop === 'fill' && !(el instanceof SVGElement)) continue;
         // Borders only count where a border is drawn.
         if (prop.startsWith('border')) {
           const side = prop.replace('Color', 'Width');
@@ -180,12 +183,24 @@
     if (before === null) html.removeAttribute('data-bx-theme');
     else html.setAttribute('data-bx-theme', before);
   }
+  // The console shortens long lines when they are copied from it, so the report is saved as a file
+  // (and copied to the clipboard); nothing long is printed.
   const json = JSON.stringify(report);
-  console.log(json);
+  const name = `better-x-probe-${report.mode.dataTheme ?? 'unknown'}-${location.pathname.replace(/\W+/g, '_')}.json`;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   try {
     copy(json);
-    console.log(`Better X probe: ${json.length} characters copied to the clipboard.`);
   } catch {
-    console.log('Better X probe: select the JSON above and copy it.');
+    /* Only the file, then. */
   }
+  console.log(
+    `Better X probe: saved ${name} to your Downloads folder (${json.length} characters, also on the clipboard). ` +
+      `X mode: ${report.mode.dataTheme}; Better X theme: ${report.mode.betterXTheme ?? 'none'}` +
+      (themeCss ? '' : ' (turn a theme on and run again to see what it misses)') +
+      '.',
+  );
 })();

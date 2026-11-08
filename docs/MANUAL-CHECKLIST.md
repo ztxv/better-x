@@ -150,7 +150,7 @@ Not verified on live X: the automated checks use X-shaped fixtures.
 
 **Not verified on live x.com.** The automated checks (`scripts/smoke/theme.mjs`) prove the rules on an X-shaped page whose classes and inline colors come from `src/themes/surfaces.ts`, which is seeded from Dim Mode for Twitter / X and Control Panel for Twitter, not from X itself. Do these on a normal signed-in x.com tab after reloading the extension.
 
-**Probe first.** On x.com in **Lights out**, open DevTools → Console, paste all of `scripts/theme/probe.js` and press Enter. It prints (and copies) one JSON report and changes nothing. Run it once with no theme, once with a theme on (it then also lists what was missed), on Home, a post, a profile, Messages and an open modal. Send the JSON back: `surfaces.ts` changes only from it.
+**Probe first.** On x.com in **Lights out**, open DevTools → Console, paste all of `scripts/theme/probe.js` and press Enter. It saves one JSON report to your Downloads folder (`better-x-probe-….json`, also on the clipboard) and changes nothing. Do not copy it out of the console: Chrome shortens long console lines. Run it once with no theme, once with a theme on (it then also lists what was missed), on Home, a post, a profile, Messages and an open modal. Send the files back: `surfaces.ts` changes only from them.
 
 **Before the Themes tab exists**, choose a theme from the extension's service worker console (chrome://extensions → Better X → service worker → Console):
 
