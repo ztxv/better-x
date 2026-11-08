@@ -1398,6 +1398,47 @@ button:disabled {
   justify-content: flex-end;
   padding: 0;
 }
+.settings-backdrop {
+  animation: bx-fade-in 200ms ease-out both;
+}
+.settings-backdrop.is-closing {
+  animation: bx-fade-out 200ms ease-in both;
+}
+.settings-sheet {
+  animation: bx-slide-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: var(--bg);
+}
+.settings-backdrop.is-closing .settings-sheet {
+  animation: bx-slide-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes bx-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes bx-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes bx-slide-in {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+@keyframes bx-slide-out {
+  to {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-backdrop,
+  .settings-sheet {
+    animation: none !important;
+  }
+}
 .settings-sheet {
   max-width: 420px;
   max-height: none;
@@ -2506,4 +2547,66 @@ body.is-popup {
 }
 .custom-swatch svg {
   pointer-events: none;
+}
+
+/* ------------------------------------------------------------------- scrollbars */
+/* While a dialog or the settings sheet is open, only it scrolls: the library behind it (the
+   document in the side panel, .app-body in the popup) keeps still and drops its scrollbar. */
+html:has(.modal-backdrop),
+html:has(.modal-backdrop) body,
+html:has(.modal-backdrop) .app-shell .app-body {
+  overflow: hidden;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 150ms;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted) 75%, transparent);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--accent);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------- density */
+:root[data-density='compact'] .bookmark-item {
+  padding: 9px 14px 8px;
+}
+:root[data-density='compact'] .item-text {
+  -webkit-line-clamp: 2;
+  margin-top: 5px;
+}
+:root[data-density='dense'] .bookmark-item {
+  padding: 6px 12px 5px;
+}
+:root[data-density='dense'] .item-text {
+  -webkit-line-clamp: 1;
+  margin-top: 2px;
+  font-size: 12px;
+}
+:root[data-density='dense'] .avatar {
+  width: 24px;
+  height: 24px;
+}
+:root[data-density='dense'] .item-text {
+  margin-left: 33px;
 }

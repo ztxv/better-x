@@ -26,6 +26,8 @@ export type CustomAccent = `#${string}`;
 export type Accent = AccentId | CustomAccent;
 /** Where the toolbar icon opens Better X. */
 export type OpenAs = 'sidepanel' | 'popup';
+/** How tightly library rows are packed. Compact and dense fit more posts on screen. */
+export type Density = 'comfortable' | 'compact' | 'dense';
 
 /**
  * When account lookups happen. `manual`: only when a person clicks a badge's lookup control.
@@ -65,6 +67,7 @@ export interface Settings {
   version: typeof SETTINGS_VERSION;
   theme: Theme;
   accent: Accent;
+  density: Density;
   /** Shows download offers and actions. Turning it off never removes download history. */
   downloadsEnabled: boolean;
   afterSave: AfterSave;
@@ -95,6 +98,7 @@ export const DEFAULT_SETTINGS: Settings = {
   version: SETTINGS_VERSION,
   theme: 'auto',
   accent: 'blue',
+  density: 'comfortable',
   downloadsEnabled: true,
   afterSave: 'downloadOffer',
   menuActions: { download: true, openLibrary: true },
@@ -232,6 +236,7 @@ export function accentPalette(accent: Accent): AccentPalette {
 
 const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
+const DENSITIES = new Set<Density>(['comfortable', 'compact', 'dense']);
 const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
 const LOOKUPS = new Set<LookupMode>(['manual', 'hover', 'visible']);
 const FILTER_MODES = new Set<FilterMode>(['collapse', 'hide', 'highlight']);
@@ -315,6 +320,7 @@ export function normalizeSettings(input: unknown): Settings {
     version: SETTINGS_VERSION,
     theme: pick(value.theme, THEMES, d.theme),
     accent: normalizeAccent(value.accent, d.accent),
+    density: pick(value.density, DENSITIES, d.density),
     downloadsEnabled: bool(value.downloadsEnabled, d.downloadsEnabled),
     afterSave: pick(value.afterSave, AFTER_SAVE, d.afterSave),
     menuActions: {

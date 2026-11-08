@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, Download, History, Layers2, RotateCcw, Trash, Upload, X } from 'lucide-react';
 import { parseHex, toHex } from './ColorRow';
 import { SettingsBackup } from './SettingsBackup';
@@ -10,6 +10,7 @@ import {
   type Accent,
   type AccentId,
   type AfterSave,
+  type Density,
   type OpenAs,
   type Settings,
   type SettingsPatch,
@@ -29,6 +30,14 @@ const OPEN_AS: Array<{ value: OpenAs; label: string; hint: string }> = [
     hint: 'A compact window under the toolbar icon, closed by clicking elsewhere',
   },
 ];
+
+const DENSITIES: Array<{ value: Density; label: string; hint: string }> = [
+  { value: 'comfortable', label: 'Comfortable', hint: 'Roomy rows, up to 3 lines of text' },
+  { value: 'compact', label: 'Compact', hint: 'Tighter rows, 2 lines of text' },
+  { value: 'dense', label: 'Dense', hint: 'Smallest rows, 1 line of text, fits the most posts' },
+];
+
+const CLOSE_MS = 200;
 
 const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
   {
@@ -150,21 +159,29 @@ export function SettingsDialog({
   downloadCount: number;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const [closing, setClosing] = useState(false);
   useEffect(() => closeRef.current?.focus(), []);
+  // Play the slide-out before unmounting; skip the wait when motion is reduced.
+  const requestClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(onClose, reduced ? 0 : CLOSE_MS);
+  }, [closing, onClose]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') requestClose();
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [requestClose]);
   const downloads = settings.downloadsEnabled;
   const about = getAbout();
   return (
     <div
-      className="modal-backdrop settings-backdrop"
+      className={`modal-backdrop settings-backdrop ${closing ? 'is-closing' : ''}`}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) requestClose();
       }}
     >
       <section
@@ -179,7 +196,7 @@ export function SettingsDialog({
             ref={closeRef}
             className="icon-button"
             aria-label="Close settings"
-            onClick={onClose}
+            onClick={requestClose}
           >
             <X size={17} />
           </button>
@@ -225,6 +242,25 @@ export function SettingsDialog({
           </div>
           <CustomAccent accent={settings.accent} onPick={(accent) => onChange({ accent })} />
           <Preview settings={settings} />
+          <div className="field-label" id="density-label">
+            Library density
+          </div>
+          <div className="radio-list" role="radiogroup" aria-labelledby="density-label">
+            {DENSITIES.map((option) => (
+              <label key={option.value} className="radio-option">
+                <input
+                  type="radio"
+                  name="density"
+                  checked={settings.density === option.value}
+                  onChange={() => onChange({ density: option.value })}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.hint}</small>
+                </span>
+              </label>
+            ))}
+          </div>
         </section>
 
         <section className="settings-section" aria-labelledby="open-title">

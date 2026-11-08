@@ -21,6 +21,7 @@ function applyAppearance(settings: Settings) {
   const root = document.documentElement;
   const accent = accentPalette(settings.accent);
   root.dataset.theme = settings.theme;
+  root.dataset.density = settings.density;
   root.dataset.accent = Object.hasOwn(ACCENTS, settings.accent) ? settings.accent : 'custom';
   root.style.setProperty('--brand', accent.brand);
   root.style.setProperty('--accent-light', accent.text);
