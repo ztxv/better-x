@@ -123,7 +123,7 @@ describe('following the stored mode', () => {
   });
 
   it('a stored invalid mode is the side panel', async () => {
-    await chrome.storage.local.set({ 'bx.settings': { version: 4, openAs: 'window' } });
+    await chrome.storage.local.set({ 'bx.settings': { version: 4, openAs: 'tab' } });
     expect((await loadSettings()).openAs).toBe('sidepanel');
   });
 });

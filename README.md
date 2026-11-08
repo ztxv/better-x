@@ -82,7 +82,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 **Open it your way**
 
-- Settings → **Open Better X as**: the toolbar icon opens the side panel (default) or a compact popup. The popup is the same app, and has a button to open the side panel.
+- Settings → **Open Better X as**: the toolbar icon opens the side panel (default) a compact popup (480, 580 or 600 px tall: Chrome allows no taller popup), or a **floating window** you can move and resize to any size, which remembers its size and position. All three are the same app; the popup has a button to open the side panel.
 
 **Appearance**
 

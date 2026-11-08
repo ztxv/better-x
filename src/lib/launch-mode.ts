@@ -22,7 +22,9 @@ export const chromeLaunchApi = (): LaunchApi => ({
  * fires `action.onClicked`), so each mode clears the other:
  *
  * - side panel: no popup (`''`), and "open the panel when the icon is clicked" on;
- * - popup: the popup page, and "open the panel when the icon is clicked" off.
+ * - popup: the popup page, and "open the panel when the icon is clicked" off;
+ * - window: neither, so a click reaches `action.onClicked`, where the background worker opens or
+ *   focuses the floating window (`src/lib/floating-window.ts`).
  *
  * Chrome forgets a popup set at run time when the browser restarts or the extension reloads, so
  * the background worker calls this on every start as well as when the setting changes.
@@ -31,6 +33,9 @@ export async function applyLaunchMode(mode: OpenAs, api: LaunchApi = chromeLaunc
   if (mode === 'popup') {
     await api.setPanelBehavior({ openPanelOnActionClick: false });
     await api.setPopup({ popup: POPUP_PAGE });
+  } else if (mode === 'window') {
+    await api.setPanelBehavior({ openPanelOnActionClick: false });
+    await api.setPopup({ popup: '' });
   } else {
     await api.setPopup({ popup: '' });
     await api.setPanelBehavior({ openPanelOnActionClick: true });

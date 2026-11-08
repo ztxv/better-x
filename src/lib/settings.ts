@@ -29,7 +29,7 @@ export type AccentId = 'blue' | 'purple' | 'green' | 'orange' | 'pink';
 export type CustomAccent = `#${string}`;
 export type Accent = AccentId | CustomAccent;
 /** Where the toolbar icon opens Better X. */
-export type OpenAs = 'sidepanel' | 'popup';
+export type OpenAs = 'sidepanel' | 'popup' | 'window';
 /**
  * How tall the toolbar popup is. Chrome never draws an extension popup taller than 600 px (or
  * wider than 800), so `tall` is the most there is; the side panel is always the window's height.
@@ -241,7 +241,7 @@ export function accentPalette(accent: Accent): AccentPalette {
 const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
 const DENSITIES = new Set<Density>(['comfortable', 'compact', 'dense']);
-const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
+const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup', 'window']);
 const POPUP_HEIGHTS = new Set<PopupHeight>(['compact', 'standard', 'tall']);
 const LOOKUPS = new Set<LookupMode>(['manual', 'hover', 'visible']);
 const FILTER_MODES = new Set<FilterMode>(['collapse', 'hide', 'highlight']);

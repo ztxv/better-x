@@ -121,12 +121,13 @@ function useLibrary() {
   return { library, loading, error, refresh };
 }
 
-export type AppMode = 'panel' | 'popup';
+export type AppMode = 'panel' | 'popup' | 'window';
 
 /**
  * The Better X application. The same component runs in the side panel and in the toolbar popup:
  * `mode` only changes the layout (a fixed-size window with its own scrolling, and a way to move
- * to the side panel). Both read and write the same storage, so they always agree.
+ * to the side panel; or, in `window` mode, the side panel's layout filling a floating window of its
+ * own). All read and write the same storage, so they always agree.
  */
 export function App({ mode = 'panel' }: { mode?: AppMode }) {
   const { library, loading, error, refresh } = useLibrary();

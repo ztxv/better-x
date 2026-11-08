@@ -30,6 +30,11 @@ const OPEN_AS: Array<{ value: OpenAs; label: string; hint: string }> = [
     label: 'Popup',
     hint: 'A compact window under the toolbar icon, closed by clicking elsewhere',
   },
+  {
+    value: 'window',
+    label: 'Floating window',
+    hint: 'Its own window: move it anywhere and resize it as tall as your screen; it remembers its size',
+  },
 ];
 
 const DENSITIES: Array<{ value: Density; label: string; hint: string }> = [

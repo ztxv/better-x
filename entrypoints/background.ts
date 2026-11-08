@@ -1,5 +1,6 @@
 import { DownloadRepository } from '../src/downloads/repository';
 import { DownloadService, type Downloader } from '../src/downloads/service';
+import { followFloatingWindow, openFloatingWindow } from '../src/lib/floating-window';
 import { followLaunchMode, POPUP_PAGE } from '../src/lib/launch-mode';
 import { loadSettings, type OpenAs } from '../src/lib/settings';
 import { BookmarkRepository } from '../src/storage/repository';
@@ -61,6 +62,15 @@ export default defineBackground(() => {
   followLaunchMode(undefined, undefined, (mode) => (launchMode = mode));
   // These listeners exist so Chrome starts the worker when the browser starts and when the
   // extension is installed or updated: that start is what restores the toolbar mode.
+  // Floating window mode: the icon has no popup and does not open the panel, so its click lands
+  // here. The stored mode is read, not the in-memory copy, because this click may be what woke
+  // the worker. The window remembers its size and position as it is moved and resized.
+  chrome.action.onClicked.addListener(() => {
+    void loadSettings().then((settings) => {
+      if (settings.openAs === 'window') return openFloatingWindow();
+    });
+  });
+  followFloatingWindow();
   chrome.runtime.onStartup.addListener(() => {});
   chrome.runtime.onInstalled.addListener(() => {});
   // Pick up downloads that changed while the worker was stopped.
@@ -82,6 +92,7 @@ export default defineBackground(() => {
             // In popup mode the in-page "open library" shows the popup (Chrome 127 and later); if
             // that is unavailable or refused, the side panel is the fallback. The mode is held in
             // memory so the side panel path, which needs the click's gesture, waits for nothing.
+            if (launchMode === 'window') return openFloatingWindow();
             if (launchMode === 'popup' && typeof chrome.action.openPopup === 'function')
               try {
                 await chrome.action.openPopup({ windowId });
