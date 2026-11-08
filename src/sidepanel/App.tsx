@@ -8,6 +8,7 @@ import {
   FolderPlus,
   MoreHorizontal,
   Pencil,
+  AppWindow,
   PanelRight,
   Search,
   Settings2,
@@ -146,6 +147,17 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
       window.close();
     } catch {
       showNotice('Could not open the side panel from here.');
+    }
+  };
+  const openPopup = async () => {
+    try {
+      const win = await chrome.windows.getCurrent();
+      if (win.id === undefined) throw new Error('No window');
+      // The worker opens the popup a moment after this panel closes itself.
+      void request({ type: 'showPopup', windowId: win.id }).catch(() => {});
+      window.close();
+    } catch {
+      showNotice('Could not open the popup from here.');
     }
   };
   const [view, setView] = useState<View>({ kind: 'all' });
@@ -464,6 +476,16 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
               onClick={() => void openSidePanel()}
             >
               <PanelRight size={17} />
+            </button>
+          )}
+          {mode === 'panel' && (
+            <button
+              className="icon-button open-panel-button"
+              aria-label="Open in popup"
+              title="Open in popup"
+              onClick={() => void openPopup()}
+            >
+              <AppWindow size={17} />
             </button>
           )}
           <button

@@ -1,6 +1,6 @@
 import { DownloadRepository } from '../src/downloads/repository';
 import { DownloadService, type Downloader } from '../src/downloads/service';
-import { followLaunchMode } from '../src/lib/launch-mode';
+import { followLaunchMode, POPUP_PAGE } from '../src/lib/launch-mode';
 import { loadSettings, type OpenAs } from '../src/lib/settings';
 import { BookmarkRepository } from '../src/storage/repository';
 import type { DownloadRecord, Request, Response } from '../src/types/model';
@@ -90,6 +90,22 @@ export default defineBackground(() => {
                 /* fall through to the side panel */
               }
             return chrome.sidePanel.open({ windowId });
+          }
+          case 'showPopup': {
+            // The side panel's "Open in popup": show the popup once, without changing which one
+            // the toolbar icon opens. The icon has no popup in side panel mode, so one is set just
+            // long enough to open, then put back as the mode says.
+            const windowId = message.windowId;
+            if (!Number.isInteger(windowId)) throw new Error('Could not find this window.');
+            await chrome.action.setPopup({ popup: POPUP_PAGE });
+            try {
+              // A moment for the side panel to finish closing, so it does not take the focus back.
+              await new Promise((resolve) => setTimeout(resolve, 200));
+              await chrome.action.openPopup({ windowId });
+            } finally {
+              await chrome.action.setPopup({ popup: launchMode === 'popup' ? POPUP_PAGE : '' });
+            }
+            return;
           }
           case 'savedIds':
             return repository.savedIds();

@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Download, History, Layers2, RotateCcw, Trash, Upload, X } from 'lucide-react';
+import { parseHex, toHex } from './ColorRow';
 import { SettingsBackup } from './SettingsBackup';
 import { Toggle } from './Toggle';
 import { REPO_URL, getAbout } from '../lib/about';
 import {
   ACCENTS,
+  accentPalette,
+  type Accent,
   type AccentId,
   type AfterSave,
   type OpenAs,
@@ -40,6 +43,52 @@ const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
   },
   { value: 'quiet', label: 'Quiet', hint: 'Only the icon fills in' },
 ];
+
+/** Any color as the accent: a picker and a hex box, shown selected while a custom color is in use. */
+function CustomAccent({ accent, onPick }: { accent: Accent; onPick: (accent: Accent) => void }) {
+  const custom = !Object.hasOwn(ACCENTS, accent);
+  const shown = accentPalette(accent).brand;
+  const [text, setText] = useState(shown);
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    if (!typing) setText(shown);
+  }, [shown, typing]);
+  const invalid = typing && text.trim() !== '' && parseHex(text) === null;
+  const pick = (value: number) => onPick(toHex(value) as Accent);
+  return (
+    <div className="accent-custom">
+      <label className={`swatch custom-swatch ${custom ? 'active' : ''}`} title="Pick any color">
+        <input
+          type="color"
+          aria-label="Custom accent color"
+          value={shown}
+          onChange={(event) => {
+            setTyping(false);
+            pick(parseHex(event.target.value) ?? 0);
+          }}
+        />
+        {custom && <Check size={14} strokeWidth={3} />}
+      </label>
+      <input
+        type="text"
+        className="color-hex"
+        aria-label="Accent color hex code"
+        aria-invalid={invalid}
+        spellCheck={false}
+        maxLength={7}
+        placeholder="#1d9bf0"
+        value={text}
+        onFocus={() => setTyping(true)}
+        onChange={(event) => {
+          setText(event.target.value);
+          const next = parseHex(event.target.value);
+          if (next !== null) pick(next);
+        }}
+        onBlur={() => setTyping(false)}
+      />
+    </div>
+  );
+}
 
 /** A miniature of the X page overlays, drawn with the chosen accent and the current theme. */
 function Preview({ settings }: { settings: Settings }) {
@@ -174,6 +223,7 @@ export function SettingsDialog({
               </button>
             ))}
           </div>
+          <CustomAccent accent={settings.accent} onPick={(accent) => onChange({ accent })} />
           <Preview settings={settings} />
         </section>
 

@@ -1,6 +1,6 @@
 import { el } from '../content/popover';
 import {
-  ACCENTS,
+  accentPalette,
   DEFAULT_SETTINGS,
   loadSettings,
   watchSettings,
@@ -44,7 +44,7 @@ export function startSaved(scope: Scope, { posts, actionRow, routes }: SavedDeps
   function applySettings(next: Settings) {
     ctx.settings = next;
     // A scoped custom property only; X's own styles and markup are untouched.
-    accentStyle.textContent = `:root{--bx-accent:${ACCENTS[next.accent].brand}}`;
+    accentStyle.textContent = `:root{--bx-accent:${accentPalette(next.accent).brand}}`;
     if (!accentStyle.isConnected) (document.head ?? document.documentElement).append(accentStyle);
     // Hidden actions disappear from an open overlay right away.
     if (

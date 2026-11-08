@@ -21,6 +21,9 @@ export const SETTINGS_VERSION = 5;
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
 export type AccentId = 'blue' | 'purple' | 'green' | 'orange' | 'pink';
+/** A color of the person's own choosing, always written `#rrggbb` (lowercase). */
+export type CustomAccent = `#${string}`;
+export type Accent = AccentId | CustomAccent;
 /** Where the toolbar icon opens Better X. */
 export type OpenAs = 'sidepanel' | 'popup';
 
@@ -61,7 +64,7 @@ export const MAX_ALWAYS_SHOW = 200;
 export interface Settings {
   version: typeof SETTINGS_VERSION;
   theme: Theme;
-  accent: AccentId;
+  accent: Accent;
   /** Shows download offers and actions. Turning it off never removes download history. */
   downloadsEnabled: boolean;
   afterSave: AfterSave;
@@ -162,6 +165,71 @@ export const ACCENTS: Record<
   },
 };
 
+const CUSTOM_ACCENT = /^#[0-9a-f]{6}$/i;
+/** A preset's id or a `#rrggbb` color (any case) as the accent it names, else null. */
+export function parseAccent(value: unknown): Accent | null {
+  if (typeof value !== 'string') return null;
+  if (Object.hasOwn(ACCENTS, value)) return value as AccentId;
+  return CUSTOM_ACCENT.test(value) ? (value.toLowerCase() as CustomAccent) : null;
+}
+export const normalizeAccent = (value: unknown, fallback: Accent): Accent =>
+  parseAccent(value) ?? fallback;
+
+export interface AccentPalette {
+  brand: string;
+  text: string;
+  textDark: string;
+  softLight: string;
+  softDark: string;
+}
+
+type Rgb = [number, number, number];
+const toRgb = (hex: string): Rgb => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
+const toHex = (rgb: Rgb) =>
+  `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+const mix = (a: Rgb, b: Rgb, t: number): Rgb => a.map((c, i) => c + (b[i]! - c) * t) as Rgb;
+const luminance = ([r, g, b]: Rgb) => {
+  const [lr, lg, lb] = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  }) as Rgb;
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+};
+const contrast = (a: Rgb, b: Rgb) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/** Moves `color` toward `target` just far enough to reach 4.5:1 against `against`. */
+function readable(color: Rgb, target: Rgb, against: Rgb): Rgb {
+  let result = color;
+  for (let t = 0; t <= 1 && contrast(result, against) < 4.5; t += 0.05)
+    result = mix(color, target, t);
+  return result;
+}
+
+const WHITE: Rgb = [255, 255, 255];
+const BLACK: Rgb = [0, 0, 0];
+const DARK_SURFACE: Rgb = [15, 20, 25];
+
+/**
+ * The shades the side panel and X need for an accent. A preset has them written out; a custom
+ * color gets them worked out: a text shade dark enough for 4.5:1 on white, one light enough for
+ * 4.5:1 on the dark surface (so the label on a filled button stays readable in both themes), and
+ * faint tints for backgrounds.
+ */
+export function accentPalette(accent: Accent): AccentPalette {
+  if (Object.hasOwn(ACCENTS, accent)) return ACCENTS[accent as AccentId];
+  const brand = toRgb(accent);
+  return {
+    brand: accent,
+    text: toHex(readable(brand, BLACK, WHITE)),
+    textDark: toHex(readable(brand, WHITE, DARK_SURFACE)),
+    softLight: toHex(mix(brand, WHITE, 0.92)),
+    softDark: toHex(mix(brand, BLACK, 0.85)),
+  };
+}
+
 const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
 const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
@@ -246,7 +314,7 @@ export function normalizeSettings(input: unknown): Settings {
   return {
     version: SETTINGS_VERSION,
     theme: pick(value.theme, THEMES, d.theme),
-    accent: Object.hasOwn(ACCENTS, value.accent as string) ? (value.accent as AccentId) : d.accent,
+    accent: normalizeAccent(value.accent, d.accent),
     downloadsEnabled: bool(value.downloadsEnabled, d.downloadsEnabled),
     afterSave: pick(value.afterSave, AFTER_SAVE, d.afterSave),
     menuActions: {

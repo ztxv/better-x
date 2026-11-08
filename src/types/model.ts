@@ -209,6 +209,7 @@ export type Request =
   | { type: 'restore'; bookmarks: Bookmark[] }
   | { type: 'clearBookmarks' }
   | { type: 'openPanel' }
+  | { type: 'showPopup'; windowId: number }
   | { type: 'list' }
   | { type: 'get'; id: string }
   | { type: 'save'; draft: BookmarkDraft }

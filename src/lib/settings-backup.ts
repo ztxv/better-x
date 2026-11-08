@@ -1,14 +1,14 @@
 import type { FeatureRegistry } from '../features/registry';
 import { resolveValue } from '../features/registry';
 import {
-  ACCENTS,
   DEFAULT_SETTINGS,
   MAX_ALWAYS_SHOW,
   MAX_COUNTRIES,
   normalizeAlwaysShow,
   normalizeHandle,
   normalizeCountries,
-  type AccentId,
+  parseAccent,
+  type Accent,
   type AlwaysShowEntry,
   type FilterMode,
   type FilterSettings,
@@ -54,7 +54,7 @@ export interface SettingsBackup {
   exportedAt: string;
   features: Record<string, boolean>;
   values: Record<string, number>;
-  appearance: { theme: Theme; accent: AccentId };
+  appearance: { theme: Theme; accent: Accent };
   insights: { lookup: LookupMode };
   filter: FilterSettings;
 }
@@ -63,7 +63,7 @@ export interface SettingsBackup {
 export interface ValidatedBackup {
   features: Record<string, boolean>;
   values: Record<string, number>;
-  appearance: { theme?: Theme; accent?: AccentId };
+  appearance: { theme?: Theme; accent?: Accent };
   /**
    * True when the file's version knows about account insights and the country filter, so
    * Replace may reset them. A version 1 file cannot name them and leaves them alone.
@@ -224,8 +224,8 @@ export function parseSettingsBackup(
   }
   if (appearance.accent !== undefined) {
     found++;
-    if (typeof appearance.accent === 'string' && Object.hasOwn(ACCENTS, appearance.accent))
-      backup.appearance.accent = appearance.accent as AccentId;
+    const accent = parseAccent(appearance.accent);
+    if (accent) backup.appearance.accent = accent;
     else invalid++;
   }
 

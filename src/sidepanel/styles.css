@@ -2477,3 +2477,33 @@ body.is-popup {
 .color-hex[aria-invalid='true'] {
   border-color: var(--danger);
 }
+
+.accent-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.custom-swatch {
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  overflow: hidden;
+  --swatch: conic-gradient(#f91880, #ff7a00, #ffd400, #00ba7c, #1d9bf0, #7856ff, #f91880);
+  background: var(--swatch);
+}
+.custom-swatch.active {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.custom-swatch input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.custom-swatch svg {
+  pointer-events: none;
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { request } from '../lib/api';
 import {
   ACCENTS,
+  accentPalette,
   DEFAULT_SETTINGS,
   loadSettings,
   normalizeSettings,
@@ -18,9 +19,9 @@ const THEME_CACHE = 'bx.theme';
 
 function applyAppearance(settings: Settings) {
   const root = document.documentElement;
-  const accent = ACCENTS[settings.accent];
+  const accent = accentPalette(settings.accent);
   root.dataset.theme = settings.theme;
-  root.dataset.accent = settings.accent;
+  root.dataset.accent = Object.hasOwn(ACCENTS, settings.accent) ? settings.accent : 'custom';
   root.style.setProperty('--brand', accent.brand);
   root.style.setProperty('--accent-light', accent.text);
   root.style.setProperty('--accent-dark', accent.textDark);
