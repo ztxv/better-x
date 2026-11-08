@@ -85,6 +85,19 @@ export interface SliderFeature extends FeatureBase {
 }
 
 /**
+ * An on/off option with a color. The color is stored as one whole number (0xRRGGBB), so it travels
+ * through the same `values` storage and backups as slider numbers. `css` gets the validated number.
+ */
+export interface ColorFeature extends FeatureBase {
+  kind: 'color';
+  defaultValue: number;
+  css(value: number): string;
+}
+
+/** A feature that carries a stored number besides its switch. */
+export type ValueFeature = SliderFeature | ColorFeature;
+
+/**
  * A customization feature: what it is called, how it is set, what it does to the page.
  *
  * A feature changes the page with `css` (applied while it is on, in one shared stylesheet),
@@ -92,4 +105,4 @@ export interface SliderFeature extends FeatureBase {
  * route/layout restrictions are not modelled; a feature that needs them checks the runtime in
  * `activate` or scopes its selectors on `<html data-bx-route data-bx-layout data-bx-sidebar>`.
  */
-export type FeatureDef = ToggleFeature | SliderFeature;
+export type FeatureDef = ToggleFeature | SliderFeature | ColorFeature;

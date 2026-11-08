@@ -1,4 +1,4 @@
-import type { FeatureDef, SliderFeature } from './types';
+import type { FeatureDef, SliderFeature, ValueFeature } from './types';
 
 const ID = /^[a-z][A-Za-z0-9]{0,31}\.[a-z][A-Za-z0-9]{0,47}$/;
 
@@ -7,7 +7,7 @@ export interface FeatureRegistry {
   get(id: string): FeatureDef | undefined;
   /** Every feature's toggle: the stored value when valid, else the feature's default. */
   enabled(stored: Record<string, boolean> | undefined): Record<string, boolean>;
-  /** Every slider's number, validated against its range and step, else its default. */
+  /** Every slider's number and color, validated, else the default. */
   values(stored: Record<string, number> | undefined): Record<string, number>;
 }
 
@@ -28,6 +28,16 @@ export function resolveSliderValue(def: SliderFeature, stored: unknown): number 
   const clamped = Math.min(def.max, Math.max(def.min, stored));
   const snapped = def.min + Math.round((clamped - def.min) / def.step) * def.step;
   return Number(Math.min(def.max, snapped).toFixed(decimals(def.step)));
+}
+
+/** Whether `value` is a whole number a color can be stored as (0xRRGGBB). */
+export const isColorNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffffff;
+
+/** The stored number a slider or color should use: validated, else the feature's default. */
+export function resolveValue(def: ValueFeature, stored: unknown): number {
+  if (def.kind === 'slider') return resolveSliderValue(def, stored);
+  return isColorNumber(stored) ? stored : def.defaultValue;
 }
 
 function checkSlider(def: SliderFeature) {
@@ -65,7 +75,7 @@ export function createFeatureRegistry(defs: readonly FeatureDef[]): FeatureRegis
     values(stored) {
       const result: Record<string, number> = {};
       for (const def of defs)
-        if (def.kind === 'slider') result[def.id] = resolveSliderValue(def, stored?.[def.id]);
+        if (def.kind !== 'toggle') result[def.id] = resolveValue(def, stored?.[def.id]);
       return result;
     },
   };

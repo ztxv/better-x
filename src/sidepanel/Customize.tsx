@@ -23,6 +23,8 @@ import { FeatureGroup } from './FeatureGroup';
 import { FilterPanel } from './FilterPanel';
 import { InsightsPanel } from './InsightsPanel';
 import { Presets } from './Presets';
+import { ColorRow } from './ColorRow';
+import { centerInRow, useDragScroll } from './dragScroll';
 import { SliderRow } from './SliderRow';
 import { Toggle } from './Toggle';
 
@@ -116,6 +118,9 @@ export function Customize({
     });
   }, []);
 
+  const chipsRef = useRef<HTMLDivElement>(null);
+  useDragScroll(chipsRef);
+
   function pickCategory(next: FeatureCategory | 'all') {
     setCategory(next);
     if (next !== 'all') setGroupOpen(next, true);
@@ -203,7 +208,7 @@ export function Customize({
             </button>
           )}
         </div>
-        <div className="category-chips" role="group" aria-label="Show category">
+        <div className="category-chips" role="group" aria-label="Show category" ref={chipsRef}>
           {(['all', ...CATEGORIES] as const).map((id) => {
             const members = id === 'all' ? FEATURES : FEATURES.filter((def) => def.category === id);
             const on = members.filter((def) => states.get(def.id)!.enabled).length;
@@ -213,7 +218,10 @@ export function Customize({
                 type="button"
                 className="category-chip"
                 aria-pressed={category === id}
-                onClick={() => pickCategory(id)}
+                onClick={(event) => {
+                  pickCategory(id);
+                  if (chipsRef.current) centerInRow(chipsRef.current, event.currentTarget);
+                }}
               >
                 {id === 'all' ? 'All' : CATEGORY_SHORT[id]}
                 {on > 0 && <span className="category-chip-count">{on}</span>}
@@ -292,6 +300,14 @@ export function Customize({
                 >
                   {def.kind === 'slider' ? (
                     <SliderRow
+                      feature={def}
+                      enabled={state.enabled}
+                      value={state.value!}
+                      onToggle={(on) => change({ features: { [def.id]: on } })}
+                      onValue={(value) => change({ values: { [def.id]: value } })}
+                    />
+                  ) : def.kind === 'color' ? (
+                    <ColorRow
                       feature={def}
                       enabled={state.enabled}
                       value={state.value!}

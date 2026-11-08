@@ -37,8 +37,8 @@ export function featureState(
   registry: FeatureRegistry,
 ): FeatureState {
   const enabled = registry.enabled(settings.features)[def.id]!;
-  const value = def.kind === 'slider' ? registry.values(settings.values)[def.id]! : null;
+  const value = def.kind !== 'toggle' ? registry.values(settings.values)[def.id]! : null;
   const changed =
-    enabled !== def.defaultEnabled || (def.kind === 'slider' && value !== def.defaultValue);
+    enabled !== def.defaultEnabled || (def.kind !== 'toggle' && value !== def.defaultValue);
   return { enabled, value, changed };
 }

@@ -299,6 +299,14 @@ export const SCENARIOS = [
     hides: ['badge', 'focus-badge'],
     keeps: ['subscriber-badge', 'inner-plain'],
   }),
+  s('posts.verifiedColor', 'the check mark', {
+    style: {
+      target: '#badge',
+      prop: 'color',
+      off: (v) => v !== 'rgb(29, 155, 240)',
+      on: 'rgb(29, 155, 240)',
+    },
+  }),
   s('posts.plainText', 'post text', {
     style: { target: '#imagine-text span', prop: 'fontStyle', off: 'italic', on: 'normal' },
   }),
@@ -422,6 +430,17 @@ export const SCENARIOS = [
       min: 13,
       max: 22,
       def: 16,
+    },
+  }),
+  s('appearance.avatarShape', 'profile pictures', {
+    slider: {
+      target: '#sheet-pip',
+      prop: 'borderTopLeftRadius',
+      off: '0px',
+      on: (v) => `${v}%`,
+      min: 0,
+      max: 50,
+      def: 0,
     },
   }),
   s('appearance.systemFont', 'the whole page', {

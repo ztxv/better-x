@@ -107,7 +107,7 @@ export function presetPatch(
   const values: Record<string, number | null> = {};
   for (const def of registry.list()) {
     features[def.id] = on.has(def.id) ? true : null;
-    if (def.kind === 'slider') values[def.id] = preset.values?.[def.id] ?? null;
+    if (def.kind !== 'toggle') values[def.id] = preset.values?.[def.id] ?? null;
   }
   return { features, values };
 }
@@ -121,7 +121,7 @@ export function restorePatch(
   const values: Record<string, number | null> = {};
   for (const def of registry.list()) {
     features[def.id] = before.features[def.id] ?? null;
-    if (def.kind === 'slider') values[def.id] = before.values[def.id] ?? null;
+    if (def.kind !== 'toggle') values[def.id] = before.values[def.id] ?? null;
   }
   return { features, values };
 }
@@ -137,7 +137,7 @@ export function resetPatch(
   for (const def of registry.list()) {
     if (only && !only.has(def.id)) continue;
     features[def.id] = null;
-    if (def.kind === 'slider') values[def.id] = null;
+    if (def.kind !== 'toggle') values[def.id] = null;
   }
   return { features, values };
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Check, Download, History, Layers2, RotateCcw, Trash, Upload, X } from 'lucide-react';
 import { SettingsBackup } from './SettingsBackup';
 import { Toggle } from './Toggle';
+import { REPO_URL, getAbout } from '../lib/about';
 import {
   ACCENTS,
   type AccentId,
@@ -109,6 +110,7 @@ export function SettingsDialog({
     return () => removeEventListener('keydown', onKey);
   }, [onClose]);
   const downloads = settings.downloadsEnabled;
+  const about = getAbout();
   return (
     <div
       className="modal-backdrop settings-backdrop"
@@ -283,6 +285,16 @@ export function SettingsDialog({
           </button>
           <SettingsBackup settings={settings} apply={saveSettings} />
         </section>
+
+        <footer className="settings-about">
+          <span>
+            {about.name} v{about.version}
+            {about.updated && <> · Updated {about.updated}</>}
+          </span>
+          <a href={REPO_URL} target="_blank" rel="noreferrer">
+            GitHub
+          </a>
+        </footer>
       </section>
     </div>
   );

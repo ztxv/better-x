@@ -132,7 +132,9 @@ export const NAVIGATION_FEATURES: readonly ToggleFeature[] = [
     'Remove Calls from the menu.',
     hide(
       links(
-        ':is([href="/i/calls"], [href^="/i/calls/"], [href^="/i/chat/call"], [data-testid="AppTabBar_Calls_Link"])',
+        // X has moved this link around (/i/calls, /i/chat/call...), so match any /i/ route with
+        // "call" in it. Limited to /i/ so a profile link like /callum is never touched.
+        ':is([href^="/i/"][href*="call" i], [data-testid="AppTabBar_Calls_Link"], [aria-label="Calls" i])',
       ),
     ),
     ['call', 'voice', 'video'],

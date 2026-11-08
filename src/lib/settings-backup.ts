@@ -1,5 +1,5 @@
 import type { FeatureRegistry } from '../features/registry';
-import { resolveSliderValue } from '../features/registry';
+import { resolveValue } from '../features/registry';
 import {
   ACCENTS,
   DEFAULT_SETTINGS,
@@ -117,7 +117,7 @@ export function createSettingsBackup(
   for (const def of registry.list()) {
     const on = settings.features[def.id];
     if (typeof on === 'boolean') features[def.id] = on;
-    if (def.kind === 'slider' && settings.values[def.id] !== undefined)
+    if (def.kind !== 'toggle' && settings.values[def.id] !== undefined)
       values[def.id] = registry.values(settings.values)[def.id]!;
   }
   const filter = settings.filter ?? DEFAULT_SETTINGS.filter;
@@ -211,9 +211,9 @@ export function parseSettingsBackup(
     found++;
     const def = registry.get(id);
     if (!def) unsupported++;
-    else if (def.kind !== 'slider') invalid++;
+    else if (def.kind === 'toggle') invalid++;
     else if (typeof value !== 'number' || !Number.isFinite(value)) invalid++;
-    else if (resolveSliderValue(def, value) !== value) invalid++;
+    else if (resolveValue(def, value) !== value) invalid++;
     else backup.values[id] = value;
   }
   if (appearance.theme !== undefined) {
@@ -320,7 +320,7 @@ export function importPatch(
   if (mode === 'replace')
     for (const def of registry.list()) {
       features[def.id] = null;
-      if (def.kind === 'slider') values[def.id] = null;
+      if (def.kind !== 'toggle') values[def.id] = null;
     }
   Object.assign(features, backup.features);
   Object.assign(values, backup.values);
@@ -378,7 +378,7 @@ function countChanges(
   let changes = 0;
   for (const def of registry.list()) {
     if (was[def.id] !== will[def.id]) changes++;
-    if (def.kind === 'slider' && wasValues[def.id] !== willValues[def.id]) changes++;
+    if (def.kind !== 'toggle' && wasValues[def.id] !== willValues[def.id]) changes++;
   }
   if (patch.theme !== undefined && patch.theme !== current.theme) changes++;
   if (patch.accent !== undefined && patch.accent !== current.accent) changes++;

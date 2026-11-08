@@ -4,7 +4,10 @@ import { PRODUCT_NAME } from './src/lib/brand';
 
 export default defineConfig({
   modules: [],
-  vite: () => ({ plugins: [react()] }),
+  vite: () => ({
+    plugins: [react()],
+    define: { __BUILD_DATE__: JSON.stringify(new Date().toISOString()) },
+  }),
   manifest: {
     name: PRODUCT_NAME,
     description: 'Save, organize, and download posts from X in a private, local library.',

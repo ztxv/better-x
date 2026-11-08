@@ -1,4 +1,4 @@
-import type { FeatureCategory, SliderFeature, ToggleFeature } from './types';
+import type { ColorFeature, FeatureCategory, SliderFeature, ToggleFeature } from './types';
 
 interface SliderRange {
   min: number;
@@ -29,6 +29,26 @@ export function definitions(category: FeatureCategory) {
         keywords,
         kind: 'toggle',
         defaultEnabled: false,
+        css,
+      };
+    },
+    color(
+      name: string,
+      title: string,
+      description: string,
+      defaultValue: number,
+      css: (value: number) => string,
+      keywords: readonly string[] = [],
+    ): ColorFeature {
+      return {
+        id: `${category}.${name}`,
+        category,
+        title,
+        description,
+        keywords,
+        kind: 'color',
+        defaultEnabled: false,
+        defaultValue,
         css,
       };
     },

@@ -38,7 +38,7 @@ export function startFeatures(
     const css = registry
       .list()
       .filter((def) => running.has(def.id))
-      .map((def) => [def.id, def.kind === 'slider' ? def.css(values[def.id]!) : def.css] as const)
+      .map((def) => [def.id, def.kind !== 'toggle' ? def.css(values[def.id]!) : def.css] as const)
       .filter(([, css]) => css)
       .map(([id, css]) => `/* ${id} */\n${css}`)
       .join('\n');

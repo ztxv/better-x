@@ -88,6 +88,26 @@ export const APPEARANCE_FEATURES: ReadonlyArray<ToggleFeature | SliderFeature> =
       ),
     ['font', 'type', 'reading'],
   ),
+  slider(
+    'avatarShape',
+    'Profile picture shape',
+    'Square off profile pictures everywhere on X. Raise the number to round the corners again; 50 is a circle.',
+    { min: 0, max: 50, step: 5, defaultValue: 0, unit: '%' },
+    (radius) => {
+      const AVATAR =
+        ':is([data-testid^="UserAvatar-Container"], [data-testid="Tweet-User-Avatar"])';
+      // X shapes avatars with border-radius on nested boxes, and with clip-path or a mask for
+      // special shapes, so all of them are replaced by the one corner radius chosen here.
+      return rule(
+        [AVATAR, `${AVATAR} *`],
+        `border-radius: ${radius}% !important;
+  clip-path: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;`,
+      );
+    },
+    ['avatar', 'pfp', 'square', 'circle', 'round', 'profile photo'],
+  ),
   toggle(
     'systemFont',
     'Use the system font',

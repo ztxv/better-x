@@ -4,9 +4,9 @@
  */
 import { hide, onRoute, POST, PRIMARY_COLUMN, rule, within } from './css';
 import { definitions } from './define';
-import type { ToggleFeature } from './types';
+import type { ColorFeature, ToggleFeature } from './types';
 
-const { toggle } = definitions('posts');
+const { toggle, color } = definitions('posts');
 
 /** A post in the timeline, and the post at the top of a post's own page. */
 const TIMELINE_POST = `${POST}[tabindex="0"]`;
@@ -24,7 +24,7 @@ const count = (testIds: string) =>
  * X's own buttons by test ID and never Better X's controls (`data-bx-slot`), so Save and the
  * download buttons stay.
  */
-export const POST_FEATURES: readonly ToggleFeature[] = [
+export const POST_FEATURES: ReadonlyArray<ToggleFeature | ColorFeature> = [
   toggle(
     'hideViews',
     'Hide view counts',
@@ -148,6 +148,21 @@ export const POST_FEATURES: readonly ToggleFeature[] = [
     'Remove the check marks beside names. Hides every kind of badge, not only Premium ones.',
     hide('svg[data-testid="icon-verified"]', '[data-testid="verificationBadge"]'),
     ['blue check', 'premium', 'verified'],
+  ),
+  color(
+    'verifiedColor',
+    'Verification badge color',
+    'Recolor the check marks beside names. Applies to every kind of badge, including gold and gray ones.',
+    0x1d9bf0,
+    (value) => {
+      const hex = `#${value.toString(16).padStart(6, '0')}`;
+      return rule(
+        ['svg[data-testid="icon-verified"]', 'svg[data-testid="icon-verified"] :is(g, path)'],
+        `color: ${hex} !important;
+  fill: ${hex} !important;`,
+      );
+    },
+    ['blue check', 'premium', 'verified', 'colour', 'hex'],
   ),
   toggle(
     'plainText',

@@ -3,7 +3,7 @@ import { FEATURES, featureRegistry } from './index';
 import { CATEGORY_TITLES, type FeatureDef } from './types';
 
 /** The css a feature produces at the default number (sliders) or as written (toggles). */
-const cssOf = (def: FeatureDef) => (def.kind === 'slider' ? def.css(def.defaultValue) : def.css);
+const cssOf = (def: FeatureDef) => (def.kind === 'toggle' ? def.css : def.css(def.defaultValue));
 
 /** Splits a selector list on its top-level commas, so `:is(a, b)` stays whole. */
 function selectorsOf(css: string, declaration?: RegExp): string[] {
@@ -102,7 +102,7 @@ describe('feature catalog', () => {
       expect(def.css(def.min), def.id).not.toBe(def.css(def.max));
       for (const value of [def.min, def.defaultValue, def.max]) {
         const css = def.css(value);
-        expect(css, def.id).toContain(`${value}px`);
+        expect(css, def.id).toContain(`${value}${def.unit}`);
       }
     }
   });
@@ -110,12 +110,38 @@ describe('feature catalog', () => {
   it('has sliders only where a number means something', () => {
     const sliders = FEATURES.filter((def) => def.kind === 'slider').map((def) => def.id);
     expect(sliders.sort()).toEqual([
+      'appearance.avatarShape',
       'appearance.navSpacing',
       'appearance.navTextSize',
       'appearance.postTextSize',
       'appearance.sidebarWidth',
       'appearance.timelineWidth',
     ]);
+  });
+});
+
+describe('color features', () => {
+  it('write the stored number as a hex code, padded, and are the only ones that do', () => {
+    for (const def of FEATURES) {
+      if (def.kind !== 'color') continue;
+      expect(def.css(0x1d9bf0), def.id).toContain('#1d9bf0');
+      expect(def.css(0x0000ff), def.id).toContain('#0000ff');
+      expect(def.css(0), def.id).toContain('#000000');
+      expect(def.css(0xffffff), def.id).toContain('#ffffff');
+    }
+    expect(FEATURES.filter((def) => def.kind === 'color').map((def) => def.id)).toEqual([
+      'posts.verifiedColor',
+    ]);
+  });
+
+  it('only accepts a whole number a color can be (anything else falls back to the default)', () => {
+    for (const bad of [-1, 0x1000000, 1.5, NaN, '#fff', null]) {
+      const stored = { 'posts.verifiedColor': bad } as unknown as Record<string, number>;
+      expect(featureRegistry.values(stored)['posts.verifiedColor']).toBe(0x1d9bf0);
+    }
+    expect(featureRegistry.values({ 'posts.verifiedColor': 0xff00ff })['posts.verifiedColor']).toBe(
+      0xff00ff,
+    );
   });
 });
 
