@@ -32,7 +32,11 @@ describe('settings backup v3: X themes', () => {
   it('exports the theme, its custom colors and the Chat switch', () => {
     const backup = createSettingsBackup(mine, featureRegistry, NOW);
     expect(backup.version).toBe(3);
-    expect(backup.xTheme).toEqual(mine.xTheme);
+    expect(backup.xTheme).toEqual({
+      active: 'custom',
+      chat: true,
+      custom: { bg: '#101820', accent: '#ff8a3d' },
+    });
   });
 
   it('round-trips through a replace import into a fresh install', () => {

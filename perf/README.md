@@ -245,3 +245,18 @@ Reading it:
 - No long tasks in any mode, and `scrollMs` is unchanged within spread.
 - Memory: about +0.3 MB (warm) to +0.5 MB (cold) of JS heap for the service and cache of 17 accounts; the cache is capped at 3,000 entries (about 250 B each when stored).
 - Request pacing is the service's: two at a time, 500 ms apart, newest on-screen post first, dropped if the post scrolled away, paused by X's own rate-limit answers.
+
+## X themes (1.1.0 work, 2026-11-08)
+
+`node scripts/perf/run.mjs --shape x --theme dim --runs 5` on Windows 10 / Chrome (this machine, not the earlier baseline machine, so compare within the table only). Every mode loads the 200-post X-shaped page in X's dark mode (`data-theme="dark"`); `on` is the extension with no theme, `theme:dim` the same with Dim on. Medians, [min–max] over 5 runs:
+
+| Metric    | off (no extension)  | on (no theme)       | theme:dim           |
+| --------- | ------------------- | ------------------- | ------------------- |
+| Style ms  | 23.1 [20.6–27.5]    | 42.7 [41.6–49.6]    | 48.1 [45.5–49.8]    |
+| Layout ms | 46.3 [44.3–48.6]    | 62.5 [57.7–66.8]    | 63.4 [58.5–66.3]    |
+| Script ms | 0.9 [0.8–0.9]       | 37.4 [36.8–44.2]    | 37.3 [36.6–39.4]    |
+| Task ms   | 211.4 [196.9–216.5] | 391.2 [340.7–399.3] | 349.5 [337.3–368.8] |
+| scrollMs  | 344 [341–361]       | 391 [382–455]       | 409 [394–420]       |
+| initialMs | 80 [74–84]          | 176 [126–180]       | 139 [132–143]       |
+
+Reading it: the theme adds no script (it runs once per settings change, not per post) and its ranges overlap the no-theme ranges on every metric. The one consistent shift is style, about +5 ms in medians over the whole 200-post session, which is what ~30 grouped rules under `html[data-bx-theme]` cost, including the `[style*="…"]` attribute matches. Inside the spread, so not investigated further; re-measure when the probe changes the selector table.

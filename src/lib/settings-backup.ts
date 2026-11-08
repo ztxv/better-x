@@ -64,7 +64,8 @@ export interface SettingsBackup {
   appearance: { theme: Theme; accent: Accent };
   insights: { lookup: LookupMode };
   filter: FilterSettings;
-  xTheme: XThemeSettings;
+  /** `custom` holds only the colors that differ from Lights Out (where Custom starts). */
+  xTheme: Pick<XThemeSettings, 'active' | 'chat'> & { custom?: Partial<ThemeSeed> };
 }
 
 /** What a file may set, after validation: only known features, in range, of the right type. */
@@ -147,7 +148,20 @@ export function createSettingsBackup(
       quotes: filter.quotes,
       alwaysShow: filter.alwaysShow.map((entry) => ({ ...entry })),
     },
-    xTheme: structuredClone(settings.xTheme ?? DEFAULT_SETTINGS.xTheme),
+    xTheme: themeForBackup(settings.xTheme ?? DEFAULT_SETTINGS.xTheme),
+  };
+}
+
+/** The theme as a file carries it: custom colors only where they differ from where Custom starts. */
+function themeForBackup(theme: XThemeSettings): SettingsBackup['xTheme'] {
+  const start = DEFAULT_SETTINGS.xTheme.custom;
+  const custom: Partial<ThemeSeed> = {};
+  for (const key of SEED_KEYS)
+    if (theme.custom[key] !== start[key]) custom[key] = theme.custom[key];
+  return {
+    active: theme.active,
+    chat: theme.chat,
+    ...(Object.keys(custom).length ? { custom } : {}),
   };
 }
 

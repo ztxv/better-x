@@ -145,3 +145,27 @@ Not verified on live X: the automated checks use X-shaped fixtures.
 - Where `User-Name` puts the @handle in every layout (the badge goes after the handle link's cell).
 - The exact `href`s and labels of the X Money and Articles menu entries.
 - Posting client (“Twitter for iPhone”): not built; see docs/ARCHITECTURE.md.
+
+## Themes
+
+**Not verified on live x.com.** The automated checks (`scripts/smoke/theme.mjs`) prove the rules on an X-shaped page whose classes and inline colors come from `src/themes/surfaces.ts`, which is seeded from Dim Mode for Twitter / X and Control Panel for Twitter, not from X itself. Do these on a normal signed-in x.com tab after reloading the extension.
+
+**Probe first.** On x.com in **Lights out**, open DevTools → Console, paste all of `scripts/theme/probe.js` and press Enter. It prints (and copies) one JSON report and changes nothing. Run it once with no theme, once with a theme on (it then also lists what was missed), on Home, a post, a profile, Messages and an open modal. Send the JSON back: `surfaces.ts` changes only from it.
+
+**Before the Themes tab exists**, choose a theme from the extension's service worker console (chrome://extensions → Better X → service worker → Console):
+
+```js
+const { 'bx.settings': s = {} } = await chrome.storage.local.get('bx.settings');
+await chrome.storage.local.set({ 'bx.settings': { ...s, xTheme: { ...s.xTheme, active: 'dim' } } });
+// Other ids: graphite midnight nord dracula mocha rosepine tokyo gruvbox solarized forest ember custom; null = off.
+```
+
+- [ ] **Lights out.** X Settings → Display → Background: Lights out. The page, columns, sticky header (still translucent), cards, menus, borders and dividers, handles and timestamps take the theme. No text is unreadable; nothing is hidden or moved.
+- [ ] **Default.** Switch X to Default: the theme steps aside completely (no dark patches, no dark text on white). Back to Lights out: it returns, without a reload.
+- [ ] **High contrast.** X Settings → Accessibility → Increase color contrast on and off, in Lights out.
+- [ ] **Media untouched.** Photos, videos, GIFs, avatars, link-card images and Premium promo images look exactly as without a theme. Image crop selection and icon hover circles stay see-through.
+- [ ] **Better X's own controls.** Save button, Saved chip, menus, account badges and the country filter's placeholders work and are readable.
+- [ ] **Two tabs.** Two x.com tabs open: change the theme from the service worker: both follow at once.
+- [ ] **First paint.** Reload x.com with a theme on: no flash of black before the theme (one frame at most).
+- [ ] **Extension reload.** Reload Better X at chrome://extensions with an x.com tab open: the old theme does not stick; after a page reload the theme is back.
+- [ ] **Chat (experimental, later).** With `xTheme.chat` on, Messages / the chat drawer take the theme.

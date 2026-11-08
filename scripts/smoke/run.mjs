@@ -7,9 +7,10 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { page as fixture, featuresPage, FEATURE_POSTS, ELON } from './fixture.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const EXT = path.resolve(process.argv[2] ?? path.join(ROOT, '.output/chrome-mv3'));
 const CHROME =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -549,7 +550,7 @@ await panel.keyboard.press('Escape');
 // Settings sheet.
 await panel.click('.settings-button');
 await panel.waitForSelector('.settings-sheet');
-await panel.click('.swatch[aria-label="Green"]');
+await panel.click('.settings-sheet .swatch[aria-label="Green"]');
 await sleep(200);
 const brand = await panel.evaluate(() =>
   getComputedStyle(document.documentElement).getPropertyValue('--brand').trim(),
@@ -1248,7 +1249,7 @@ await panel.click('.customize .slider-reset');
 check('the reset button returns it to its default', await waitWidth('700px'), await primaryWidth());
 check(
   'the slider is stored as a number, within its range',
-  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 5),
+  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 6),
 );
 await panel.click('.customize .setting-toggle input');
 check(
@@ -1400,7 +1401,7 @@ const exportedData = exportName && JSON.parse(fs.readFileSync(path.join(DL, expo
 check(
   'Export writes better-x-settings-DATE.json with the switches, numbers and look, and nothing else',
   exportedData?.format === 'better-x-settings' &&
-    exportedData.version === 2 &&
+    exportedData.version === 3 &&
     exportedData.features['cleanup.hideAds'] === true &&
     exportedData.values['appearance.timelineWidth'] === 820 &&
     exportedData.appearance.accent === 'pink' &&
@@ -1425,7 +1426,7 @@ check(
   'Import previews what the file holds, merge selected, and has changed nothing yet',
   (await panel.$eval(
     '.backup-preview',
-    (n) => /9 settings found/.test(n.textContent) && /9 recognized/.test(n.textContent),
+    (n) => /11 settings found/.test(n.textContent) && /11 recognized/.test(n.textContent),
   )) &&
     (await panel.$eval('.backup-modes input', (n) => n.checked)) &&
     Object.keys((await settingsNow()).features).length === 0,

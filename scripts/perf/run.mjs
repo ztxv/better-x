@@ -9,20 +9,23 @@
  * `--shape x` serves the same 200 posts inside X's shell (timeline cells, tweet test IDs, action
  * rows, navigation, sidebar) so customization rules have elements to match, and
  * `--features default,typical,all` adds extension modes with those customizations switched on.
+ * `--theme <id>` (an X theme preset, or `custom`) serves the page in X's dark mode and adds a
+ * mode with that theme on, so `vsDefault` is the theme's own cost.
  *
  * Usage: npm run build && node scripts/perf/run.mjs [--runs N] [--out file.json] [--shape x]
- *        [--features default,typical,all] [extension dir]
+ *        [--features default,typical,all] [--theme dim] [extension dir]
  * Default output: perf/runs/<timestamp>.json (git-ignored). CHROME_PATH overrides Chrome.
  */
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { photo, post } from '../smoke/fixture.mjs';
 import { actionRow, catalogPage, cell, tweetArticle } from '../smoke/catalog-fixture.mjs';
 import { COVERED_ELSEWHERE, SCENARIOS } from '../smoke/catalog-spec.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const args = process.argv.slice(2);
 const option = (name) => {
   const index = args.indexOf(name);
@@ -36,6 +39,7 @@ const SHAPE = option('--shape') ?? 'plain';
 /** Idle time before the metrics are read; a longer one shows what an idle page costs. */
 const SETTLE_MS = Number(option('--settle') ?? 500);
 const FEATURE_MODES = option('--features')?.split(',') ?? null;
+const THEME = option('--theme');
 if (!['plain', 'x'].includes(SHAPE)) throw new Error(`--shape is plain or x, not ${SHAPE}`);
 const EXT = path.resolve(args[0] ?? path.join(ROOT, '.output/chrome-mv3'));
 const CHROME =
@@ -184,7 +188,8 @@ function fixture() {
   </body></html>`;
 }
 
-const PAGE = fixture();
+// A theme applies only while X is dark, so with --theme every mode loads the page dark.
+const PAGE = THEME ? fixture().replace('<html', '<html data-theme="dark"') : fixture();
 const METRICS = [
   'ScriptDuration',
   'TaskDuration',
@@ -211,7 +216,7 @@ async function run(withExtension, features = [], extra = {}) {
       const target = await browser.waitForTarget(
         (t) => t.type() === 'service_worker' && t.url().startsWith('chrome-extension://'),
       );
-      if (features.length) {
+      if (features.length || extra.xTheme) {
         const worker = await target.worker();
         const on = Object.fromEntries(features.map((id) => [id, true]));
         const seed =
@@ -233,19 +238,22 @@ async function run(withExtension, features = [], extra = {}) {
               )
             : null;
         await worker.evaluate(
-          (features, filter, seed) =>
+          (features, filter, seed, xTheme) =>
             chrome.storage.local.set({
               'bx.settings': {
-                version: 5,
+                version: 6,
                 features,
+                ...(xTheme ? { xTheme } : {}),
                 insights: { lookup: 'visible' },
                 filter: { countries: filter ?? [], mode: 'collapse', posts: true, quotes: true },
               },
               ...(seed ? { 'bx.accounts': { v: 1, entries: seed } } : {}),
+              ...(xTheme ? { 'bx.xmode': 'dark' } : {}),
             }),
           on,
           extra.filter ?? null,
           seed,
+          extra.xTheme ?? null,
         );
       }
     }
@@ -424,6 +432,16 @@ const MODES = FEATURE_MODES
   : [
       { name: 'off', extension: false },
       { name: 'on', extension: true, features: [] },
+      ...(THEME
+        ? [
+            {
+              name: `theme:${THEME}`,
+              extension: true,
+              features: [],
+              extra: { xTheme: { active: THEME } },
+            },
+          ]
+        : []),
     ];
 const results = Object.fromEntries(MODES.map((mode) => [mode.name, []]));
 for (let i = 0; i < RUNS; i++) {
@@ -491,7 +509,7 @@ const report = {
     durations: 'ms (CDP Performance.getMetrics, whole page lifetime)',
     JSHeapUsedSize: 'MB (page main world; content script worlds share the heap)',
   },
-  summary: FEATURE_MODES ? { ...summaries, deltas } : { off, on, deltaOfMedians: delta },
+  summary: FEATURE_MODES || THEME ? { ...summaries, deltas } : { off, on, deltaOfMedians: delta },
   runs: results,
 };
 
@@ -500,7 +518,7 @@ const out = OUT
   : path.join(ROOT, 'perf', 'runs', `${report.recordedAt.replace(/[:.]/g, '-')}.json`);
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
-if (FEATURE_MODES) {
+if (FEATURE_MODES || THEME) {
   const names = MODES.map((mode) => mode.name);
   console.log(`\nmedian (cv%)         ${names.map((n) => n.padEnd(17)).join('')}`);
   for (const key of Object.keys(summaries[onName])) {

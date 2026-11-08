@@ -10,8 +10,9 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const EXT = path.resolve(process.argv[2] ?? path.join(ROOT, '.output/chrome-mv3'));
 const CHROME =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -217,8 +218,9 @@ await popup.waitForFunction(() => document.querySelectorAll('.bookmark-item').le
 await popup.click('#customize-tab');
 await popup.waitForSelector('.customize input[type="search"]');
 check(
-  'Customize lists all 71 settings in the popup',
-  (await popup.$$('.customize .setting-toggle')).length === 71,
+  'Customize lists all 74 settings in the popup',
+  (await popup.$$('.customize .setting-toggle')).length === 74,
+  String((await popup.$$('.customize .setting-toggle')).length),
 );
 await popup.screenshot({ path: path.join(OUT, 'popup-customize.png') });
 await popup.evaluate(() =>

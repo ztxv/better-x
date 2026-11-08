@@ -9,10 +9,11 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { catalogPage } from './catalog-fixture.mjs';
 import { COVERED_ELSEWHERE, PATHS, SCENARIOS } from './catalog-spec.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const EXT = path.resolve(process.argv[2] ?? path.join(ROOT, '.output/chrome-mv3'));
 const CHROME =
   process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';

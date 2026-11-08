@@ -10,7 +10,14 @@ export async function freshEnvironment() {
   globalThis.chrome = {
     storage: {
       local: {
-        get: async (key: string) => (key in data ? { [key]: data[key] } : {}),
+        // One key or several, as Chrome accepts.
+        get: async (keys: string | string[]) =>
+          Object.fromEntries(
+            [keys]
+              .flat()
+              .filter((key) => key in data)
+              .map((key) => [key, data[key]]),
+          ),
         set: async (values: Record<string, unknown>) => {
           const changes: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(values)) {

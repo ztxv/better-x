@@ -81,7 +81,7 @@ describe('settings backup: export', () => {
       appearance: { theme: 'dark', accent: 'pink' },
       insights: { lookup: 'hover' },
       filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
-      xTheme: DEFAULT_SETTINGS.xTheme,
+      xTheme: { active: null, chat: false },
     });
   });
 
@@ -151,7 +151,7 @@ describe('settings backup: reading a file', () => {
         alwaysShow: [],
       },
       themes: true,
-      xTheme: { active: null, chat: false, custom: DEFAULT_SETTINGS.xTheme.custom },
+      xTheme: { active: null, chat: false },
     });
     const stored = await importFile(JSON.parse(text), 'replace');
     expect(stored.features).toEqual(configured.features);
