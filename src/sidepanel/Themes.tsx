@@ -7,7 +7,6 @@ import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, PRESETS } from '../themes/presets';
 import type { XMode } from '../themes/types';
 import { ThemeCard } from './ThemeCard';
 import { ThemeEditor } from './ThemeEditor';
-import { Toggle } from './Toggle';
 
 const LIGHTS_OUT = deriveTokens(LIGHTS_OUT_SEED);
 const PRESET_TOKENS = new Map(PRESETS.map((preset) => [preset.id, deriveTokens(preset.seed)]));
@@ -39,8 +38,9 @@ function useXMode(): XMode | null {
 
 /**
  * The Themes tab: X's own Lights out, the presets and Custom as cards (choosing one is live in
- * every X tab at once), the Custom editor when Custom is chosen, Undo after a switch, and the
- * experimental Chat switch. It only reads and writes `xTheme`.
+ * every X tab at once), the Custom editor when Custom is chosen, and Undo after a switch. It only
+ * reads and writes `xTheme`. Chat theming (`xTheme.chat`) is built but has no switch here yet:
+ * it is on the back burner until the shadow-DOM part (P4) is done.
  */
 export function Themes({
   settings,
@@ -133,15 +133,6 @@ export function Themes({
           }}
         />
       )}
-
-      <div className="themes-chat">
-        <Toggle
-          label="Also theme Chat (experimental)"
-          hint="Chat is partly built where page styles cannot reach, so some of it may stay black."
-          checked={theme.chat}
-          onChange={(value) => onChange({ xTheme: { chat: value } })}
-        />
-      </div>
     </div>
   );
 }

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { request } from '../lib/api';
 import {
   ACCENTS,
   accentPalette,
   DEFAULT_SETTINGS,
   loadSettings,
+  POPUP_HEIGHT_PX,
   normalizeSettings,
   saveSettings,
   watchSettings,
@@ -16,6 +17,8 @@ import type { DownloadRecord } from '../types/model';
 
 /** The theme is also cached locally so the panel opens without a flash of the wrong theme. */
 const THEME_CACHE = 'bx.theme';
+/** Cached the same way, so the popup opens at its chosen height instead of growing after load. */
+const POPUP_HEIGHT_CACHE = 'bx.popupHeight';
 
 function applyAppearance(settings: Settings) {
   const root = document.documentElement;
@@ -28,16 +31,18 @@ function applyAppearance(settings: Settings) {
   root.style.setProperty('--accent-dark', accent.textDark);
   root.style.setProperty('--accent-soft-light', accent.softLight);
   root.style.setProperty('--accent-soft-dark', accent.softDark);
+  root.style.setProperty('--popup-height', `${POPUP_HEIGHT_PX[settings.popupHeight]}px`);
   try {
     localStorage.setItem(THEME_CACHE, settings.theme);
+    localStorage.setItem(POPUP_HEIGHT_CACHE, settings.popupHeight);
   } catch {
     /* Storage can be unavailable; the shared setting still applies. */
   }
 }
 
-function cachedTheme(): string | null {
+function cached(key: string): string | null {
   try {
-    return localStorage.getItem(THEME_CACHE);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -46,10 +51,15 @@ function cachedTheme(): string | null {
 /** Shared settings, live across the panel, every X tab, and the background worker. */
 export function useSettings() {
   const [settings, setSettings] = useState<Settings>(() =>
-    normalizeSettings({ ...DEFAULT_SETTINGS, theme: cachedTheme() }),
+    normalizeSettings({
+      ...DEFAULT_SETTINGS,
+      theme: cached(THEME_CACHE),
+      popupHeight: cached(POPUP_HEIGHT_CACHE),
+    }),
   );
   const [ready, setReady] = useState(false);
-  useEffect(() => {
+  // Before paint, so the first frame already has the right theme and popup height.
+  useLayoutEffect(() => {
     applyAppearance(settings);
   }, [settings]);
   useEffect(() => {

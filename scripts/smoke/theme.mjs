@@ -27,7 +27,7 @@ const check = (name, ok, detail = '') => {
 /** An X-shaped dark page. Class names and inline values are the ones `src/themes/surfaces.ts` lists. */
 function themePage(mode = 'dark') {
   const black = mode === 'dark' ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
-  return `<!doctype html><html data-theme="${mode}"><head><meta charset="utf-8"><title>X theme fixture</title>
+  return `<!doctype html><html data-theme="${mode}"><head><meta charset="utf-8"><title>Home / X</title><link rel="shortcut icon" href="//abs.twimg.com/favicons/twitter.3.ico">
   <style>
     .r-kemksi{background-color:rgb(0,0,0)} .r-5zmot{background-color:rgba(0,0,0,0.65)}
     .r-1kqtdi0{border:1px solid rgb(47,51,54)} .r-1igl3o0{border-bottom:1px solid rgb(47,51,54)}
@@ -230,6 +230,46 @@ try {
   check(
     'theme off: the stylesheet is empty',
     (await page.evaluate(() => document.getElementById('bx-theme')?.textContent)) === '',
+  );
+  // Twitter branding: the tab title and icon (Customize → Appearance).
+  const brand = (features) =>
+    sw.evaluate(async (features) => {
+      const { 'bx.settings': current = {} } = await chrome.storage.local.get('bx.settings');
+      await chrome.storage.local.set({ 'bx.settings': { ...current, features } });
+    }, features);
+  const head = () =>
+    page.evaluate(() => ({
+      title: document.title,
+      icon: document.querySelector('link[rel~="icon"]')?.getAttribute('href') ?? '',
+    }));
+  await brand({ 'appearance.twitterTitle': true, 'appearance.twitterBird': true });
+  await wait(page);
+  let tab = await head();
+  check(
+    'Twitter branding: the tab says Twitter and shows the bird',
+    tab.title === 'Home / Twitter' && tab.icon.startsWith('data:image/svg+xml'),
+    JSON.stringify({ title: tab.title, icon: tab.icon.slice(0, 30) }),
+  );
+  await page.evaluate(() => {
+    document.title = '(2) Home / X';
+    document
+      .querySelector('link[rel~="icon"]')
+      .setAttribute('href', '//abs.twimg.com/favicons/twitter-pip.3.ico');
+  });
+  await wait(page);
+  tab = await head();
+  check(
+    '...and follows X when it rewrites them (notification count and dot)',
+    tab.title === '(2) Home / Twitter' && decodeURIComponent(tab.icon).includes('circle'),
+    tab.title,
+  );
+  await brand({});
+  await wait(page);
+  tab = await head();
+  check(
+    '...and switching off puts X’s own title and icon back',
+    tab.title === '(2) Home / X' && tab.icon === '//abs.twimg.com/favicons/twitter-pip.3.ico',
+    JSON.stringify(tab),
   );
   check('no page errors', pageErrors.length === 0, pageErrors.join(' | '));
 } catch (error) {

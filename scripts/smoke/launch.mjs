@@ -218,8 +218,8 @@ await popup.waitForFunction(() => document.querySelectorAll('.bookmark-item').le
 await popup.click('#customize-tab');
 await popup.waitForSelector('.customize input[type="search"]');
 check(
-  'Customize lists all 74 settings in the popup',
-  (await popup.$$('.customize .setting-toggle')).length === 74,
+  'Customize lists all 76 settings in the popup',
+  (await popup.$$('.customize .setting-toggle')).length === 76,
   String((await popup.$$('.customize .setting-toggle')).length),
 );
 await popup.screenshot({ path: path.join(OUT, 'popup-customize.png') });

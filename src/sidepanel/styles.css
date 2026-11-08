@@ -2320,10 +2320,10 @@ button:disabled {
   display: contents;
 }
 /* The popup is the same app in a fixed window: the header and tabs stay, the body scrolls. Chrome
-   caps a popup at 800 x 600; 400 x 580 leaves room for its own frame. */
+   caps a popup at 800 x 600; the height is a setting (480, 580 or 600, `--popup-height`). */
 body.is-popup {
   width: 400px;
-  height: 580px;
+  height: var(--popup-height, 580px);
   overflow: hidden;
 }
 .app-shell[data-mode='popup'] {
@@ -2333,7 +2333,7 @@ body.is-popup {
   min-width: 0;
   /* A fixed height, never `vh`: Chrome sizes a popup from its content, so a height that depends on
      the popup's own height would collapse it. */
-  height: 580px;
+  height: var(--popup-height, 580px);
   min-height: 0;
   overflow: hidden;
 }

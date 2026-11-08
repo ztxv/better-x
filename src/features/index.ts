@@ -1,4 +1,5 @@
 import { APPEARANCE_FEATURES } from './appearance';
+import { BRANDING_FEATURES } from './branding';
 import { CLEANUP_FEATURES } from './cleanup';
 import { FEED_FEATURES } from './feed';
 import { FILTERING_FEATURES } from './filtering';
@@ -27,6 +28,7 @@ export const FEATURES: readonly FeatureDef[] = [
   ...FILTERING_FEATURES,
   ...SIDEBAR_FEATURES,
   ...APPEARANCE_FEATURES,
+  ...BRANDING_FEATURES,
   hideAds,
   hideGrok,
   ...CLEANUP_FEATURES,

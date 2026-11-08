@@ -12,6 +12,7 @@ import {
   type AfterSave,
   type Density,
   type OpenAs,
+  type PopupHeight,
   type Settings,
   type SettingsPatch,
   type Theme,
@@ -38,6 +39,12 @@ const DENSITIES: Array<{ value: Density; label: string; hint: string }> = [
 ];
 
 const CLOSE_MS = 200;
+
+const POPUP_HEIGHTS: Array<{ value: PopupHeight; label: string; hint: string }> = [
+  { value: 'compact', label: 'Short', hint: '480 px' },
+  { value: 'standard', label: 'Standard', hint: '580 px' },
+  { value: 'tall', label: 'Tallest', hint: '600 px, the most Chrome allows' },
+];
 
 const AFTER_SAVE: Array<{ value: AfterSave; label: string; hint: string }> = [
   {
@@ -284,6 +291,29 @@ export function SettingsDialog({
           <p className="setting-hint">
             Applies the next time you click the toolbar icon. You can change it here again in either
             mode.
+          </p>
+          <div className="field-label" id="popup-height-label">
+            Popup height
+          </div>
+          <div className="radio-list" role="radiogroup" aria-labelledby="popup-height-label">
+            {POPUP_HEIGHTS.map((option) => (
+              <label key={option.value} className="radio-option">
+                <input
+                  type="radio"
+                  name="popup-height"
+                  checked={settings.popupHeight === option.value}
+                  onChange={() => onChange({ popupHeight: option.value })}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.hint}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="setting-hint">
+            Chrome never draws a toolbar popup taller than 600 px. For the full window height, use
+            the side panel.
           </p>
         </section>
 

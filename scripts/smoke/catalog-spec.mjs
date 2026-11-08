@@ -546,4 +546,7 @@ export const COVERED_ELSEWHERE = new Set([
   'insights.details',
   'insights.warnings',
   'filtering.country',
+  // Twitter branding changes the tab's icon and title (<head>), not the page: scripts/smoke/theme.mjs.
+  'appearance.twitterBird',
+  'appearance.twitterTitle',
 ]);

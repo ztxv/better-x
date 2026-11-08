@@ -171,11 +171,9 @@ describe('Themes tab', () => {
     expect(host.querySelector<HTMLElement>('#theme-advanced')!.hidden).toBe(false);
   });
 
-  it('toggles experimental Chat theming', async () => {
+  it('has no Chat switch yet (back burner)', async () => {
     await mount();
-    const chat = host.querySelector<HTMLInputElement>('.themes-chat input[role="switch"]')!;
-    act(() => chat.click());
-    expect(patches.at(-1)).toEqual({ xTheme: { chat: true } });
+    expect(host.querySelector('.themes input[role="switch"]')).toBeNull();
   });
 
   it('says the theme is paused while X is in Default', async () => {

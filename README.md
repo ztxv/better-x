@@ -57,13 +57,20 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 
 **Customize X**
 
-- A **Customize** tab beside the Library with 71 settings in eight groups: navigation, home and feed, posts, account insights, smart filtering, sidebar, appearance, and ads / Grok / Premium. Search them, filter by group, open and close groups. Every setting starts off.
+- A **Customize** tab beside the Library with 76 settings in eight groups: navigation, home and feed, posts, account insights, smart filtering, sidebar, appearance, and ads / Grok / Premium. Search them, filter by group, open and close groups. Every setting starts off.
 - Changes apply to every open X tab at once, without reloading, and turning a setting off puts back what it changed. Nothing is removed from X's page; it is hidden with style rules, so nothing needs undoing.
 - What it covers: hide Ads, Grok, Premium upsells and suggested accounts; trim the menu (Explore, Communities, Lists, Messages, Notifications, Bookmarks, Jobs, Premium...); hide view, reply, repost, like and bookmark counts, follower counts, verification badges and X's own action buttons (Better X's Save stays); hide reposts, the Home composer and "Show new posts"; keep only search in the sidebar or hide it; follow Following instead of For You.
 - Sliders for timeline width, sidebar width, menu spacing, menu text size and post text size.
+- **Twitter branding** (Appearance): the classic blue bird as the tab icon (with the dot when you have notifications) and “Twitter” instead of “X” in the tab title, as in “Home / Twitter”. Switching either off puts X's own back.
 - **Quick setups**: Clean, Minimal and Focus apply a whole combination in one click, with Undo.
 - **Move your setup**: Settings → Data & backup exports your switches, sliders and theme to a small JSON file and imports it elsewhere (merge or replace), with no account. It is separate from the Library backup.
 - Selectors come from Control Panel for Twitter and are checked against X-shaped test pages, not live x.com, so an X redesign can make a setting do nothing; it will not hide ordinary posts. See [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md) for what is and is not covered.
+
+**Themes for X**
+
+- A **Themes** tab recolors x.com itself: X's own **Lights out**, twelve presets (Dim, Graphite, Midnight, Nord, Dracula, Catppuccin Mocha, Rosé Pine, Tokyo Night, Gruvbox, Solarized Dark, Forest, Ember) and **Custom** (background, text and accent, plus raised, hover, border and secondary text under Advanced, with a live preview and readability warnings). One click switches every open X tab, with Undo.
+- A theme applies while X is set to Lights out and steps aside completely in X's Default (light) mode. Secondary text and links are kept readable (4.5:1) whatever colors you pick. Photos, videos and Better X's own buttons are never recolored.
+- X's class names for its surfaces live in one table (`src/themes/surfaces.ts`), checked against X's own stylesheet with a console probe (`scripts/theme/probe.js`); a change on X's side leaves a patch of X's black, never unreadable text.
 
 **Account insights and Smart filtering**
 
@@ -239,7 +246,8 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 
 ## Roadmap
 
-- **More X customization:** the settings that need X's internals (feature flags, React state, network responses), such as separated reposts, sorting, restoring the post source and counts, and dark-theme variants. Listed in [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md); design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Chat themes:** theming X's Chat, which lives in shadow DOM where page styles cannot reach (built partly, switch hidden for now).
+- **More X customization:** the settings that need X's internals (feature flags, React state, network responses), such as separated reposts, sorting, restoring the post source and counts. Listed in [docs/CONTROL-PANEL-INVENTORY.md](docs/CONTROL-PANEL-INVENTORY.md); design in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - Indexed search for very large libraries.
 - Optional sync, opt-in only.
 

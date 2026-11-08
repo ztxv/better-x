@@ -35,7 +35,7 @@ export const CATEGORY_HINTS: Record<FeatureCategory, string> = {
   insights: 'Where an account is based and how it connects, from X',
   filtering: 'Collapse, hide or highlight posts by account country',
   sidebar: 'The column beside your timeline',
-  appearance: 'Widths, spacing and type',
+  appearance: 'Widths, spacing, type and Twitter branding',
   cleanup: 'Promotions, Grok and upsells',
 };
 

@@ -30,6 +30,16 @@ export type CustomAccent = `#${string}`;
 export type Accent = AccentId | CustomAccent;
 /** Where the toolbar icon opens Better X. */
 export type OpenAs = 'sidepanel' | 'popup';
+/**
+ * How tall the toolbar popup is. Chrome never draws an extension popup taller than 600 px (or
+ * wider than 800), so `tall` is the most there is; the side panel is always the window's height.
+ */
+export type PopupHeight = 'compact' | 'standard' | 'tall';
+export const POPUP_HEIGHT_PX: Record<PopupHeight, number> = {
+  compact: 480,
+  standard: 580,
+  tall: 600,
+};
 /** How tightly library rows are packed. Compact and dense fit more posts on screen. */
 export type Density = 'comfortable' | 'compact' | 'dense';
 
@@ -93,6 +103,8 @@ export interface Settings {
   saveAs: boolean;
   /** What the toolbar icon opens. Applied by the background worker; see `src/lib/launch-mode.ts`. */
   openAs: OpenAs;
+  /** The toolbar popup's height (only used in popup mode). */
+  popupHeight: PopupHeight;
   /** How account lookups are triggered. The Account insights toggles live in `features`. */
   insights: InsightsSettings;
   /** The country filter's list and behavior. Whether it runs is the `filtering.country` toggle. */
@@ -121,6 +133,7 @@ export const DEFAULT_SETTINGS: Settings = {
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
   openAs: 'sidepanel',
+  popupHeight: 'standard',
   insights: { lookup: 'hover' },
   filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
   xTheme: { active: null, custom: { ...LIGHTS_OUT_SEED }, chat: false },
@@ -229,6 +242,7 @@ const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
 const DENSITIES = new Set<Density>(['comfortable', 'compact', 'dense']);
 const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup']);
+const POPUP_HEIGHTS = new Set<PopupHeight>(['compact', 'standard', 'tall']);
 const LOOKUPS = new Set<LookupMode>(['manual', 'hover', 'visible']);
 const FILTER_MODES = new Set<FilterMode>(['collapse', 'hide', 'highlight']);
 
@@ -346,6 +360,7 @@ export function normalizeSettings(input: unknown): Settings {
     },
     saveAs: bool(value.saveAs, d.saveAs),
     openAs: pick(value.openAs, OPEN_AS, d.openAs),
+    popupHeight: pick(value.popupHeight, POPUP_HEIGHTS, d.popupHeight),
     insights: {
       lookup: pick(
         isRecord(value.insights) ? value.insights.lookup : undefined,
@@ -448,15 +463,25 @@ export function updateSettings(
 /**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
  * numbers are kept (they change what X looks like, which resetting an accent color should not
- * undo), and so are how the toolbar icon opens Better X, the account insights and country
+ * undo), and so are how the toolbar icon opens Better X (and the popup's height), the account insights and country
  * filter settings, and the X theme (it changes how X looks, like the toggles).
  */
 export function resetSettings(): Promise<Settings> {
   const write = writes.then(async () => {
-    const { features, values, openAs, insights, filter, xTheme } = await loadSettings();
+    const { features, values, openAs, popupHeight, insights, filter, xTheme } =
+      await loadSettings();
     // How the toolbar icon opens, and what the country filter is set to, are not appearance:
     // resetting a look must not change them.
-    const next = { ...DEFAULT_SETTINGS, features, values, openAs, insights, filter, xTheme };
+    const next = {
+      ...DEFAULT_SETTINGS,
+      features,
+      values,
+      openAs,
+      popupHeight,
+      insights,
+      filter,
+      xTheme,
+    };
     await chrome.storage.local.set({ [SETTINGS_KEY]: next });
     return next;
   });
