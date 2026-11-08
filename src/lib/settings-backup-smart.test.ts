@@ -43,7 +43,7 @@ const mine = normalizeSettings({
 describe('settings backup v2: account insights and the country filter', () => {
   it('exports the lookup mode and the whole filter setup, and nothing private', () => {
     const backup = createSettingsBackup(mine, featureRegistry, NOW);
-    expect(backup.version).toBe(2);
+    expect(backup.version).toBeGreaterThanOrEqual(2);
     expect(backup.insights).toEqual({ lookup: 'visible' });
     expect(backup.filter).toEqual(mine.filter);
     expect(backup.features['filtering.country']).toBe(true);

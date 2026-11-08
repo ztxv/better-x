@@ -256,3 +256,71 @@ describe('settings: overlapping writes', () => {
     expect((await loadSettings()).accent).toBe('green');
   });
 });
+
+describe('settings: version 6 X theme', () => {
+  it('load a stored version 5 object unchanged, with the X theme off', async () => {
+    const { data } = await freshEnvironment();
+    const v5 = {
+      version: 5,
+      theme: 'dark',
+      accent: '#abcdef',
+      insights: { lookup: 'visible' },
+      features: { 'cleanup.hideAds': true },
+      values: { 'appearance.timelineWidth': 800 },
+    };
+    data['bx.settings'] = v5;
+    const loaded = await loadSettings();
+    expect(loaded).toMatchObject({ ...v5, version: SETTINGS_VERSION });
+    expect(loaded.xTheme).toEqual(DEFAULT_SETTINGS.xTheme);
+    expect(DEFAULT_SETTINGS.xTheme.active).toBeNull();
+  });
+
+  it('fall back field by field and color by color, keeping only #rrggbb lowercase', () => {
+    const xTheme = normalizeSettings({
+      xTheme: {
+        active: 'nord',
+        chat: 'yes',
+        custom: {
+          bg: '#ABCDEF',
+          text: 'red;}body{display:none',
+          accent: '#fff',
+          muted: '#12345678',
+          raised: 'url(x)',
+          extra: '#000000',
+        },
+      },
+    }).xTheme;
+    const d = DEFAULT_SETTINGS.xTheme.custom;
+    expect(xTheme).toEqual({
+      active: 'nord',
+      chat: false,
+      custom: { ...d, bg: '#abcdef' },
+    });
+    for (const bad of ['Nord', 'toString', '__proto__', 7, {}, ''])
+      expect(normalizeSettings({ xTheme: { active: bad } }).xTheme.active).toBeNull();
+    expect(normalizeSettings({ xTheme: { active: 'custom' } }).xTheme.active).toBe('custom');
+    expect(normalizeSettings({ xTheme: 'dim' }).xTheme).toEqual(DEFAULT_SETTINGS.xTheme);
+  });
+
+  it('merge an X theme patch field by field and color by color', async () => {
+    await saveSettings({ xTheme: { active: 'dracula' } });
+    await saveSettings({ xTheme: { custom: { bg: '#112233' } } });
+    await saveSettings({ xTheme: { custom: { accent: '#445566' }, chat: true } });
+    const { xTheme } = await loadSettings();
+    expect(xTheme).toEqual({
+      active: 'dracula',
+      chat: true,
+      custom: { ...DEFAULT_SETTINGS.xTheme.custom, bg: '#112233', accent: '#445566' },
+    });
+    await saveSettings({ xTheme: { active: null } });
+    expect((await loadSettings()).xTheme.custom.bg).toBe('#112233');
+  });
+
+  it('survive resetting appearance and Saved preferences', async () => {
+    await saveSettings({ accent: 'pink', xTheme: { active: 'mocha', custom: { bg: '#101010' } } });
+    const after = await resetSettings();
+    expect(after.accent).toBe(DEFAULT_SETTINGS.accent);
+    expect(after.xTheme.active).toBe('mocha');
+    expect(after.xTheme.custom.bg).toBe('#101010');
+  });
+});

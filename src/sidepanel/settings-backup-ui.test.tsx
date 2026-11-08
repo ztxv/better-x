@@ -89,7 +89,7 @@ describe('settings backup interface', () => {
     const data = JSON.parse(await urls[0]!.text());
     expect(data).toMatchObject({
       format: 'better-x-settings',
-      version: 2,
+      version: 3,
       features: { 'cleanup.hideAds': true },
       values: { 'appearance.navSpacing': 4 },
     });

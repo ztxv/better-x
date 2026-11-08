@@ -8,6 +8,7 @@ import {
   normalizeHandle,
   normalizeCountries,
   parseAccent,
+  parseThemeId,
   type Accent,
   type AlwaysShowEntry,
   type FilterMode,
@@ -16,8 +17,11 @@ import {
   type Settings,
   type SettingsPatch,
   type Theme,
+  type XThemeSettings,
 } from './settings';
 import { resolveSelectable } from '../insights/places';
+import { isHex } from './color';
+import type { ThemeSeed } from '../themes/types';
 
 /**
  * Better X customization backup: the switches, slider numbers, look (theme, accent), account
@@ -33,20 +37,23 @@ import { resolveSelectable } from '../insights/places';
  *       "appearance": { "theme": "dark", "accent": "pink" },
  *       "insights": { "lookup": "hover" },
  *       "filter": { "countries": ["Germany"], "mode": "collapse", "posts": true,
- *                   "quotes": true, "alwaysShow": [{ "handle": "someone", "id": "123" }] } }
+ *                   "quotes": true, "alwaysShow": [{ "handle": "someone", "id": "123" }] },
+ *       "xTheme": { "active": "nord", "chat": false,
+ *                   "custom": { "bg": "#000000", "text": "#e7e9ea", "accent": "#1d9bf0", ... } } }
  *
- * Version 1 files (no `insights` or `filter`) still import. New optional sections may be added
+ * Version 1 files (no `insights` or `filter`) and version 2 files (no `xTheme`) still import. New optional sections may be added
  * without a version change; a change that older readers would misread bumps `version`, and
  * readers refuse versions newer than they know.
  */
 export const SETTINGS_BACKUP_FORMAT = 'better-x-settings';
-export const SETTINGS_BACKUP_VERSION = 2;
+export const SETTINGS_BACKUP_VERSION = 3;
 /** Larger than any real file (a few KB); a bigger one is not ours and is not read. */
 export const MAX_BACKUP_BYTES = 256 * 1024;
 const MAX_ENTRIES = 1024;
 const THEMES: readonly Theme[] = ['auto', 'light', 'dark'];
 const LOOKUPS: readonly LookupMode[] = ['manual', 'hover', 'visible'];
 const MODES: readonly FilterMode[] = ['collapse', 'hide', 'highlight'];
+const SEED_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
 
 export interface SettingsBackup {
   format: typeof SETTINGS_BACKUP_FORMAT;
@@ -57,6 +64,7 @@ export interface SettingsBackup {
   appearance: { theme: Theme; accent: Accent };
   insights: { lookup: LookupMode };
   filter: FilterSettings;
+  xTheme: XThemeSettings;
 }
 
 /** What a file may set, after validation: only known features, in range, of the right type. */
@@ -77,6 +85,9 @@ export interface ValidatedBackup {
     quotes?: boolean;
     alwaysShow?: AlwaysShowEntry[];
   };
+  /** True when the file's version (3+) knows about X themes, so Replace may reset them. */
+  themes: boolean;
+  xTheme: { active?: string | null; chat?: boolean; custom?: Partial<ThemeSeed> };
 }
 
 export interface ImportPreview {
@@ -101,7 +112,7 @@ export type ParsedBackup =
 
 /** The settings an import compares against. The smart fields default when a caller has none. */
 export type BackupSource = Pick<Settings, 'features' | 'values' | 'theme' | 'accent'> &
-  Partial<Pick<Settings, 'insights' | 'filter'>>;
+  Partial<Pick<Settings, 'insights' | 'filter' | 'xTheme'>>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -136,6 +147,7 @@ export function createSettingsBackup(
       quotes: filter.quotes,
       alwaysShow: filter.alwaysShow.map((entry) => ({ ...entry })),
     },
+    xTheme: structuredClone(settings.xTheme ?? DEFAULT_SETTINGS.xTheme),
   };
 }
 
@@ -178,7 +190,14 @@ export function parseSettingsBackup(
     return fail(
       `That backup is from a newer Better X (settings backup version ${data.version}). Update Better X to read it.`,
     );
-  for (const section of ['features', 'values', 'appearance', 'insights', 'filter'] as const)
+  for (const section of [
+    'features',
+    'values',
+    'appearance',
+    'insights',
+    'filter',
+    'xTheme',
+  ] as const)
     if (data[section] !== undefined && !isRecord(data[section]))
       return fail(`That settings backup is damaged: “${section}” is not what it should be.`);
   const features = (data.features ?? {}) as Record<string, unknown>;
@@ -186,6 +205,7 @@ export function parseSettingsBackup(
   const appearance = (data.appearance ?? {}) as Record<string, unknown>;
   const insights = (data.insights ?? {}) as Record<string, unknown>;
   const filter = (data.filter ?? {}) as Record<string, unknown>;
+  const xTheme = (data.xTheme ?? {}) as Record<string, unknown>;
   if (Object.keys(features).length + Object.keys(values).length > MAX_ENTRIES)
     return fail('That settings backup has too many entries.');
 
@@ -197,6 +217,8 @@ export function parseSettingsBackup(
     smart,
     insights: {},
     filter: {},
+    themes: data.version >= 3,
+    xTheme: {},
   };
   let found = 0;
   let unsupported = 0;
@@ -275,6 +297,34 @@ export function parseSettingsBackup(
         else invalid++;
       }
       backup.filter.alwaysShow = normalizeAlwaysShow(good);
+    }
+  }
+
+  if (xTheme.active !== undefined) {
+    found++;
+    const id = xTheme.active === null ? null : parseThemeId(xTheme.active);
+    if (xTheme.active === null || id) backup.xTheme.active = id;
+    else unsupported++;
+  }
+  if (xTheme.chat !== undefined) {
+    found++;
+    if (typeof xTheme.chat === 'boolean') backup.xTheme.chat = xTheme.chat;
+    else invalid++;
+  }
+  if (xTheme.custom !== undefined) {
+    if (!isRecord(xTheme.custom)) {
+      found++;
+      invalid++;
+    } else {
+      const custom: Partial<ThemeSeed> = {};
+      for (const key of SEED_KEYS) {
+        const color = xTheme.custom[key];
+        if (color === undefined) continue;
+        found++;
+        if (isHex(color)) custom[key] = color.toLowerCase();
+        else invalid++;
+      }
+      if (Object.keys(custom).length) backup.xTheme.custom = custom;
     }
   }
 
@@ -357,6 +407,17 @@ export function importPatch(
       : backup.filter.alwaysShow;
   else if (resets) next.alwaysShow = [];
   if (Object.keys(next).length) patch.filter = next;
+
+  const themeResets = mode === 'replace' && backup.themes;
+  const d = DEFAULT_SETTINGS.xTheme;
+  const xTheme: NonNullable<SettingsPatch['xTheme']> = {};
+  if (backup.xTheme.active !== undefined) xTheme.active = backup.xTheme.active;
+  else if (themeResets) xTheme.active = d.active;
+  if (backup.xTheme.chat !== undefined) xTheme.chat = backup.xTheme.chat;
+  else if (themeResets) xTheme.chat = d.chat;
+  if (backup.xTheme.custom || themeResets)
+    xTheme.custom = { ...(themeResets ? d.custom : {}), ...backup.xTheme.custom };
+  if (Object.keys(xTheme).length) patch.xTheme = xTheme;
   return patch;
 }
 
@@ -403,6 +464,16 @@ function countChanges(
       const after = new Set(next.alwaysShow.map((entry) => entry.handle));
       changes += [...after].filter((h) => !before.has(h)).length;
       changes += [...before].filter((h) => !after.has(h)).length;
+    }
+  }
+  const theme = current.xTheme ?? DEFAULT_SETTINGS.xTheme;
+  const nextTheme = patch.xTheme;
+  if (nextTheme) {
+    if (nextTheme.active !== undefined && nextTheme.active !== theme.active) changes++;
+    if (nextTheme.chat !== undefined && nextTheme.chat !== theme.chat) changes++;
+    for (const key of SEED_KEYS) {
+      const color = nextTheme.custom?.[key];
+      if (color !== undefined && color !== theme.custom[key]) changes++;
     }
   }
   return changes;

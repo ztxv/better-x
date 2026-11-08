@@ -6,6 +6,9 @@
  */
 
 import { placeKey, resolveSelectable } from '../insights/places';
+import { BLACK, WHITE, isHex, mix, readable, toHex, toRgb, type Rgb } from './color';
+import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, isPresetId } from '../themes/presets';
+import type { ThemeSeed } from '../themes/types';
 
 export const SETTINGS_KEY = 'bx.settings';
 /**
@@ -14,9 +17,10 @@ export const SETTINGS_KEY = 'bx.settings';
  * popup); version 5 added `insights` (how account lookups are triggered) and `filter` (the country
  * filter's list, mode and exceptions). A stored older object lacks them, so it loads with every
  * feature at its default and the side panel, and is rewritten at the current version on the next
- * save; no other field changes meaning, and nothing a user had set is lost.
+ * save; no other field changes meaning, and nothing a user had set is lost. Version 6 added
+ * `xTheme` (the palette that re-skins x.com itself, see `src/themes`), off by default.
  */
-export const SETTINGS_VERSION = 5;
+export const SETTINGS_VERSION = 6;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
@@ -60,6 +64,18 @@ export interface FilterSettings {
   alwaysShow: AlwaysShowEntry[];
 }
 
+/**
+ * The theme that re-skins x.com. Not `theme`/`accent`, which are the side panel's own look.
+ * `active` is a preset id, `custom`, or null (X's own look, the default). `custom` is always
+ * stored, all seven colors `#rrggbb` lowercase, so switching a theme off and on keeps them.
+ */
+export interface XThemeSettings {
+  active: string | null;
+  custom: Required<ThemeSeed>;
+  /** Experimental: also theme X's Chat, which lives in shadow DOM. */
+  chat: boolean;
+}
+
 export const MAX_COUNTRIES = 250;
 export const MAX_ALWAYS_SHOW = 200;
 
@@ -81,6 +97,7 @@ export interface Settings {
   insights: InsightsSettings;
   /** The country filter's list and behavior. Whether it runs is the `filtering.country` toggle. */
   filter: FilterSettings;
+  xTheme: XThemeSettings;
   /**
    * Customization toggles by feature id, only for those the user has set. A feature missing here
    * is at its default; ids the extension does not know are kept (a newer or older build may) but
@@ -106,6 +123,7 @@ export const DEFAULT_SETTINGS: Settings = {
   openAs: 'sidepanel',
   insights: { lookup: 'hover' },
   filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
+  xTheme: { active: null, custom: { ...LIGHTS_OUT_SEED }, chat: false },
   features: {},
   values: {},
 };
@@ -187,33 +205,6 @@ export interface AccentPalette {
   softDark: string;
 }
 
-type Rgb = [number, number, number];
-const toRgb = (hex: string): Rgb => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
-const toHex = (rgb: Rgb) =>
-  `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
-const mix = (a: Rgb, b: Rgb, t: number): Rgb => a.map((c, i) => c + (b[i]! - c) * t) as Rgb;
-const luminance = ([r, g, b]: Rgb) => {
-  const [lr, lg, lb] = [r, g, b].map((c) => {
-    const s = c / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  }) as Rgb;
-  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-};
-const contrast = (a: Rgb, b: Rgb) => {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
-  return (hi + 0.05) / (lo + 0.05);
-};
-
-/** Moves `color` toward `target` just far enough to reach 4.5:1 against `against`. */
-function readable(color: Rgb, target: Rgb, against: Rgb): Rgb {
-  let result = color;
-  for (let t = 0; t <= 1 && contrast(result, against) < 4.5; t += 0.05)
-    result = mix(color, target, t);
-  return result;
-}
-
-const WHITE: Rgb = [255, 255, 255];
-const BLACK: Rgb = [0, 0, 0];
 const DARK_SURFACE: Rgb = [15, 20, 25];
 
 /**
@@ -312,6 +303,32 @@ function normalizeFilter(input: unknown): FilterSettings {
   };
 }
 
+const SEED_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
+
+/** An X theme id a setting may name: a preset, `custom`, or null for none. Anything else is null. */
+export const parseThemeId = (value: unknown): string | null =>
+  typeof value === 'string' && (value === CUSTOM_THEME_ID || isPresetId(value)) ? value : null;
+
+/** Every custom color `#rrggbb` lowercase; a missing or malformed one falls back to Lights Out's. */
+function normalizeSeed(input: unknown): Required<ThemeSeed> {
+  const value = isRecord(input) ? input : {};
+  const seed = { ...LIGHTS_OUT_SEED };
+  for (const key of SEED_KEYS) {
+    const color = value[key];
+    if (isHex(color)) seed[key] = color.toLowerCase();
+  }
+  return seed;
+}
+
+function normalizeXTheme(input: unknown): XThemeSettings {
+  const value = isRecord(input) ? input : {};
+  return {
+    active: parseThemeId(value.active),
+    custom: normalizeSeed(value.custom),
+    chat: bool(value.chat, DEFAULT_SETTINGS.xTheme.chat),
+  };
+}
+
 export function normalizeSettings(input: unknown): Settings {
   const value = isRecord(input) ? input : {};
   const menu = isRecord(value.menuActions) ? value.menuActions : {};
@@ -337,14 +354,20 @@ export function normalizeSettings(input: unknown): Settings {
       ),
     },
     filter: normalizeFilter(value.filter),
+    xTheme: normalizeXTheme(value.xTheme),
     features: normalizeById(value.features, isBoolean),
     values: normalizeById(value.values, isNumber),
   };
 }
 
 export type SettingsPatch = Partial<
-  Omit<Settings, 'version' | 'menuActions' | 'features' | 'values' | 'insights' | 'filter'>
+  Omit<
+    Settings,
+    'version' | 'menuActions' | 'features' | 'values' | 'insights' | 'filter' | 'xTheme'
+  >
 > & {
+  /** Merged field by field; `custom` is merged color by color. */
+  xTheme?: Partial<Pick<XThemeSettings, 'active' | 'chat'>> & { custom?: Partial<ThemeSeed> };
   menuActions?: Partial<Settings['menuActions']>;
   /** Merged field by field into the stored insights settings. */
   insights?: Partial<InsightsSettings>;
@@ -366,6 +389,11 @@ export function applyPatch(current: Settings, patch: SettingsPatch): Settings {
     menuActions: { ...current.menuActions, ...patch.menuActions },
     insights: { ...current.insights, ...patch.insights },
     filter: { ...current.filter, ...patch.filter },
+    xTheme: {
+      ...current.xTheme,
+      ...patch.xTheme,
+      custom: { ...current.xTheme.custom, ...patch.xTheme?.custom },
+    },
     features: { ...current.features, ...patch.features },
     values: { ...current.values, ...patch.values },
   });
@@ -420,15 +448,15 @@ export function updateSettings(
 /**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
  * numbers are kept (they change what X looks like, which resetting an accent color should not
- * undo), and so are how the toolbar icon opens Better X and the account insights and country
- * filter settings.
+ * undo), and so are how the toolbar icon opens Better X, the account insights and country
+ * filter settings, and the X theme (it changes how X looks, like the toggles).
  */
 export function resetSettings(): Promise<Settings> {
   const write = writes.then(async () => {
-    const { features, values, openAs, insights, filter } = await loadSettings();
+    const { features, values, openAs, insights, filter, xTheme } = await loadSettings();
     // How the toolbar icon opens, and what the country filter is set to, are not appearance:
     // resetting a look must not change them.
-    const next = { ...DEFAULT_SETTINGS, features, values, openAs, insights, filter };
+    const next = { ...DEFAULT_SETTINGS, features, values, openAs, insights, filter, xTheme };
     await chrome.storage.local.set({ [SETTINGS_KEY]: next });
     return next;
   });
