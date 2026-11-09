@@ -79,22 +79,29 @@ describe('settings backup: export', () => {
       },
       values: { 'appearance.timelineWidth': 800 },
       appearance: { theme: 'dark', accent: 'pink' },
+      preferences: {
+        density: 'comfortable',
+        downloadsEnabled: false,
+        afterSave: 'quiet',
+        saveAs: true,
+        menuActions: { download: true, openLibrary: true },
+      },
       insights: { lookup: 'hover' },
       filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
       xTheme: { active: null, chat: false },
     });
   });
 
-  it('holds no library data, Saved or download preferences, launch mode, ids or paths', () => {
+  it('holds no library data, how this device opens the panel, ids or paths', () => {
     const text = JSON.stringify(createSettingsBackup(configured, featureRegistry, NOW));
     for (const forbidden of [
       'bookmarks',
       'collections',
-      'downloads',
-      'afterSave',
-      'saveAs',
-      'menuActions',
+      '"downloads"',
       'openAs',
+      'popupHeight',
+      'panelMode',
+      'panelHandle',
       'chrome-extension',
       '/Users/',
       'cookie',
@@ -110,6 +117,7 @@ describe('settings backup: export', () => {
       'filter',
       'format',
       'insights',
+      'preferences',
       'values',
       'version',
       'xTheme',
@@ -141,6 +149,14 @@ describe('settings backup: reading a file', () => {
       features: { 'cleanup.hideAds': true, 'feed.hideForYou': false, 'sidebar.hideFooter': true },
       values: { 'appearance.sidebarWidth': 300, 'appearance.navSpacing': 0 },
       appearance: { theme: 'light', accent: 'green' },
+      prefs: true,
+      preferences: {
+        density: 'comfortable',
+        downloadsEnabled: true,
+        afterSave: 'downloadOffer',
+        saveAs: false,
+        menuActions: { download: true, openLibrary: true },
+      },
       smart: true,
       insights: { lookup: 'hover' },
       filter: {

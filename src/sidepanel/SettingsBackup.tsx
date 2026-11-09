@@ -128,9 +128,10 @@ export function SettingsBackup({
         onChange={(event) => void chooseFile(event.target.files?.[0])}
       />
       <p className="setting-hint">
-        Transfer your Better X customization settings between browsers without an account. They hold
-        your switches, sliders, theme, account insights and country filter choices, not your
-        library, and never any cached account data.
+        Transfer your Better X settings between browsers without an account: switches, sliders,
+        colors, theme, X theme, library and download preferences, account insights and country
+        filter choices. Not your library, not how this browser opens Better X, and never any cached
+        account data.
       </p>
 
       {pending && (

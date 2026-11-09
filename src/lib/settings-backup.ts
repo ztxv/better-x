@@ -10,7 +10,9 @@ import {
   parseAccent,
   parseThemeId,
   type Accent,
+  type AfterSave,
   type AlwaysShowEntry,
+  type Density,
   type FilterMode,
   type FilterSettings,
   type LookupMode,
@@ -24,24 +26,31 @@ import { isHex } from './color';
 import type { ThemeSeed } from '../themes/types';
 
 /**
- * Better X customization backup: the switches, slider numbers, look (theme, accent), account
- * insights lookup mode and country-filter setup a person has chosen, in a small JSON file they
- * can carry to another browser. It is not the Library backup (`format: "better-x"`: bookmarks,
- * collections, download history) and shares nothing with it. Saved and download preferences, the
- * launch mode (popup or side panel), the cached public account data, and anything private (no
- * session, token, header or request is ever stored) are never written.
+ * Better X customization backup: every setting a person chooses, in a small JSON file they can
+ * carry to another browser: the switches, slider numbers, look (theme, accent, density), Saved and
+ * download preferences, account insights lookup mode, country-filter setup and X theme. It is not
+ * the Library backup (`format: "better-x"`: bookmarks, collections, download history) and shares
+ * nothing with it. Never written: how this device opens the panel (`openAs`, `popupHeight`,
+ * `panelMode`, `panelHandle`: per-device, like the floating window's bounds and the overlay's
+ * width), caches and state (the account cache, X's last mode, open Customize groups), and anything
+ * private (no session, token, header or request is ever stored).
  *
  *     { "format": "better-x-settings", "version": 2, "exportedAt": "2026-10-09T12:00:00.000Z",
  *       "features": { "cleanup.hideAds": true, "filtering.country": true },
  *       "values": { "appearance.timelineWidth": 800 },
  *       "appearance": { "theme": "dark", "accent": "pink" },
+ *       "preferences": { "density": "compact", "downloadsEnabled": true,
+ *                        "afterSave": "downloadOffer", "saveAs": false,
+ *                        "menuActions": { "download": true, "openLibrary": true } },
  *       "insights": { "lookup": "hover" },
  *       "filter": { "countries": ["Germany"], "mode": "collapse", "posts": true,
  *                   "quotes": true, "alwaysShow": [{ "handle": "someone", "id": "123" }] },
  *       "xTheme": { "active": "nord", "chat": false,
  *                   "custom": { "bg": "#000000", "text": "#e7e9ea", "accent": "#1d9bf0", ... } } }
  *
- * Version 1 files (no `insights` or `filter`) and version 2 files (no `xTheme`) still import. New optional sections may be added
+ * Version 1 files (no `insights` or `filter`) and version 2 files (no `xTheme`) still import.
+ * `preferences` (1.1.5) is an optional section added without a version change: a file without it
+ * leaves those settings alone even on Replace, and an older Better X ignores it. New optional sections may be added
  * without a version change; a change that older readers would misread bumps `version`, and
  * readers refuse versions newer than they know.
  */
@@ -54,6 +63,16 @@ const THEMES: readonly Theme[] = ['auto', 'light', 'dark'];
 const LOOKUPS: readonly LookupMode[] = ['manual', 'hover', 'visible'];
 const MODES: readonly FilterMode[] = ['collapse', 'hide', 'highlight'];
 const SEED_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
+const DENSITIES: readonly Density[] = ['comfortable', 'compact', 'dense'];
+const AFTER_SAVES: readonly AfterSave[] = ['downloadOffer', 'confirmationOnly', 'quiet'];
+
+/** Saved, download and library-layout preferences: what the Settings dialog sets, per person. */
+export type BackupPreferences = Pick<
+  Settings,
+  'density' | 'downloadsEnabled' | 'afterSave' | 'saveAs' | 'menuActions'
+>;
+const PREFERENCE_FLAGS = ['downloadsEnabled', 'saveAs'] as const;
+const MENU_ACTIONS = ['download', 'openLibrary'] as const;
 
 export interface SettingsBackup {
   format: typeof SETTINGS_BACKUP_FORMAT;
@@ -62,6 +81,7 @@ export interface SettingsBackup {
   features: Record<string, boolean>;
   values: Record<string, number>;
   appearance: { theme: Theme; accent: Accent };
+  preferences: BackupPreferences;
   insights: { lookup: LookupMode };
   filter: FilterSettings;
   /** `custom` holds only the colors that differ from Lights Out (where Custom starts). */
@@ -73,6 +93,11 @@ export interface ValidatedBackup {
   features: Record<string, boolean>;
   values: Record<string, number>;
   appearance: { theme?: Theme; accent?: Accent };
+  /** True when the file has a `preferences` section, so Replace may reset what it leaves out. */
+  prefs: boolean;
+  preferences: Partial<Omit<BackupPreferences, 'menuActions'>> & {
+    menuActions?: Partial<BackupPreferences['menuActions']>;
+  };
   /**
    * True when the file's version knows about account insights and the country filter, so
    * Replace may reset them. A version 1 file cannot name them and leaves them alone.
@@ -113,7 +138,8 @@ export type ParsedBackup =
 
 /** The settings an import compares against. The smart fields default when a caller has none. */
 export type BackupSource = Pick<Settings, 'features' | 'values' | 'theme' | 'accent'> &
-  Partial<Pick<Settings, 'insights' | 'filter' | 'xTheme'>>;
+  Partial<Pick<Settings, 'insights' | 'filter' | 'xTheme'>> &
+  Partial<BackupPreferences>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -140,6 +166,7 @@ export function createSettingsBackup(
     features,
     values,
     appearance: { theme: settings.theme, accent: settings.accent },
+    preferences: preferencesOf(settings),
     insights: { lookup: (settings.insights ?? DEFAULT_SETTINGS.insights).lookup },
     filter: {
       countries: [...filter.countries],
@@ -149,6 +176,19 @@ export function createSettingsBackup(
       alwaysShow: filter.alwaysShow.map((entry) => ({ ...entry })),
     },
     xTheme: themeForBackup(settings.xTheme ?? DEFAULT_SETTINGS.xTheme),
+  };
+}
+
+/** The preferences a file carries, defaults filled in for a caller that has none. */
+function preferencesOf(settings: BackupSource): BackupPreferences {
+  const d = DEFAULT_SETTINGS;
+  const menu = settings.menuActions ?? d.menuActions;
+  return {
+    density: settings.density ?? d.density,
+    downloadsEnabled: settings.downloadsEnabled ?? d.downloadsEnabled,
+    afterSave: settings.afterSave ?? d.afterSave,
+    saveAs: settings.saveAs ?? d.saveAs,
+    menuActions: { download: menu.download, openLibrary: menu.openLibrary },
   };
 }
 
@@ -208,6 +248,7 @@ export function parseSettingsBackup(
     'features',
     'values',
     'appearance',
+    'preferences',
     'insights',
     'filter',
     'xTheme',
@@ -217,6 +258,7 @@ export function parseSettingsBackup(
   const features = (data.features ?? {}) as Record<string, unknown>;
   const values = (data.values ?? {}) as Record<string, unknown>;
   const appearance = (data.appearance ?? {}) as Record<string, unknown>;
+  const preferences = (data.preferences ?? {}) as Record<string, unknown>;
   const insights = (data.insights ?? {}) as Record<string, unknown>;
   const filter = (data.filter ?? {}) as Record<string, unknown>;
   const xTheme = (data.xTheme ?? {}) as Record<string, unknown>;
@@ -228,6 +270,8 @@ export function parseSettingsBackup(
     features: {},
     values: {},
     appearance: {},
+    prefs: data.preferences !== undefined,
+    preferences: {},
     smart,
     insights: {},
     filter: {},
@@ -263,6 +307,41 @@ export function parseSettingsBackup(
     const accent = parseAccent(appearance.accent);
     if (accent) backup.appearance.accent = accent;
     else invalid++;
+  }
+
+  if (preferences.density !== undefined) {
+    found++;
+    if (DENSITIES.includes(preferences.density as Density))
+      backup.preferences.density = preferences.density as Density;
+    else invalid++;
+  }
+  if (preferences.afterSave !== undefined) {
+    found++;
+    if (AFTER_SAVES.includes(preferences.afterSave as AfterSave))
+      backup.preferences.afterSave = preferences.afterSave as AfterSave;
+    else invalid++;
+  }
+  for (const key of PREFERENCE_FLAGS) {
+    if (preferences[key] === undefined) continue;
+    found++;
+    if (typeof preferences[key] === 'boolean')
+      backup.preferences[key] = preferences[key] as boolean;
+    else invalid++;
+  }
+  if (preferences.menuActions !== undefined) {
+    if (!isRecord(preferences.menuActions)) {
+      found++;
+      invalid++;
+    } else {
+      const menu = preferences.menuActions;
+      for (const key of MENU_ACTIONS) {
+        if (menu[key] === undefined) continue;
+        found++;
+        if (typeof menu[key] === 'boolean')
+          (backup.preferences.menuActions ??= {})[key] = menu[key] as boolean;
+        else invalid++;
+      }
+    }
   }
 
   if (insights.lookup !== undefined) {
@@ -370,8 +449,9 @@ export function parseSettingsBackup(
  * everything else as it is; the file's countries and Always Show accounts are added to the lists
  * already there. Replace makes the file the whole customization: every switch and slider it does
  * not name goes back to its default (`null`), and so do theme, accent, the lookup mode and the
- * country filter (the last three only for a file new enough to name them). Saved, download and
- * launch preferences are in neither.
+ * country filter (the last three only for a file new enough to name them), and the Saved and
+ * download preferences (only for a file that has them). How this device opens the panel is in
+ * neither.
  */
 export function importPatch(
   backup: ValidatedBackup,
@@ -395,6 +475,20 @@ export function importPatch(
     backup.appearance.accent ?? (mode === 'replace' ? DEFAULT_SETTINGS.accent : undefined);
   if (theme) patch.theme = theme;
   if (accent) patch.accent = accent;
+
+  const prefsReset = mode === 'replace' && backup.prefs;
+  const dp = DEFAULT_SETTINGS;
+  const prefs = backup.preferences;
+  const density = prefs.density ?? (prefsReset ? dp.density : undefined);
+  if (density) patch.density = density;
+  const afterSave = prefs.afterSave ?? (prefsReset ? dp.afterSave : undefined);
+  if (afterSave) patch.afterSave = afterSave;
+  for (const key of PREFERENCE_FLAGS) {
+    const value = prefs[key] ?? (prefsReset ? dp[key] : undefined);
+    if (value !== undefined) patch[key] = value;
+  }
+  const menu = { ...(prefsReset ? dp.menuActions : {}), ...prefs.menuActions };
+  if (Object.keys(menu).length) patch.menuActions = menu;
 
   const resets = mode === 'replace' && backup.smart;
   const lookup = backup.insights.lookup ?? (resets ? DEFAULT_SETTINGS.insights.lookup : undefined);
@@ -457,6 +551,15 @@ function countChanges(
   }
   if (patch.theme !== undefined && patch.theme !== current.theme) changes++;
   if (patch.accent !== undefined && patch.accent !== current.accent) changes++;
+  const prefs = preferencesOf(current);
+  if (patch.density !== undefined && patch.density !== prefs.density) changes++;
+  if (patch.afterSave !== undefined && patch.afterSave !== prefs.afterSave) changes++;
+  for (const key of PREFERENCE_FLAGS)
+    if (patch[key] !== undefined && patch[key] !== prefs[key]) changes++;
+  for (const key of MENU_ACTIONS) {
+    const value = patch.menuActions?.[key];
+    if (value !== undefined && value !== prefs.menuActions[key]) changes++;
+  }
 
   const insights = current.insights ?? DEFAULT_SETTINGS.insights;
   if (patch.insights?.lookup !== undefined && patch.insights.lookup !== insights.lookup) changes++;
