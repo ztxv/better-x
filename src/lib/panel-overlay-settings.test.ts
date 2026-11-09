@@ -68,18 +68,27 @@ describe('settings: version 7 panel mode', () => {
   });
 });
 
-describe('settings backup and the panel mode', () => {
-  it('never carries the panel mode, a per-device preference like the toolbar mode', () => {
-    const settings = normalizeSettings({ panelMode: 'overlay', panelHandle: true });
-    const text = JSON.stringify(createSettingsBackup(settings, featureRegistry));
-    expect(text).not.toContain('panelMode');
-    expect(text).not.toContain('panelHandle');
-    expect(text).not.toContain(OVERLAY_KEY);
+describe('settings backup and how Better X opens', () => {
+  it('carries the toolbar mode, popup height, panel mode and edge tab, never the overlay state', () => {
+    const settings = normalizeSettings({
+      openAs: 'window',
+      popupHeight: 'tall',
+      panelMode: 'overlay',
+      panelHandle: true,
+    });
+    const backup = createSettingsBackup(settings, featureRegistry);
+    expect(backup.launch).toEqual({
+      openAs: 'window',
+      popupHeight: 'tall',
+      panelMode: 'overlay',
+      panelHandle: true,
+    });
+    expect(JSON.stringify(backup)).not.toContain(OVERLAY_KEY);
     expect(SETTINGS_BACKUP_VERSION).toBe(3);
   });
 
-  it('leaves the panel mode alone on import, from this version or an older one', () => {
-    const current = normalizeSettings({ panelMode: 'overlay', panelHandle: true });
+  it('an older file without it leaves them alone, even on Replace', () => {
+    const current = normalizeSettings({ openAs: 'popup', panelMode: 'overlay', panelHandle: true });
     for (const version of [1, 2, 3]) {
       const parsed = parseSettingsBackup(
         JSON.stringify({
@@ -88,7 +97,7 @@ describe('settings backup and the panel mode', () => {
           exportedAt: new Date().toISOString(),
           features: {},
           values: {},
-          // A hand-edited file cannot sneak it in either.
+          // Only the launch section counts: a stray top-level field is not read.
           panelMode: 'native',
         }),
         featureRegistry,
@@ -97,24 +106,51 @@ describe('settings backup and the panel mode', () => {
       if (!parsed.ok) throw new Error(parsed.error);
       for (const mode of ['merge', 'replace'] as const) {
         const patch = importPatch(parsed.backup, mode, featureRegistry, current);
-        expect(patch).not.toHaveProperty('panelMode');
-        expect(patch).not.toHaveProperty('panelHandle');
+        for (const key of ['openAs', 'popupHeight', 'panelMode', 'panelHandle'])
+          expect(patch).not.toHaveProperty(key);
       }
     }
   });
 
-  it('round-trips a backup made in overlay mode without touching the mode', () => {
-    const overlay = normalizeSettings({
+  it('moves to a second browser: it opens Better X the same way', async () => {
+    const laptop = normalizeSettings({
+      openAs: 'sidepanel',
       panelMode: 'overlay',
-      features: { 'cleanup.hideAds': true },
+      panelHandle: true,
     });
-    const text = JSON.stringify(createSettingsBackup(overlay, featureRegistry));
-    const native = normalizeSettings({});
-    const parsed = parseSettingsBackup(text, featureRegistry, native);
+    const text = JSON.stringify(createSettingsBackup(laptop, featureRegistry));
+    const other = normalizeSettings({
+      openAs: 'popup',
+      popupHeight: 'compact',
+      panelMode: 'native',
+    });
+    const parsed = parseSettingsBackup(text, featureRegistry, other);
     if (!parsed.ok) throw new Error(parsed.error);
-    const patch = importPatch(parsed.backup, 'replace', featureRegistry, native);
-    expect(patch.features).toMatchObject({ 'cleanup.hideAds': true });
-    expect(patch).not.toHaveProperty('panelMode');
+    await saveSettings(other);
+    await saveSettings(importPatch(parsed.backup, 'merge', featureRegistry, other));
+    const stored = await loadSettings();
+    expect([stored.openAs, stored.popupHeight, stored.panelMode, stored.panelHandle]).toEqual([
+      'sidepanel',
+      'standard',
+      'overlay',
+      true,
+    ]);
+  });
+
+  it('judges each launch entry on its own', () => {
+    const parsed = parseSettingsBackup(
+      JSON.stringify({
+        format: SETTINGS_BACKUP_FORMAT,
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        launch: { openAs: 'tab', popupHeight: 'tall', panelMode: 'Overlay', panelHandle: 'yes' },
+      }),
+      featureRegistry,
+      DEFAULT_SETTINGS,
+    );
+    if (!parsed.ok) throw new Error(parsed.error);
+    expect(parsed.backup.launch).toEqual({ popupHeight: 'tall' });
+    expect(parsed.preview.invalid).toBe(3);
   });
 });
 

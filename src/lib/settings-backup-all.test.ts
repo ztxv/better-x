@@ -31,17 +31,15 @@ const BACKED_UP = [
   'insights',
   'filter',
   'xTheme',
-  'features',
-  'values',
-] as const satisfies readonly (keyof Settings)[];
-/** How this device opens the panel; kept per device, like the floating window's bounds. */
-const DEVICE_ONLY = [
-  'version',
   'openAs',
   'popupHeight',
   'panelMode',
   'panelHandle',
+  'features',
+  'values',
 ] as const satisfies readonly (keyof Settings)[];
+/** Not a setting: the stored object's schema version. */
+const NOT_BACKED_UP = ['version'] as const satisfies readonly (keyof Settings)[];
 
 /** Every setting moved away from its default: each switch flipped, each number changed. */
 function everythingChanged(): Settings {
@@ -82,10 +80,10 @@ function everythingChanged(): Settings {
         muted: '#a0a0a0',
       },
     },
-    // Device-only settings, which a backup must not carry to another browser.
+    // How Better X opens, which a second browser should copy too.
     openAs: 'window',
     popupHeight: 'tall',
-    panelMode: 'overlay',
+    panelMode: DEFAULT_SETTINGS.panelMode === 'overlay' ? 'native' : 'overlay',
     panelHandle: true,
     features,
     values,
@@ -109,8 +107,8 @@ beforeEach(async () => {
 });
 
 describe('settings backup carries every setting a person chooses', () => {
-  it('every setting is either backed up or deliberately per device', () => {
-    const listed = [...BACKED_UP, ...DEVICE_ONLY].sort();
+  it('every setting is backed up (a new one fails here until it is listed)', () => {
+    const listed = [...BACKED_UP, ...NOT_BACKED_UP].sort();
     expect(Object.keys(DEFAULT_SETTINGS).sort()).toEqual(listed);
     expect(new Set(listed).size).toBe(listed.length);
   });
@@ -133,16 +131,11 @@ describe('settings backup carries every setting a person chooses', () => {
       expect(parsed.preview.invalid).toBe(0);
       expect(parsed.preview.unsupported).toBe(0);
       expect(parsed.preview.recognized).toBe(parsed.preview.found);
-      // And this browser keeps its own way of opening the panel.
-      for (const key of DEVICE_ONLY.filter((k) => k !== 'version'))
-        expect(stored[key], key).toEqual(DEFAULT_SETTINGS[key]);
     });
 
   it('replace: a default setup carried onto a changed one puts every setting back', async () => {
     const { stored } = await exportThenImport(DEFAULT_SETTINGS, 'replace', everythingChanged());
     expect(pick(stored)).toEqual(pick(DEFAULT_SETTINGS));
-    expect(stored.panelMode).toBe('overlay');
-    expect(stored.openAs).toBe('window');
   });
 
   it('counts every change in the preview', () => {
@@ -161,7 +154,8 @@ describe('settings backup carries every setting a person chooses', () => {
       2 + // countries added
       2 + // always show added
       2 + // X theme active, chat
-      7; // custom colors
+      7 + // custom colors
+      4; // toolbar mode, popup height, panel mode, edge tab
     expect(parsed.preview.mergeChanges).toBe(featureChanges + others);
   });
 });

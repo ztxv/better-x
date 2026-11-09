@@ -65,7 +65,7 @@ describe('settings backup interface', () => {
       'Transfer your Better X settings between browsers without an account',
     );
     expect(host.textContent).toContain('library and download preferences');
-    expect(host.textContent).toContain('not how this browser opens Better X');
+    expect(host.textContent).toContain('how Better X opens');
   });
 
   it('exports a dated JSON file with the configured settings and says so', async () => {

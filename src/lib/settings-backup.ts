@@ -16,6 +16,9 @@ import {
   type FilterMode,
   type FilterSettings,
   type LookupMode,
+  type OpenAs,
+  type PanelMode,
+  type PopupHeight,
   type Settings,
   type SettingsPatch,
   type Theme,
@@ -28,12 +31,12 @@ import type { ThemeSeed } from '../themes/types';
 /**
  * Better X customization backup: every setting a person chooses, in a small JSON file they can
  * carry to another browser: the switches, slider numbers, look (theme, accent, density), Saved and
- * download preferences, account insights lookup mode, country-filter setup and X theme. It is not
- * the Library backup (`format: "better-x"`: bookmarks, collections, download history) and shares
- * nothing with it. Never written: how this device opens the panel (`openAs`, `popupHeight`,
- * `panelMode`, `panelHandle`: per-device, like the floating window's bounds and the overlay's
- * width), caches and state (the account cache, X's last mode, open Customize groups), and anything
- * private (no session, token, header or request is ever stored).
+ * download preferences, how Better X opens (toolbar mode, popup height, panel mode, edge tab),
+ * account insights lookup mode, country-filter setup and X theme. It is not the Library backup
+ * (`format: "better-x"`: bookmarks, collections, download history) and shares nothing with it.
+ * Never written: caches and window state (the account cache, X's last mode, open Customize
+ * groups, the floating window's bounds, the overlay's open state and width), and anything private
+ * (no session, token, header or request is ever stored).
  *
  *     { "format": "better-x-settings", "version": 2, "exportedAt": "2026-10-09T12:00:00.000Z",
  *       "features": { "cleanup.hideAds": true, "filtering.country": true },
@@ -42,6 +45,8 @@ import type { ThemeSeed } from '../themes/types';
  *       "preferences": { "density": "compact", "downloadsEnabled": true,
  *                        "afterSave": "downloadOffer", "saveAs": false,
  *                        "menuActions": { "download": true, "openLibrary": true } },
+ *       "launch": { "openAs": "sidepanel", "popupHeight": "standard",
+ *                   "panelMode": "overlay", "panelHandle": false },
  *       "insights": { "lookup": "hover" },
  *       "filter": { "countries": ["Germany"], "mode": "collapse", "posts": true,
  *                   "quotes": true, "alwaysShow": [{ "handle": "someone", "id": "123" }] },
@@ -49,8 +54,8 @@ import type { ThemeSeed } from '../themes/types';
  *                   "custom": { "bg": "#000000", "text": "#e7e9ea", "accent": "#1d9bf0", ... } } }
  *
  * Version 1 files (no `insights` or `filter`) and version 2 files (no `xTheme`) still import.
- * `preferences` (1.1.5) is an optional section added without a version change: a file without it
- * leaves those settings alone even on Replace, and an older Better X ignores it. New optional sections may be added
+ * `preferences` and `launch` (1.1.5) are optional sections added without a version change: a file
+ * without one leaves those settings alone even on Replace, and an older Better X ignores them. New optional sections may be added
  * without a version change; a change that older readers would misread bumps `version`, and
  * readers refuse versions newer than they know.
  */
@@ -72,6 +77,18 @@ export type BackupPreferences = Pick<
   'density' | 'downloadsEnabled' | 'afterSave' | 'saveAs' | 'menuActions'
 >;
 const PREFERENCE_FLAGS = ['downloadsEnabled', 'saveAs'] as const;
+
+/** How the toolbar icon opens Better X, so a second browser opens it the same way. */
+export type BackupLaunch = Pick<Settings, 'openAs' | 'popupHeight' | 'panelMode' | 'panelHandle'>;
+const OPEN_AS: readonly OpenAs[] = ['sidepanel', 'popup', 'window'];
+const POPUP_HEIGHTS: readonly PopupHeight[] = ['compact', 'standard', 'tall'];
+const PANEL_MODES: readonly PanelMode[] = ['native', 'overlay'];
+/** The launch fields that are one of a fixed set of words, with the words each allows. */
+const LAUNCH_CHOICES = [
+  ['openAs', OPEN_AS],
+  ['popupHeight', POPUP_HEIGHTS],
+  ['panelMode', PANEL_MODES],
+] as const;
 const MENU_ACTIONS = ['download', 'openLibrary'] as const;
 
 export interface SettingsBackup {
@@ -82,6 +99,7 @@ export interface SettingsBackup {
   values: Record<string, number>;
   appearance: { theme: Theme; accent: Accent };
   preferences: BackupPreferences;
+  launch: BackupLaunch;
   insights: { lookup: LookupMode };
   filter: FilterSettings;
   /** `custom` holds only the colors that differ from Lights Out (where Custom starts). */
@@ -98,6 +116,9 @@ export interface ValidatedBackup {
   preferences: Partial<Omit<BackupPreferences, 'menuActions'>> & {
     menuActions?: Partial<BackupPreferences['menuActions']>;
   };
+  /** True when the file has a `launch` section, so Replace may reset what it leaves out. */
+  hasLaunch: boolean;
+  launch: Partial<BackupLaunch>;
   /**
    * True when the file's version knows about account insights and the country filter, so
    * Replace may reset them. A version 1 file cannot name them and leaves them alone.
@@ -139,7 +160,8 @@ export type ParsedBackup =
 /** The settings an import compares against. The smart fields default when a caller has none. */
 export type BackupSource = Pick<Settings, 'features' | 'values' | 'theme' | 'accent'> &
   Partial<Pick<Settings, 'insights' | 'filter' | 'xTheme'>> &
-  Partial<BackupPreferences>;
+  Partial<BackupPreferences> &
+  Partial<BackupLaunch>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -167,6 +189,7 @@ export function createSettingsBackup(
     values,
     appearance: { theme: settings.theme, accent: settings.accent },
     preferences: preferencesOf(settings),
+    launch: launchOf(settings),
     insights: { lookup: (settings.insights ?? DEFAULT_SETTINGS.insights).lookup },
     filter: {
       countries: [...filter.countries],
@@ -189,6 +212,17 @@ function preferencesOf(settings: BackupSource): BackupPreferences {
     afterSave: settings.afterSave ?? d.afterSave,
     saveAs: settings.saveAs ?? d.saveAs,
     menuActions: { download: menu.download, openLibrary: menu.openLibrary },
+  };
+}
+
+/** How Better X opens, defaults filled in for a caller that has none. */
+function launchOf(settings: BackupSource): BackupLaunch {
+  const d = DEFAULT_SETTINGS;
+  return {
+    openAs: settings.openAs ?? d.openAs,
+    popupHeight: settings.popupHeight ?? d.popupHeight,
+    panelMode: settings.panelMode ?? d.panelMode,
+    panelHandle: settings.panelHandle ?? d.panelHandle,
   };
 }
 
@@ -249,6 +283,7 @@ export function parseSettingsBackup(
     'values',
     'appearance',
     'preferences',
+    'launch',
     'insights',
     'filter',
     'xTheme',
@@ -259,6 +294,7 @@ export function parseSettingsBackup(
   const values = (data.values ?? {}) as Record<string, unknown>;
   const appearance = (data.appearance ?? {}) as Record<string, unknown>;
   const preferences = (data.preferences ?? {}) as Record<string, unknown>;
+  const launch = (data.launch ?? {}) as Record<string, unknown>;
   const insights = (data.insights ?? {}) as Record<string, unknown>;
   const filter = (data.filter ?? {}) as Record<string, unknown>;
   const xTheme = (data.xTheme ?? {}) as Record<string, unknown>;
@@ -272,6 +308,8 @@ export function parseSettingsBackup(
     appearance: {},
     prefs: data.preferences !== undefined,
     preferences: {},
+    hasLaunch: data.launch !== undefined,
+    launch: {},
     smart,
     insights: {},
     filter: {},
@@ -342,6 +380,19 @@ export function parseSettingsBackup(
         else invalid++;
       }
     }
+  }
+
+  for (const [key, allowed] of LAUNCH_CHOICES) {
+    if (launch[key] === undefined) continue;
+    found++;
+    if ((allowed as readonly unknown[]).includes(launch[key]))
+      (backup.launch as Record<string, unknown>)[key] = launch[key];
+    else invalid++;
+  }
+  if (launch.panelHandle !== undefined) {
+    found++;
+    if (typeof launch.panelHandle === 'boolean') backup.launch.panelHandle = launch.panelHandle;
+    else invalid++;
   }
 
   if (insights.lookup !== undefined) {
@@ -450,8 +501,7 @@ export function parseSettingsBackup(
  * already there. Replace makes the file the whole customization: every switch and slider it does
  * not name goes back to its default (`null`), and so do theme, accent, the lookup mode and the
  * country filter (the last three only for a file new enough to name them), and the Saved and
- * download preferences (only for a file that has them). How this device opens the panel is in
- * neither.
+ * download preferences and how Better X opens (each only for a file that has them).
  */
 export function importPatch(
   backup: ValidatedBackup,
@@ -489,6 +539,13 @@ export function importPatch(
   }
   const menu = { ...(prefsReset ? dp.menuActions : {}), ...prefs.menuActions };
   if (Object.keys(menu).length) patch.menuActions = menu;
+
+  const launchReset = mode === 'replace' && backup.hasLaunch;
+  const launchDefaults = launchOf({} as BackupSource);
+  for (const key of ['openAs', 'popupHeight', 'panelMode', 'panelHandle'] as const) {
+    const value = backup.launch[key] ?? (launchReset ? launchDefaults[key] : undefined);
+    if (value !== undefined) (patch as Record<string, unknown>)[key] = value;
+  }
 
   const resets = mode === 'replace' && backup.smart;
   const lookup = backup.insights.lookup ?? (resets ? DEFAULT_SETTINGS.insights.lookup : undefined);
@@ -560,6 +617,9 @@ function countChanges(
     const value = patch.menuActions?.[key];
     if (value !== undefined && value !== prefs.menuActions[key]) changes++;
   }
+  const launch = launchOf(current);
+  for (const key of ['openAs', 'popupHeight', 'panelMode', 'panelHandle'] as const)
+    if (patch[key] !== undefined && patch[key] !== launch[key]) changes++;
 
   const insights = current.insights ?? DEFAULT_SETTINGS.insights;
   if (patch.insights?.lookup !== undefined && patch.insights.lookup !== insights.lookup) changes++;

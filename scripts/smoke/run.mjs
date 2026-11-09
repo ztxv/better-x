@@ -1407,7 +1407,9 @@ check(
     exportedData.appearance.accent === 'pink' &&
     exportedData.preferences?.downloadsEnabled === false &&
     exportedData.preferences?.afterSave === 'quiet' &&
-    !JSON.stringify(exportedData).match(/openAs|panelMode|bookmarks|chrome-extension/),
+    exportedData.launch?.openAs === 'sidepanel' &&
+    typeof exportedData.launch?.panelMode === 'string' &&
+    !JSON.stringify(exportedData).match(/bx\.overlay|bookmarks|chrome-extension/),
   exportName,
 );
 check('...and says so', /Exported 3 settings/.test(await backupStatus()), await backupStatus());
@@ -1429,7 +1431,7 @@ check(
   'Import previews what the file holds, merge selected, and has changed nothing yet',
   (await panel.$eval(
     '.backup-preview',
-    (n) => /17 settings found/.test(n.textContent) && /17 recognized/.test(n.textContent),
+    (n) => /21 settings found/.test(n.textContent) && /21 recognized/.test(n.textContent),
   )) &&
     (await panel.$eval('.backup-modes input', (n) => n.checked)) &&
     Object.keys((await settingsNow()).features).length === 0,
