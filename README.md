@@ -83,6 +83,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 **Open it your way**
 
 - Settings → **Open Better X as**: the toolbar icon opens the side panel (default) a compact popup (480, 580 or 600 px tall: Chrome allows no taller popup), or a **floating window** you can move and resize to any size, which remembers its size and position. All three are the same app; the popup has a button to open the side panel.
+- Settings → **Side panel on X**: **Overlay** (default) draws the panel inside the X tab, over its right edge, so X stays exactly where it is. **Native** is Chrome's side panel, which narrows the page so X re-centers and the timeline jumps. Resize it by dragging its left edge (320 to 560 px; remembered), close it with its Close button or Esc, and toggle it with the toolbar icon, **Alt+Shift+B**, or an optional tab on X's right edge. It stays open while you click, scroll and move around X, and if you leave it open it is open on X next time and in other X tabs. Other sites still get Chrome's side panel.
 
 **Appearance**
 
@@ -163,6 +164,7 @@ All data lives in your browser. Exports contain metadata only, never media files
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `storage`                                                       | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
 | `sidePanel`                                                     | Open the library from the toolbar icon.                                                                                                                                                                         |
+| `activeTab`                                                     | Read the address of the tab you click the toolbar icon on (or press the shortcut in), only at that moment, so the panel overlay can tell an X tab from another site. No install warning, no standing access.    |
 | `downloads`                                                     | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
 | `x.com`, `twitter.com` (content script)                         | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
 | `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com` | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
@@ -171,14 +173,17 @@ No browsing history, no all-site access, no analytics, no remote code. Better X 
 
 ## Settings
 
-| Setting               | Default                | Effect                                                      |
-| --------------------- | ---------------------- | ----------------------------------------------------------- |
-| Theme                 | Auto                   | Library theme. Menus on X follow X's own display setting.   |
-| Accent color          | Blue                   | Icon, focus rings, and highlights, on X and in the library. |
-| Show download options | On                     | Hides download actions when off. History is kept.           |
-| After saving          | Saved + Download       | Offer a download, confirm only, or stay quiet.              |
-| Ask where to save     | Off                    | Chrome's own "Ask where to save" setting may still prompt.  |
-| Saved-post menu       | Download, Open library | **Remove bookmark** is always available.                    |
+| Setting               | Default                | Effect                                                       |
+| --------------------- | ---------------------- | ------------------------------------------------------------ |
+| Theme                 | Auto                   | Library theme. Menus on X follow X's own display setting.    |
+| Accent color          | Blue                   | Icon, focus rings, and highlights, on X and in the library.  |
+| Show download options | On                     | Hides download actions when off. History is kept.            |
+| After saving          | Saved + Download       | Offer a download, confirm only, or stay quiet.               |
+| Ask where to save     | Off                    | Chrome's own "Ask where to save" setting may still prompt.   |
+| Saved-post menu       | Download, Open library | **Remove bookmark** is always available.                     |
+| Open Better X as      | Side panel             | Side panel, popup, or floating window.                       |
+| Side panel on X       | Overlay                | Overlay keeps X centered; Native shifts X (side panel mode). |
+| Tab on X's right edge | Off                    | Overlay only: a small tab that opens the overlay.            |
 
 Reset customization never touches your data. The Customize tab's own settings (the switches, sliders and country filter choices) are separate: they are kept by that reset, and **Turn everything off** at the bottom of the tab clears them.
 
@@ -201,7 +206,7 @@ src/
   storage/           IndexedDB connection and bookmark repository
   lib/               Settings, validation, sanitizers, messaging
   sidepanel/         React components and styles
-  content/           Overlay placement and styles for the X page
+  content/           Overlay placement and styles for the X page; the in-page panel overlay
 ```
 
 Key decisions:
@@ -243,6 +248,7 @@ The smoke test does not use a signed-in X account. Verify against real x.com aft
 - Account insights read X's internal `AboutAccountQuery`. It could not be tried against live x.com from here (X refuses automated browsers); if X changes the query id, headers or response, the badges and the country filter stop working and nothing is shown or filtered. See docs/MANUAL-CHECKLIST.md.
 - Flags are Unicode flag glyphs: Windows shows two letters (for example “DE”) instead of a flag.
 - The post's own client (“Twitter for iPhone”) is not shown; see docs/ARCHITECTURE.md.
+- The panel overlay covers the right edge of X (on a narrow window, part of the timeline). That is the trade for X not moving; use Native to have X make room instead. If the toolbar icon is clicked on a tab that left X for another site while the overlay owned it, and the click is what woke Better X's background worker, that one click does nothing (Chrome only opens a side panel inside the click); the next one opens it. The overlay has not been tried on live x.com from here.
 
 ## Roadmap
 

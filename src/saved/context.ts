@@ -21,4 +21,9 @@ export interface SavedContext {
   settings: Settings;
   /** Settles once the stored settings have been applied (the defaults hold until then). */
   settingsReady: Promise<void>;
+  /**
+   * Opens the library inside the page (the panel overlay) and returns true, or returns false when
+   * the overlay is not in use and the worker should open the panel. Set by the content script.
+   */
+  openLibrary?: () => boolean;
 }

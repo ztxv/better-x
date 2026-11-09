@@ -209,6 +209,8 @@ export type Request =
   | { type: 'restore'; bookmarks: Bookmark[] }
   | { type: 'clearBookmarks' }
   | { type: 'openPanel' }
+  /** An X tab's content script: the overlay owns this tab (`on`), so Chrome's panel is disabled here. */
+  | { type: 'overlayTab'; on: boolean }
   | { type: 'showPopup'; windowId: number }
   | { type: 'list' }
   | { type: 'get'; id: string }
@@ -219,5 +221,8 @@ export type Request =
   | { type: 'renameCollection'; id: string; name: string }
   | { type: 'deleteCollection'; id: string }
   | { type: 'import'; data: ExportData };
+
+/** The worker to an X tab's content script (`chrome.tabs.sendMessage`): open or close the overlay. */
+export const TOGGLE_OVERLAY = 'bx.toggleOverlay';
 
 export type Response = { ok: true; data: unknown } | { ok: false; error: string };

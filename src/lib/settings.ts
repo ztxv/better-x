@@ -18,9 +18,11 @@ export const SETTINGS_KEY = 'bx.settings';
  * filter's list, mode and exceptions). A stored older object lacks them, so it loads with every
  * feature at its default and the side panel, and is rewritten at the current version on the next
  * save; no other field changes meaning, and nothing a user had set is lost. Version 6 added
- * `xTheme` (the palette that re-skins x.com itself, see `src/themes`), off by default.
+ * `xTheme` (the palette that re-skins x.com itself, see `src/themes`), off by default. Version 7
+ * added `panelMode` (on X, the side panel can be drawn inside the page instead), `overlay` by
+ * default since 1.1.5, and `panelHandle` (a small tab on X's right edge that opens it), off by default.
  */
-export const SETTINGS_VERSION = 6;
+export const SETTINGS_VERSION = 7;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
@@ -30,6 +32,12 @@ export type CustomAccent = `#${string}`;
 export type Accent = AccentId | CustomAccent;
 /** Where the toolbar icon opens Better X. */
 export type OpenAs = 'sidepanel' | 'popup' | 'window';
+/**
+ * How the side panel opens on X tabs (only while `openAs` is `sidepanel`). `native` is Chrome's
+ * side panel, which narrows the page so X re-centers; `overlay` draws the same app inside the X
+ * page, over its right edge, so X's layout never moves. Other sites always get the native panel.
+ */
+export type PanelMode = 'native' | 'overlay';
 /**
  * How tall the toolbar popup is. Chrome never draws an extension popup taller than 600 px (or
  * wider than 800), so `tall` is the most there is; the side panel is always the window's height.
@@ -103,6 +111,10 @@ export interface Settings {
   saveAs: boolean;
   /** What the toolbar icon opens. Applied by the background worker; see `src/lib/launch-mode.ts`. */
   openAs: OpenAs;
+  /** Side panel mode only: native panel or in-page overlay on X tabs. See `src/content/overlay.ts`. */
+  panelMode: PanelMode;
+  /** Overlay mode only: a small tab on X's right edge that opens the overlay. */
+  panelHandle: boolean;
   /** The toolbar popup's height (only used in popup mode). */
   popupHeight: PopupHeight;
   /** How account lookups are triggered. The Account insights toggles live in `features`. */
@@ -133,6 +145,8 @@ export const DEFAULT_SETTINGS: Settings = {
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
   openAs: 'sidepanel',
+  panelMode: 'overlay',
+  panelHandle: false,
   popupHeight: 'standard',
   insights: { lookup: 'hover' },
   filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
@@ -242,6 +256,7 @@ const THEMES = new Set<Theme>(['auto', 'light', 'dark']);
 const AFTER_SAVE = new Set<AfterSave>(['downloadOffer', 'confirmationOnly', 'quiet']);
 const DENSITIES = new Set<Density>(['comfortable', 'compact', 'dense']);
 const OPEN_AS = new Set<OpenAs>(['sidepanel', 'popup', 'window']);
+const PANEL_MODES = new Set<PanelMode>(['native', 'overlay']);
 const POPUP_HEIGHTS = new Set<PopupHeight>(['compact', 'standard', 'tall']);
 const LOOKUPS = new Set<LookupMode>(['manual', 'hover', 'visible']);
 const FILTER_MODES = new Set<FilterMode>(['collapse', 'hide', 'highlight']);
@@ -360,6 +375,8 @@ export function normalizeSettings(input: unknown): Settings {
     },
     saveAs: bool(value.saveAs, d.saveAs),
     openAs: pick(value.openAs, OPEN_AS, d.openAs),
+    panelMode: pick(value.panelMode, PANEL_MODES, d.panelMode),
+    panelHandle: bool(value.panelHandle, d.panelHandle),
     popupHeight: pick(value.popupHeight, POPUP_HEIGHTS, d.popupHeight),
     insights: {
       lookup: pick(
@@ -463,13 +480,22 @@ export function updateSettings(
 /**
  * Restores appearance and Saved/download preferences. The customization toggles and slider
  * numbers are kept (they change what X looks like, which resetting an accent color should not
- * undo), and so are how the toolbar icon opens Better X (and the popup's height), the account insights and country
+ * undo), and so are how the toolbar icon opens Better X (and the popup's height and panel mode), the account insights and country
  * filter settings, and the X theme (it changes how X looks, like the toggles).
  */
 export function resetSettings(): Promise<Settings> {
   const write = writes.then(async () => {
-    const { features, values, openAs, popupHeight, insights, filter, xTheme } =
-      await loadSettings();
+    const {
+      features,
+      values,
+      openAs,
+      panelMode,
+      panelHandle,
+      popupHeight,
+      insights,
+      filter,
+      xTheme,
+    } = await loadSettings();
     // How the toolbar icon opens, and what the country filter is set to, are not appearance:
     // resetting a look must not change them.
     const next = {
@@ -477,6 +503,8 @@ export function resetSettings(): Promise<Settings> {
       features,
       values,
       openAs,
+      panelMode,
+      panelHandle,
       popupHeight,
       insights,
       filter,

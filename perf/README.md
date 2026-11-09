@@ -260,3 +260,19 @@ Reading it:
 | initialMs | 80 [74–84]          | 176 [126–180]       | 139 [132–143]       |
 
 Reading it: the theme adds no script (it runs once per settings change, not per post) and its ranges overlap the no-theme ranges on every metric. The one consistent shift is style, about +5 ms in medians over the whole 200-post session, which is what ~30 grouped rules under `html[data-bx-theme]` cost, including the `[style*="…"]` attribute matches. Inside the spread, so not investigated further; re-measure when the probe changes the selector table.
+
+## Panel overlay comparison (1.1.5, 2026-11-09)
+
+Chrome 156 headless, Windows, `--shape x`, 5 runs per mode, the 1.1.1 build and 1.1.5 alternating in one session (two rounds each). The overlay is closed (default settings), which is the state the requirement "no cost while closed" is about. "On" medians:
+
+| Metric (median)          | 1.1.1, round 1 / 2 | 1.1.5, round 1 / 2 |
+| ------------------------ | ------------------ | ------------------ |
+| ScriptDuration (ms)      | 40.8 / 41.4        | 43.3 / 44.9        |
+| TaskDuration (ms)        | 394.3 / 403.3      | 396.9 / 415.6      |
+| RecalcStyleDuration (ms) | 45.9 / 48.3        | 46.8 / 54.1        |
+| LayoutDuration (ms)      | 63.5 / 66.7        | 63.3 / 68.5        |
+| JSHeapUsedSize (MB)      | 2.42 / 2.41        | 2.45 / 2.45        |
+| DOM nodes                | 17052              | 17052              |
+| Long tasks               | 0                  | 0                  |
+
+Same DOM (nothing is created while closed) and no long tasks. Script time is about 3 ms higher in both rounds, near the 6-13% run-to-run spread; the heap is 0.03 MB higher (the added code). Task, style and layout are within the spread.

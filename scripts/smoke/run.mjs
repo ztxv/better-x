@@ -1249,7 +1249,7 @@ await panel.click('.customize .slider-reset');
 check('the reset button returns it to its default', await waitWidth('700px'), await primaryWidth());
 check(
   'the slider is stored as a number, within its range',
-  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 6),
+  await ui.settings().then((v) => v.values['appearance.timelineWidth'] === 700 && v.version === 7),
 );
 await panel.click('.customize .setting-toggle input');
 check(
@@ -1399,13 +1399,17 @@ const exported = async () => {
 const exportName = await exported();
 const exportedData = exportName && JSON.parse(fs.readFileSync(path.join(DL, exportName), 'utf8'));
 check(
-  'Export writes better-x-settings-DATE.json with the switches, numbers and look, and nothing else',
+  'Export writes better-x-settings-DATE.json with the switches, numbers, look and preferences, and nothing else',
   exportedData?.format === 'better-x-settings' &&
     exportedData.version === 3 &&
     exportedData.features['cleanup.hideAds'] === true &&
     exportedData.values['appearance.timelineWidth'] === 820 &&
     exportedData.appearance.accent === 'pink' &&
-    !JSON.stringify(exportedData).match(/downloadsEnabled|afterSave|bookmarks|chrome-extension/),
+    exportedData.preferences?.downloadsEnabled === false &&
+    exportedData.preferences?.afterSave === 'quiet' &&
+    exportedData.launch?.openAs === 'sidepanel' &&
+    typeof exportedData.launch?.panelMode === 'string' &&
+    !JSON.stringify(exportedData).match(/bx\.overlay|bookmarks|chrome-extension/),
   exportName,
 );
 check('...and says so', /Exported 3 settings/.test(await backupStatus()), await backupStatus());
@@ -1414,8 +1418,9 @@ check('...and says so', /Exported 3 settings/.test(await backupStatus()), await 
 await setSettings({
   version: 3,
   theme: 'light',
-  downloadsEnabled: false,
-  afterSave: 'quiet',
+  density: 'compact',
+  downloadsEnabled: true,
+  afterSave: 'downloadOffer',
   features: {},
   values: {},
 });
@@ -1426,7 +1431,7 @@ check(
   'Import previews what the file holds, merge selected, and has changed nothing yet',
   (await panel.$eval(
     '.backup-preview',
-    (n) => /11 settings found/.test(n.textContent) && /11 recognized/.test(n.textContent),
+    (n) => /21 settings found/.test(n.textContent) && /21 recognized/.test(n.textContent),
   )) &&
     (await panel.$eval('.backup-modes input', (n) => n.checked)) &&
     Object.keys((await settingsNow()).features).length === 0,
@@ -1450,9 +1455,10 @@ check(
 );
 const afterMerge = await settingsNow();
 check(
-  '...keeps what the file does not hold (Saved and download preferences) and sets the look',
+  '...and brings back the look and the Saved, download and density preferences',
   afterMerge.downloadsEnabled === false &&
     afterMerge.afterSave === 'quiet' &&
+    afterMerge.density === 'comfortable' &&
     afterMerge.accent === 'pink' &&
     afterMerge.theme === 'dark',
 );

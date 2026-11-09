@@ -62,8 +62,10 @@ describe('settings backup interface', () => {
     expect(button('Export customization settings')).toBeTruthy();
     expect(button('Import customization settings')).toBeTruthy();
     expect(host.textContent).toContain(
-      'Transfer your Better X customization settings between browsers without an account.',
+      'Transfer your Better X settings between browsers without an account',
     );
+    expect(host.textContent).toContain('library and download preferences');
+    expect(host.textContent).toContain('how Better X opens');
   });
 
   it('exports a dated JSON file with the configured settings and says so', async () => {

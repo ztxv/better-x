@@ -12,6 +12,7 @@ import {
   type AfterSave,
   type Density,
   type OpenAs,
+  type PanelMode,
   type PopupHeight,
   type Settings,
   type SettingsPatch,
@@ -34,6 +35,19 @@ const OPEN_AS: Array<{ value: OpenAs; label: string; hint: string }> = [
     value: 'window',
     label: 'Floating window',
     hint: 'Its own window: move it anywhere and resize it as tall as your screen; it remembers its size',
+  },
+];
+
+const PANEL_MODES: Array<{ value: PanelMode; label: string; hint: string }> = [
+  {
+    value: 'overlay',
+    label: 'Overlay',
+    hint: 'Drawn over the right edge of X, which stays exactly where it is; drag its edge to resize',
+  },
+  {
+    value: 'native',
+    label: 'Native',
+    hint: "Chrome's side panel: X gets narrower and moves over",
   },
 ];
 
@@ -296,6 +310,37 @@ export function SettingsDialog({
           <p className="setting-hint">
             Applies the next time you click the toolbar icon. You can change it here again in either
             mode.
+          </p>
+          <div className="field-label" id="panel-mode-label">
+            Side panel on X
+          </div>
+          <div className="radio-list" role="radiogroup" aria-labelledby="panel-mode-label">
+            {PANEL_MODES.map((option) => (
+              <label key={option.value} className="radio-option">
+                <input
+                  type="radio"
+                  name="panel-mode"
+                  checked={settings.panelMode === option.value}
+                  onChange={() => onChange({ panelMode: option.value })}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <small>{option.hint}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          {settings.panelMode === 'overlay' && (
+            <Toggle
+              label="Show a tab on X's right edge"
+              hint="A small tab that opens the overlay, besides the toolbar icon and Alt+Shift+B."
+              checked={settings.panelHandle}
+              onChange={(value) => onChange({ panelHandle: value })}
+            />
+          )}
+          <p className="setting-hint">
+            Overlay keeps X centered; Native uses the browser side panel and shifts the page. Only
+            for side panel mode; other sites always get the browser side panel.
           </p>
           <div className="field-label" id="popup-height-label">
             Popup height

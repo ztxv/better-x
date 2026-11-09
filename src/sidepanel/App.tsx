@@ -14,9 +14,11 @@ import {
   Settings2,
   Trash2,
   X,
+  PanelRightClose,
 } from 'lucide-react';
 import { request } from '../lib/api';
 import { createBackup } from '../lib/backup';
+import { saveOverlay } from '../lib/overlay-state';
 import { resetSettings } from '../lib/settings';
 import { LIBRARY_REVISION_KEY } from '../storage/db';
 import { validateExport } from '../lib/validation';
@@ -121,13 +123,14 @@ function useLibrary() {
   return { library, loading, error, refresh };
 }
 
-export type AppMode = 'panel' | 'popup' | 'window';
+export type AppMode = 'panel' | 'popup' | 'window' | 'overlay';
 
 /**
  * The Better X application. The same component runs in the side panel and in the toolbar popup:
  * `mode` only changes the layout (a fixed-size window with its own scrolling, and a way to move
  * to the side panel; or, in `window` mode, the side panel's layout filling a floating window of its
- * own). All read and write the same storage, so they always agree.
+ * own; or, in `overlay` mode, the side panel's layout framed inside an X tab, with a Close button
+ * and Esc to close). All read and write the same storage, so they always agree.
  */
 export function App({ mode = 'panel' }: { mode?: AppMode }) {
   const { library, loading, error, refresh } = useLibrary();
@@ -151,6 +154,20 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
       showNotice('Could not open the side panel from here.');
     }
   };
+  // Overlay mode: closing is a write to the overlay's shared state, which every X tab follows.
+  const closeOverlay = () => void saveOverlay({ open: false });
+  useEffect(() => {
+    if (mode !== 'overlay') return;
+    // Esc closes the panel unless something inside it used the key (a search box clearing, a
+    // menu closing) or a dialog is open (it closes the dialog instead).
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (document.querySelector('[aria-modal="true"]')) return;
+      closeOverlay();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [mode]);
   const openPopup = async () => {
     try {
       const win = await chrome.windows.getCurrent();
@@ -500,6 +517,16 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
           >
             <Settings2 size={18} />
           </button>
+          {mode === 'overlay' && (
+            <button
+              className="icon-button close-overlay-button"
+              aria-label="Close Better X"
+              title="Close (Esc)"
+              onClick={closeOverlay}
+            >
+              <PanelRightClose size={18} />
+            </button>
+          )}
         </div>
       </header>
       <SectionTabs section={section} onChange={setSection} />
