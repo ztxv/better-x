@@ -48,6 +48,10 @@ export function showMenu(
     const library = button('bx-item', 'Open bookmark library');
     library.addEventListener('click', (event) => {
       event.stopPropagation();
+      if (ctx.openLibrary?.()) {
+        closeOverlay(ctx);
+        return;
+      }
       library.disabled = true;
       void request({ type: 'openPanel' })
         .then(() => closeOverlay(ctx))

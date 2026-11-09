@@ -1,3 +1,4 @@
+import { startPanelOverlay } from '../src/content/overlay';
 import { featureRegistry } from '../src/features';
 import { startFeatures } from '../src/features/host';
 import { startRuntime } from '../src/runtime';
@@ -17,7 +18,14 @@ export default defineContentScript({
     ctx.onInvalidated(() => scope.dispose());
 
     const runtime = startRuntime(scope);
-    startSaved(scope, runtime);
+    const saved = startSaved(scope, runtime);
+    // The in-page panel (overlay mode only; nothing is created until it first opens).
+    try {
+      const overlay = startPanelOverlay(scope);
+      saved.openLibrary = () => overlay.open();
+    } catch (error) {
+      console.error('[Better X] panel overlay could not start', error);
+    }
     // Customization is optional: if it cannot start, Saved and Downloads are already running.
     try {
       startFeatures(scope, runtime, featureRegistry);

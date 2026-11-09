@@ -169,3 +169,26 @@ await chrome.storage.local.set({ 'bx.settings': { ...s, xTheme: { ...s.xTheme, a
 - [ ] **First paint.** Reload x.com with a theme on: no flash of black before the theme (one frame at most).
 - [ ] **Extension reload.** Reload Better X at chrome://extensions with an x.com tab open: the old theme does not stick; after a page reload the theme is back.
 - [ ] **Chat (experimental, later).** With `xTheme.chat` on, Messages / the chat drawer take the theme.
+
+## Panel overlay
+
+Not verified on live X: `scripts/smoke/overlay.mjs` checks an X-shaped page served under X's frame policy, with real toolbar clicks. Setup: Settings → Open Better X as → **Side panel**, then Side panel on X → **Overlay**. Before you start, note where the timeline sits (for example the left edge of the first post against something on screen).
+
+- [ ] **Opens and closes.** On x.com/home, click the toolbar icon: the panel slides in from the right, flush with the window's right edge, full height, with a thin left border and shadow. Click it again: it slides out. Do it twice more in a row. Close it once with the panel's **Close** button and once with **Esc** (click inside the panel first). Esc pressed on X itself (focus in X's search, or no focus) does nothing to the panel.
+- [ ] **The timeline does not move.** With it open, closed, and while resizing, the timeline, the left nav and the right column stay exactly where they were: no jump, no reflow, no change of X's narrow/wide layout. Compare with Native mode, where the timeline shifts left.
+- [ ] **Non-modal.** While it is open: like a post, open a post, scroll the timeline with the wheel over X, type in X's search, open X's menus and the composer. Everything works and nothing closes the panel. Scrolling over the panel scrolls only the panel.
+- [ ] **Inside the panel.** Real mouse clicks work everywhere in it (Library, Customize, Themes, Settings, dialogs, the item menu); Esc inside a dialog closes only the dialog; the search box clears on Esc before the panel closes.
+- [ ] **Resize.** Drag its left edge: it follows the pointer, stops at 320 and 560 px, and X does not move. Reload X: the width is kept. With the edge focused (Tab to it), the arrow keys resize it.
+- [ ] **Narrow and ultrawide.** At about 800 px wide (X's narrow layout) and on a very wide window: it opens flush right at the stored width and X does not move. On a narrow window it covers part of the timeline (expected).
+- [ ] **SPA navigation.** With it open, go Home → Explore → a profile → a post → back: it stays open the whole time, and the Library inside keeps working.
+- [ ] **Remembered.** Leave it open and close the X tab; open x.com again: it is open. Open a second X tab: open there too. Close it in one tab: the other closes. Resize in one: the other follows.
+- [ ] **Shortcut.** Alt+Shift+B toggles it on X and opens Chrome's side panel on other sites, like the icon (chrome://extensions/shortcuts shows it and can change it).
+- [ ] **Other sites.** On another site the icon opens Chrome's side panel as before. With Chrome's panel open on that site, switch to an X tab: Chrome's panel is not shown there (so X is not narrowed) and comes back on the other tab.
+- [ ] **Leaving X.** In an X tab, follow a link to another site in the same tab and click the icon: Chrome's side panel opens (if Better X was idle for a while, the first click may do nothing and the second opens it; note which).
+- [ ] **Edge tab.** Turn on "Show a tab on X's right edge": a small blue tab at mid-height on X's right edge, hidden while the panel is open; clicking it opens the panel. It covers nothing of X's you need.
+- [ ] **Save menu.** On a saved post's menu, **Open bookmark library** opens the overlay (not Chrome's panel).
+- [ ] **Theme.** Library theme Light, Dark and Auto (switch the OS theme): the panel and its border match; X's own theme and Better X's X themes are unaffected.
+- [ ] **Reduced motion.** With the OS's reduce-motion setting on, it appears and disappears without sliding.
+- [ ] **Extension reload.** Open the overlay, reload Better X at chrome://extensions: the overlay goes away from the open X tab (nothing stuck on screen). Reload the X tab: it is back, open. Clicking the icon in the stale tab before reloading it opens Chrome's panel or does nothing; it never errors.
+- [ ] **Back to Native.** Switch Side panel on X back to Native with an X tab open: the overlay disappears, and the icon on that X tab opens Chrome's side panel again.
+- [ ] **X's CSP.** DevTools console on x.com shows no Content Security Policy error for `chrome-extension://…/sidepanel.html`.

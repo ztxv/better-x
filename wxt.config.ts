@@ -16,13 +16,23 @@ export default defineConfig({
     // `downloads` saves media through the browser's own downloader. The host permissions are
     // only for the background worker's media checks: X's photo/video CDNs and the public
     // post-metadata endpoint used to find video files. No other site is reachable.
-    permissions: ['storage', 'sidePanel', 'downloads'],
+    // `activeTab` (no install warning, no standing access) lets a toolbar click or the shortcut
+    // read the clicked tab's URL, so the panel overlay can tell an X tab from any other.
+    permissions: ['storage', 'sidePanel', 'downloads', 'activeTab'],
     host_permissions: [
       'https://pbs.twimg.com/*',
       'https://video.twimg.com/*',
       'https://cdn.syndication.twimg.com/*',
     ],
     action: { default_title: `Open ${PRODUCT_NAME}` },
+    // The shortcut does exactly what clicking the toolbar icon does, in every mode.
+    commands: {
+      _execute_action: { suggested_key: { default: 'Alt+Shift+B' } },
+    },
+    // The panel overlay frames the side panel's page inside x.com, so only X may load it.
+    web_accessible_resources: [
+      { resources: ['sidepanel.html'], matches: ['https://x.com/*', 'https://twitter.com/*'] },
+    ],
     icons: {
       16: 'icons/icon-16.png',
       32: 'icons/icon-32.png',

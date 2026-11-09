@@ -1,10 +1,21 @@
 import { DownloadRepository } from '../src/downloads/repository';
 import { DownloadService, type Downloader } from '../src/downloads/service';
 import { followFloatingWindow, openFloatingWindow } from '../src/lib/floating-window';
-import { followLaunchMode, POPUP_PAGE } from '../src/lib/launch-mode';
-import { loadSettings, type OpenAs } from '../src/lib/settings';
+import {
+  followLaunchMode,
+  POPUP_PAGE,
+  routeActionClick,
+  type ClickApi,
+  type LaunchMode,
+} from '../src/lib/launch-mode';
+import { loadSettings } from '../src/lib/settings';
 import { BookmarkRepository } from '../src/storage/repository';
-import type { DownloadRecord, Request, Response } from '../src/types/model';
+import {
+  TOGGLE_OVERLAY,
+  type DownloadRecord,
+  type Request,
+  type Response,
+} from '../src/types/model';
 
 /** Requests the X content script may send; everything else is for extension pages only. */
 const CONTENT_REQUESTS = new Set<Request['type']>([
@@ -15,7 +26,24 @@ const CONTENT_REQUESTS = new Set<Request['type']>([
   'startDownload',
   'downloadsFor',
   'cancelDownload',
+  'overlayTab',
 ]);
+
+/** What a toolbar click can do (see `routeActionClick`). */
+const clickApi: ClickApi = {
+  enablePanel: (tabId) =>
+    void chrome.sidePanel.setOptions({ tabId, enabled: true }).catch(() => {}),
+  openSidePanel: (windowId) => chrome.sidePanel.open({ windowId }),
+  // Without a listening content script (a tab left over from before an extension reload) the
+  // message fails; that tab's panel was never disabled by this copy of the extension, so Chrome
+  // would not have sent the click here in the first place.
+  toggleOverlay: (tabId) =>
+    chrome.tabs.sendMessage(tabId, { type: TOGGLE_OVERLAY }).then(
+      () => {},
+      () => {},
+    ),
+  openFloatingWindow: () => openFloatingWindow(),
+};
 
 /** The side panel, or the same page opened in a tab. Content scripts report the page's URL. */
 function isExtensionPage(sender: chrome.runtime.MessageSender): boolean {
@@ -58,17 +86,19 @@ export default defineBackground(() => {
   chrome.downloads?.onChanged.addListener((delta) => void service.onChanged(delta));
   // The toolbar icon opens the side panel or the popup, as the user chose. Done on every worker
   // start, because Chrome forgets a run-time popup when the browser restarts or the extension reloads.
-  let launchMode: OpenAs = 'sidepanel';
+  // Null until the stored mode is read: a click that wakes the worker reads it itself.
+  let launchMode: LaunchMode | null = null;
   followLaunchMode(undefined, undefined, (mode) => (launchMode = mode));
   // These listeners exist so Chrome starts the worker when the browser starts and when the
   // extension is installed or updated: that start is what restores the toolbar mode.
-  // Floating window mode: the icon has no popup and does not open the panel, so its click lands
-  // here. The stored mode is read, not the in-memory copy, because this click may be what woke
-  // the worker. The window remembers its size and position as it is moved and resized.
-  chrome.action.onClicked.addListener(() => {
-    void loadSettings().then((settings) => {
-      if (settings.openAs === 'window') return openFloatingWindow();
-    });
+  // Floating window mode (the icon has no popup and does not open the panel), and X tabs whose
+  // panel the overlay disabled, send their clicks here. `routeActionClick` decides; when this
+  // click is what woke the worker it reads the stored mode first. The floating window remembers
+  // its size and position as it is moved and resized.
+  chrome.action.onClicked.addListener((tab) => {
+    void routeActionClick(tab, launchMode, clickApi).catch((error: unknown) =>
+      console.error('[Better X] toolbar click', error),
+    );
   });
   followFloatingWindow();
   chrome.runtime.onStartup.addListener(() => {});
@@ -93,6 +123,7 @@ export default defineBackground(() => {
             // that is unavailable or refused, the side panel is the fallback. The mode is held in
             // memory so the side panel path, which needs the click's gesture, waits for nothing.
             if (launchMode === 'window') return openFloatingWindow();
+            // Overlay mode: the save menu opens the in-page panel itself and never asks for this.
             if (launchMode === 'popup' && typeof chrome.action.openPopup === 'function')
               try {
                 await chrome.action.openPopup({ windowId });
@@ -117,6 +148,13 @@ export default defineBackground(() => {
               await chrome.action.setPopup({ popup: launchMode === 'popup' ? POPUP_PAGE : '' });
             }
             return;
+          }
+          case 'overlayTab': {
+            // The overlay owns this X tab: Chrome's own panel is disabled here, which hides it on
+            // this tab (so it cannot narrow X) and sends toolbar clicks to `action.onClicked`.
+            const tabId = sender.tab?.id;
+            if (tabId === undefined) throw new Error('Could not find this tab.');
+            return chrome.sidePanel.setOptions({ tabId, enabled: message.on !== true });
           }
           case 'savedIds':
             return repository.savedIds();
