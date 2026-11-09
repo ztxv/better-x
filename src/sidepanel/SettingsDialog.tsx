@@ -40,14 +40,14 @@ const OPEN_AS: Array<{ value: OpenAs; label: string; hint: string }> = [
 
 const PANEL_MODES: Array<{ value: PanelMode; label: string; hint: string }> = [
   {
-    value: 'native',
-    label: 'Native',
-    hint: "Chrome's side panel: X gets narrower and moves over",
-  },
-  {
     value: 'overlay',
     label: 'Overlay',
     hint: 'Drawn over the right edge of X, which stays exactly where it is; drag its edge to resize',
+  },
+  {
+    value: 'native',
+    label: 'Native',
+    hint: "Chrome's side panel: X gets narrower and moves over",
   },
 ];
 

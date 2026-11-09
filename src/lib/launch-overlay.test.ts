@@ -56,9 +56,9 @@ beforeEach(async () => {
 });
 
 describe('the launch mode from settings', () => {
-  it('is overlay only for side panel mode with the overlay chosen', () => {
-    expect(launchModeOf(normalizeSettings({}))).toBe('sidepanel');
-    expect(launchModeOf(normalizeSettings({ panelMode: 'overlay' }))).toBe('overlay');
+  it('is overlay for side panel mode with the overlay chosen, the default', () => {
+    expect(launchModeOf(normalizeSettings({}))).toBe('overlay');
+    expect(launchModeOf(normalizeSettings({ panelMode: 'native' }))).toBe('sidepanel');
     expect(launchModeOf(normalizeSettings({ panelMode: 'overlay', openAs: 'popup' }))).toBe(
       'popup',
     );
@@ -75,6 +75,7 @@ describe('the launch mode from settings', () => {
 
   it('switching to overlay changes nothing Chrome reads, and leaving it neither', async () => {
     const { api, state } = fakeLaunch();
+    await saveSettings({ panelMode: 'native' });
     const seen: LaunchMode[] = [];
     const stop = followLaunchMode(api, undefined, (mode) => seen.push(mode));
     await settle();

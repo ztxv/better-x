@@ -32,13 +32,13 @@ beforeEach(async () => {
 });
 
 describe('settings: version 7 panel mode', () => {
-  it('defaults to the native side panel, with no edge tab, so nothing changes for anyone', () => {
+  it('defaults to the overlay (since 1.1.5), with no edge tab', () => {
     expect(SETTINGS_VERSION).toBe(7);
-    expect(DEFAULT_SETTINGS.panelMode).toBe('native');
+    expect(DEFAULT_SETTINGS.panelMode).toBe('overlay');
     expect(DEFAULT_SETTINGS.panelHandle).toBe(false);
   });
 
-  it('loads a stored version 6 object unchanged, in native mode', async () => {
+  it('loads a stored version 6 object unchanged, in overlay mode', async () => {
     const { data } = await freshEnvironment();
     const v6 = {
       version: 6,
@@ -48,22 +48,22 @@ describe('settings: version 7 panel mode', () => {
     };
     data['bx.settings'] = v6;
     const loaded = await loadSettings();
-    expect(loaded).toMatchObject({ ...v6, version: 7, panelMode: 'native', panelHandle: false });
+    expect(loaded).toMatchObject({ ...v6, version: 7, panelMode: 'overlay', panelHandle: false });
   });
 
   it('keeps only the two known modes and a real boolean', () => {
-    expect(normalizeSettings({ panelMode: 'overlay' }).panelMode).toBe('overlay');
-    for (const bad of ['Overlay', 'popup', '', 1, null, {}, ['overlay']])
-      expect(normalizeSettings({ panelMode: bad }).panelMode).toBe('native');
+    expect(normalizeSettings({ panelMode: 'native' }).panelMode).toBe('native');
+    for (const bad of ['Native', 'popup', '', 1, null, {}, ['native']])
+      expect(normalizeSettings({ panelMode: bad }).panelMode).toBe('overlay');
     expect(normalizeSettings({ panelHandle: true }).panelHandle).toBe(true);
     expect(normalizeSettings({ panelHandle: 'true' }).panelHandle).toBe(false);
   });
 
   it('is saved and kept by reset, like the toolbar mode', async () => {
-    await saveSettings({ panelMode: 'overlay', panelHandle: true, accent: 'pink' });
+    await saveSettings({ panelMode: 'native', panelHandle: true, accent: 'pink' });
     const after = await resetSettings();
     expect(after.accent).toBe(DEFAULT_SETTINGS.accent);
-    expect(after.panelMode).toBe('overlay');
+    expect(after.panelMode).toBe('native');
     expect(after.panelHandle).toBe(true);
   });
 });

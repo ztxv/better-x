@@ -83,7 +83,7 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 **Open it your way**
 
 - Settings → **Open Better X as**: the toolbar icon opens the side panel (default) a compact popup (480, 580 or 600 px tall: Chrome allows no taller popup), or a **floating window** you can move and resize to any size, which remembers its size and position. All three are the same app; the popup has a button to open the side panel.
-- Settings → **Side panel on X**: **Native** (default) is Chrome's side panel, which narrows the page so X re-centers and the timeline jumps. **Overlay** draws the same panel inside the X tab, over its right edge, so X stays exactly where it is. Resize it by dragging its left edge (320 to 560 px; remembered), close it with its Close button or Esc, and toggle it with the toolbar icon, **Alt+Shift+B**, or an optional tab on X's right edge. It stays open while you click, scroll and move around X, and if you leave it open it is open on X next time and in other X tabs. Other sites still get Chrome's side panel.
+- Settings → **Side panel on X**: **Overlay** (default) draws the panel inside the X tab, over its right edge, so X stays exactly where it is. **Native** is Chrome's side panel, which narrows the page so X re-centers and the timeline jumps. Resize it by dragging its left edge (320 to 560 px; remembered), close it with its Close button or Esc, and toggle it with the toolbar icon, **Alt+Shift+B**, or an optional tab on X's right edge. It stays open while you click, scroll and move around X, and if you leave it open it is open on X next time and in other X tabs. Other sites still get Chrome's side panel.
 
 **Appearance**
 
@@ -182,7 +182,7 @@ No browsing history, no all-site access, no analytics, no remote code. Better X 
 | Ask where to save     | Off                    | Chrome's own "Ask where to save" setting may still prompt.   |
 | Saved-post menu       | Download, Open library | **Remove bookmark** is always available.                     |
 | Open Better X as      | Side panel             | Side panel, popup, or floating window.                       |
-| Side panel on X       | Native                 | Native shifts X; Overlay keeps X centered (side panel mode). |
+| Side panel on X       | Overlay                | Overlay keeps X centered; Native shifts X (side panel mode). |
 | Tab on X's right edge | Off                    | Overlay only: a small tab that opens the overlay.            |
 
 Reset customization never touches your data. The Customize tab's own settings (the switches, sliders and country filter choices) are separate: they are kept by that reset, and **Turn everything off** at the bottom of the tab clears them.

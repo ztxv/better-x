@@ -19,8 +19,8 @@ export const SETTINGS_KEY = 'bx.settings';
  * feature at its default and the side panel, and is rewritten at the current version on the next
  * save; no other field changes meaning, and nothing a user had set is lost. Version 6 added
  * `xTheme` (the palette that re-skins x.com itself, see `src/themes`), off by default. Version 7
- * added `panelMode` (on X, the side panel can be drawn inside the page instead), `native` by
- * default, and `panelHandle` (a small tab on X's right edge that opens it), off by default.
+ * added `panelMode` (on X, the side panel can be drawn inside the page instead), `overlay` by
+ * default since 1.1.5, and `panelHandle` (a small tab on X's right edge that opens it), off by default.
  */
 export const SETTINGS_VERSION = 7;
 
@@ -145,7 +145,7 @@ export const DEFAULT_SETTINGS: Settings = {
   menuActions: { download: true, openLibrary: true },
   saveAs: false,
   openAs: 'sidepanel',
-  panelMode: 'native',
+  panelMode: 'overlay',
   panelHandle: false,
   popupHeight: 'standard',
   insights: { lookup: 'hover' },

@@ -172,7 +172,7 @@ await chrome.storage.local.set({ 'bx.settings': { ...s, xTheme: { ...s.xTheme, a
 
 ## Panel overlay
 
-Not verified on live X: `scripts/smoke/overlay.mjs` checks an X-shaped page served under X's frame policy, with real toolbar clicks. Setup: Settings → Open Better X as → **Side panel**, then Side panel on X → **Overlay**. Before you start, note where the timeline sits (for example the left edge of the first post against something on screen).
+Not verified on live X: `scripts/smoke/overlay.mjs` checks an X-shaped page served under X's frame policy, with real toolbar clicks. Setup: Settings → Open Better X as → **Side panel**, and Side panel on X → **Overlay** (the default; check that a fresh install starts there). Before you start, note where the timeline sits (for example the left edge of the first post against something on screen).
 
 - [ ] **Opens and closes.** On x.com/home, click the toolbar icon: the panel slides in from the right, flush with the window's right edge, full height, with a thin left border and shadow. Click it again: it slides out. Do it twice more in a row. Close it once with the panel's **Close** button and once with **Esc** (click inside the panel first). Esc pressed on X itself (focus in X's search, or no focus) does nothing to the panel.
 - [ ] **The timeline does not move.** With it open, closed, and while resizing, the timeline, the left nav and the right column stay exactly where they were: no jump, no reflow, no change of X's narrow/wide layout. Compare with Native mode, where the timeline shifts left.

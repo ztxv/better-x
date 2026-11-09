@@ -190,9 +190,11 @@ try {
   };
 
   /* ------------------------------------------------------------------- native mode */
+  // Overlay is the default (1.1.5); start in Native, as someone who chose it.
+  await writeSettings({ panelMode: 'native' });
   const x = await openX();
   await sleep(500);
-  check('native mode (the default): no overlay host on an X page', (await host(x)) === null);
+  check('native mode: no overlay host on an X page', (await host(x)) === null);
   check(
     "...and the X tab keeps Chrome's side panel enabled",
     (await activePanel()).enabled !== false,

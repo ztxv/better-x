@@ -60,6 +60,10 @@ afterEach(() => {
 });
 
 describe('panel overlay, native mode', () => {
+  beforeEach(async () => {
+    await saveSettings({ panelMode: 'native' });
+  });
+
   it('creates nothing, tells the worker nothing, and ignores a toggle', async () => {
     const untouched = xPage();
     const { env, sent, deliver } = fakeEnv();
