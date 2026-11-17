@@ -33,6 +33,8 @@ import { DownloadDialog, downloadRows } from './DownloadDialog';
 import { Customize } from './Customize';
 import { SectionTabs, type Section } from './SectionTabs';
 import { Themes } from './Themes';
+import { Plugins } from './Plugins';
+import { OPEN_SECTION_KEY } from '../plugins/state';
 import { SettingsDialog } from './SettingsDialog';
 import { useDownloads, useSettings } from './hooks';
 import {
@@ -137,6 +139,24 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
   const { settings, update: updateSettings } = useSettings();
   const { records, refresh: refreshDownloads } = useDownloads();
   const [section, setSection] = useState<Section>('library');
+  // A plugin on the X page can ask for its settings ("Set up" on the Spotify player): it leaves a
+  // note in storage, read here once (whether the panel was open already or opens because of it).
+  useEffect(() => {
+    const take = (value: unknown) => {
+      if (value !== 'plugins') return;
+      setSection('plugins');
+      void chrome.storage.local.remove(OPEN_SECTION_KEY);
+    };
+    chrome.storage.local
+      .get(OPEN_SECTION_KEY)
+      .then((stored) => take(stored[OPEN_SECTION_KEY]))
+      .catch(() => {});
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'local' && changes[OPEN_SECTION_KEY]) take(changes[OPEN_SECTION_KEY].newValue);
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, []);
   // The popup's own window, remembered so "Open in side panel" can call `sidePanel.open` inside the
   // click itself: Chrome only opens the panel for a call that is part of a user gesture.
   const popupWindowId = useRef<number | undefined>(undefined);
@@ -541,6 +561,7 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
           onChange={(patch) => void updateSettings(patch)}
           hidden={section !== 'themes'}
         />
+        <Plugins hidden={section !== 'plugins'} />
         <div
           className="library-view"
           id="library-panel"

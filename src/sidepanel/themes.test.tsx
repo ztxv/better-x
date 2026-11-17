@@ -199,7 +199,7 @@ describe('section tabs with Themes', () => {
       );
     });
 
-  it('cycles through all three tabs with the arrow keys, wrapping at the ends', async () => {
+  it('cycles through every tab with the arrow keys, wrapping at the ends', async () => {
     await act(async () => root.render(createElement(Tabs)));
     act(() => host.querySelector<HTMLElement>('#library-tab')!.focus());
     key('ArrowRight');
@@ -208,13 +208,15 @@ describe('section tabs with Themes', () => {
     expect(selected()).toBe('themes-tab');
     expect(document.activeElement!.id).toBe('themes-tab');
     key('ArrowRight');
+    expect(selected()).toBe('plugins-tab');
+    key('ArrowRight');
     expect(selected()).toBe('library-tab');
     key('ArrowLeft');
-    expect(selected()).toBe('themes-tab');
+    expect(selected()).toBe('plugins-tab');
     key('Home');
     expect(selected()).toBe('library-tab');
     key('End');
-    expect(selected()).toBe('themes-tab');
+    expect(selected()).toBe('plugins-tab');
     expect(host.querySelector('#themes-tab')!.getAttribute('aria-controls')).toBe('themes-panel');
     expect(
       [...host.querySelectorAll('[role="tab"]')].filter((t) => t.getAttribute('tabindex') === '0'),

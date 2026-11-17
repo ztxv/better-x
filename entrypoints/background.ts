@@ -9,6 +9,8 @@ import {
   type LaunchMode,
 } from '../src/lib/launch-mode';
 import { loadSettings } from '../src/lib/settings';
+import { createSpotifyService } from '../src/spotify/service';
+import { parseCommand } from '../src/spotify/types';
 import { BookmarkRepository } from '../src/storage/repository';
 import {
   TOGGLE_OVERLAY,
@@ -27,6 +29,8 @@ const CONTENT_REQUESTS = new Set<Request['type']>([
   'downloadsFor',
   'cancelDownload',
   'overlayTab',
+  'spotifyState',
+  'spotifyCommand',
 ]);
 
 /** What a toolbar click can do (see `routeActionClick`). */
@@ -81,6 +85,8 @@ export default defineBackground(() => {
     downloader,
     settings: loadSettings,
   });
+
+  const spotify = createSpotifyService();
 
   // Registered synchronously so events that wake the worker are never missed.
   chrome.downloads?.onChanged.addListener((delta) => void service.onChanged(delta));
@@ -155,6 +161,13 @@ export default defineBackground(() => {
             const tabId = sender.tab?.id;
             if (tabId === undefined) throw new Error('Could not find this tab.');
             return chrome.sidePanel.setOptions({ tabId, enabled: message.on !== true });
+          }
+          case 'spotifyState':
+            return spotify.state();
+          case 'spotifyCommand': {
+            const command = parseCommand(message.command);
+            if (!command) throw new Error('Invalid command.');
+            return spotify.command(command);
           }
           case 'savedIds':
             return repository.savedIds();

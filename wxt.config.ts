@@ -18,11 +18,19 @@ export default defineConfig({
     // post-metadata endpoint used to find video files. No other site is reachable.
     // `activeTab` (no install warning, no standing access) lets a toolbar click or the shortcut
     // read the clicked tab's URL, so the panel overlay can tell an X tab from any other.
-    permissions: ['storage', 'sidePanel', 'downloads', 'activeTab'],
+    // `identity` opens Spotify's consent window when the person connects the Spotify plugin
+    // (Authorization Code + PKCE; there is no client secret). The Spotify hosts are reached only
+    // by that plugin: the token endpoint, the Web API, and cover art (fetched by the worker
+    // because X's page may not load images from Spotify's hosts).
+    permissions: ['storage', 'sidePanel', 'downloads', 'activeTab', 'identity'],
     host_permissions: [
       'https://pbs.twimg.com/*',
       'https://video.twimg.com/*',
       'https://cdn.syndication.twimg.com/*',
+      'https://api.spotify.com/*',
+      'https://accounts.spotify.com/*',
+      'https://*.scdn.co/*',
+      'https://*.spotifycdn.com/*',
     ],
     action: { default_title: `Open ${PRODUCT_NAME}` },
     // The shortcut does exactly what clicking the toolbar icon does, in every mode.

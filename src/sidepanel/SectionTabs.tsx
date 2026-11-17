@@ -1,13 +1,14 @@
-export type Section = 'library' | 'customize' | 'themes';
+export type Section = 'library' | 'customize' | 'themes' | 'plugins';
 
 export const SECTIONS: ReadonlyArray<{ id: Section; label: string }> = [
   { id: 'library', label: 'Library' },
   { id: 'customize', label: 'Customize' },
   { id: 'themes', label: 'Themes' },
+  { id: 'plugins', label: 'Plugins' },
 ];
 
 /**
- * The Library | Customize | Themes switch: an ARIA tab list, with the selected tab the only one in
+ * The Library | Customize | Themes | Plugins switch: an ARIA tab list, with the selected tab the only one in
  * the Tab order, Left/Right moving between tabs (wrapping at the ends) and Home/End to the first
  * and last.
  */
