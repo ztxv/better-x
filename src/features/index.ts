@@ -1,6 +1,7 @@
 import { APPEARANCE_FEATURES } from './appearance';
 import { BRANDING_FEATURES } from './branding';
 import { CLEANUP_FEATURES } from './cleanup';
+import { dragPhotos } from './drag-photos';
 import { FEED_FEATURES } from './feed';
 import { FILTERING_FEATURES } from './filtering';
 import { hideAds } from './hide-ads';
@@ -24,6 +25,7 @@ export const FEATURES: readonly FeatureDef[] = [
   hideForYou,
   ...FEED_FEATURES,
   ...POST_FEATURES,
+  dragPhotos,
   ...INSIGHT_FEATURES,
   ...FILTERING_FEATURES,
   ...SIDEBAR_FEATURES,
