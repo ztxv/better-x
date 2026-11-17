@@ -90,6 +90,22 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 - Light, dark, or automatic theme, and five accent colors, applied live on X and in the library.
 - Choose what happens after saving (offer a download, show a confirmation, or stay quiet) and which actions the saved-post menu shows.
 
+## Plugins, themes and photo dragging (1.2.0)
+
+**Plugins** (the Plugins tab): larger additions, each a card with a description, a gear for its settings and a switch. A switch takes effect in every open X tab at once and removes everything the plugin added when turned off.
+
+**SpotifyControls** shows a player above X's account switcher: cover, title, artists, album, a seekable progress bar, and shuffle / previous / play-pause / next / repeat. Setup (once, about two minutes), all shown in the plugin's settings:
+
+1. Open <https://developer.spotify.com/dashboard>, create an app (any name, tick **Web API**).
+2. In the app's settings add the **Redirect URI** the plugin shows you (`https://<extension id>.chromiumapp.org/spotify`), exactly.
+3. Paste the app's **Client ID** into the plugin (never the secret: it is not used) and press **Connect Spotify**.
+
+Limits that come from Spotify, not Better X: playback controls need **Spotify Premium** (without it the player shows what is playing and no buttons); a new Spotify app is in development mode and works only for accounts listed under its User Management (yours by default); the player controls whatever device is already playing and cannot start playback when no Spotify app is active. An unpacked extension's id depends on the folder it is loaded from, so if you move the folder, add the new Redirect URI to your Spotify app.
+
+**Your own themes** (the Themes tab): pick any preset or Custom, edit Background, Text, Accent and (under Advanced) Raised, Hover, Border and Secondary text with a color picker or a hex code, live on X. **New theme** / **Save as new theme** keeps a palette under a name; named themes can be renamed, duplicated, exported to a JSON file, imported, and deleted. Themes apply while X is in Lights out (dark) and step aside, with a notice, when X is in Default (light).
+
+**Drag to navigate photos** (Customize → Posts): in X's expanded photo viewer, drag a photo left for the next one or right for the previous one. Off by default like every customization.
+
 ## Install
 
 Requires Node.js 20.19+ and Chrome 116+.
@@ -160,14 +176,18 @@ The video lookup uses an undocumented X endpoint, so it can change without notic
 
 All data lives in your browser. Exports contain metadata only, never media files or local file paths.
 
-| Permission                                                      | Why                                                                                                                                                                                                             |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                                                       | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
-| `sidePanel`                                                     | Open the library from the toolbar icon.                                                                                                                                                                         |
-| `activeTab`                                                     | Read the address of the tab you click the toolbar icon on (or press the shortcut in), only at that moment, so the panel overlay can tell an X tab from another site. No install warning, no standing access.    |
-| `downloads`                                                     | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
-| `x.com`, `twitter.com` (content script)                         | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
-| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com` | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
+| Permission                                                                 | Why                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`                                                                  | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
+| `sidePanel`                                                                | Open the library from the toolbar icon.                                                                                                                                                                         |
+| `activeTab`                                                                | Read the address of the tab you click the toolbar icon on (or press the shortcut in), only at that moment, so the panel overlay can tell an X tab from another site. No install warning, no standing access.    |
+| `downloads`                                                                | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
+| `x.com`, `twitter.com` (content script)                                    | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
+| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com`            | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
+| `identity`                                                                 | Open Spotify's own sign-in window when you connect the Spotify plugin. Unused otherwise.                                                                                                                        |
+| `api.spotify.com`, `accounts.spotify.com`, `*.scdn.co`, `*.spotifycdn.com` | The Spotify plugin only: what is playing, playback commands, sign-in, and cover art. Contacted only while that plugin is on and connected.                                                                      |
+
+The Spotify plugin is the one place a sign-in is kept: its tokens stay in this browser's extension storage, are used only by the background worker to talk to Spotify, are never sent to X or put in any backup, and are removed by Disconnect. There is no client secret.
 
 No browsing history, no all-site access, no analytics, no remote code. Better X never stores or sends a cookie, token or header: account lookups read X's `ct0` page token for the one request and keep nothing. The cached account facts (public data X showed on profiles) stay on this device, are not part of any backup, and can be cleared in Customize → Account insights.
 

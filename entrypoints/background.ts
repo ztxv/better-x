@@ -10,7 +10,8 @@ import {
 } from '../src/lib/launch-mode';
 import { loadSettings } from '../src/lib/settings';
 import { createSpotifyService } from '../src/spotify/service';
-import { parseCommand } from '../src/spotify/types';
+import { parseCommand, SPOTIFY_AUTH_KEY } from '../src/spotify/types';
+import { PLUGINS_KEY } from '../src/plugins/state';
 import { BookmarkRepository } from '../src/storage/repository';
 import {
   TOGGLE_OVERLAY,
@@ -87,6 +88,10 @@ export default defineBackground(() => {
   });
 
   const spotify = createSpotifyService();
+  // Connecting, disconnecting or a new Client ID must show in the player at once.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes[SPOTIFY_AUTH_KEY] || changes[PLUGINS_KEY])) spotify.reset();
+  });
 
   // Registered synchronously so events that wake the worker are never missed.
   chrome.downloads?.onChanged.addListener((delta) => void service.onChanged(delta));

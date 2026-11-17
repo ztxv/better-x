@@ -22,6 +22,8 @@ export interface SpotifyService {
   state(): Promise<PlayerState>;
   /** Sends a playback command and answers with the state after it. Never throws. */
   command(command: SpotifyCommand): Promise<PlayerState>;
+  /** Forgets the shared answer: the account or the Client ID just changed. */
+  reset(): void;
 }
 
 interface Deps {
@@ -141,7 +143,11 @@ export function createSpotifyService({
     inFlight ??= read()
       .catch((): PlayerState => ({ status: 'error', message: 'Could not reach Spotify.' }))
       .then((result) => {
-        cached = { state: result, at: now() };
+        // Only answers that cost Spotify a request are shared; the others are free to recompute.
+        cached =
+          result.status === 'setup' || result.status === 'disconnected'
+            ? null
+            : { state: result, at: now() };
         inFlight = null;
         return result;
       });
@@ -175,5 +181,12 @@ export function createSpotifyService({
     }
   }
 
-  return { state, command };
+  return {
+    state,
+    command,
+    reset() {
+      cached = null;
+      pausedUntil = 0;
+    },
+  };
 }
