@@ -48,7 +48,8 @@ describe('deriveTokens', () => {
   it('writes only #rrggbb and its own rgba()', () => {
     const tokens = deriveTokens({ bg: '#15202B', text: '#f7f9f9', accent: '#1D9BF0' });
     for (const [key, value] of Object.entries(tokens))
-      if (key === 'backdrop' || key === 'scrim') expect(value).toMatch(/^rgba\(/);
+      if (key === 'backdrop' || key === 'scrim' || key === 'accentTint')
+        expect(value).toMatch(/^rgba\(/);
       else expect(value).toMatch(HEX);
     expect(tokens.backdrop).toBe('rgba(21, 32, 43, 0.85)');
   });

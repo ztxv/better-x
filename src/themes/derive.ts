@@ -1,4 +1,14 @@
-import { BLACK, contrast, ensureContrast, isHex, mix, toHex, toRgb, type Rgb } from '../lib/color';
+import {
+  BLACK,
+  WHITE,
+  contrast,
+  ensureContrast,
+  isHex,
+  mix,
+  toHex,
+  toRgb,
+  type Rgb,
+} from '../lib/color';
 import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, presetById } from './presets';
 import type { ThemeDef, ThemeSeed, ThemeTokens } from './types';
 
@@ -34,6 +44,10 @@ export function deriveTokens(seed: ThemeSeed): ThemeTokens {
     muted: toHex(muted),
     accent: toHex(accent),
     accentText: toHex(accentText),
+    accentHover: toHex(mix(accent, BLACK, 0.1)),
+    accentActive: toHex(mix(accent, BLACK, 0.2)),
+    ring: toHex(mix(accent, WHITE, 0.5)),
+    accentTint: rgba(accent, 0.1),
     backdrop: rgba(bg, 0.85),
     scrim: rgba(mix(bg, BLACK, 0.5), 0.6),
   };
@@ -52,14 +66,14 @@ export function resolveTheme(
 }
 
 export interface ContrastWarning {
-  pair: 'text' | 'accent' | 'border';
+  pair: 'text' | 'accent' | 'border' | 'label';
   ratio: number;
   minimum: number;
 }
 
 /**
  * Pairs the editor warns about (it never blocks): text on background under 4.5:1, accent under
- * 3:1, border under 1.25:1 (dividers that vanish).
+ * 3:1, border under 1.25:1 (dividers that vanish), and white button labels on the accent under 2.2:1.
  */
 export function contrastWarnings(seed: ThemeSeed): ContrastWarning[] {
   const tokens = deriveTokens(seed);
@@ -69,9 +83,14 @@ export function contrastWarnings(seed: ThemeSeed): ContrastWarning[] {
     ['accent', tokens.accent, 3],
     ['border', tokens.border, 1.25],
   ];
-  return checks
+  const warnings = checks
     .map(([pair, value, minimum]) => ({ pair, ratio: contrast(toRgb(value), bg), minimum }))
     .filter((warning) => warning.ratio < warning.minimum);
+  // X writes its button labels (Post, "Show 12 posts", Follow back) in white on the accent. X's
+  // own blue is 3:1 against white, so only a clearly lighter accent (yellow, lime) is flagged.
+  const label = contrast(WHITE, toRgb(tokens.accent));
+  if (label < 2.2) warnings.push({ pair: 'label', ratio: label, minimum: 2.2 });
+  return warnings;
 }
 
 /** Every seed color filled in (derived where absent), for "Start from" a preset. */

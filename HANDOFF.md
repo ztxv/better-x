@@ -11,11 +11,11 @@ Three features on the existing extension: (1) fully customizable X themes, (2) "
 | Check                                                            | Result                                    |
 | ---------------------------------------------------------------- | ----------------------------------------- |
 | `npm run check`                                                  | clean                                     |
-| `npm test`                                                       | 778 passed (was 736)                      |
+| `npm test`                                                       | 783 passed (was 736)                      |
 | `npm run build`                                                  | builds                                    |
 | `scripts/smoke/drag.mjs` (real Chrome, new)                      | 22/22                                     |
-| `scripts/smoke/plugins.mjs` (real Chrome, Spotify scripted, new) | 16/16                                     |
-| existing smokes `theme`, `catalog`, `overlay`, `insights`        | 17/17, 116/116, 35/35, 55/55              |
+| `scripts/smoke/plugins.mjs` (real Chrome, Spotify scripted, new) | 17/17                                     |
+| existing smokes `theme`, `catalog`, `overlay`, `insights`        | 20/20, 116/116, 35/35, 55/55              |
 | `scripts/smoke/run.mjs` and the others in `npm run smoke`        | not run (need X's CDNs / were not needed) |
 
 In a root container the older smoke scripts need `--no-sandbox` added to their launch args; the two new ones already pass it. Use `CHROME_PATH=/opt/pw-browsers/chromium`.
@@ -27,6 +27,13 @@ In a root container the older smoke scripts need `--no-sandbox` added to their l
 - Plugins: `src/plugins/` (`catalog.ts`, `state.ts`, `host.ts`, `content.ts`, `spotify/`), panel UI `src/sidepanel/Plugins.tsx` and `SpotifySettings.tsx`.
 - Spotify: `src/spotify/` (`auth.ts` PKCE, `api.ts` parsing, `service.ts` worker client, `types.ts`), messages `spotifyState` / `spotifyCommand` in `entrypoints/background.ts`, manifest in `wxt.config.ts`.
 - Decisions and reasons: the three 1.2.0 entries at the end of "Structure" in `docs/ARCHITECTURE.md`.
+
+## Follow-up session (Opus 5.5)
+
+- **Accent now reaches X.** The palette defined `--bx-t-accent` but no rule used it, so the accent only changed the preview. Added accent surfaces (computed RNW classes for X's blue, verified by re-deriving known live classes; inline styles; focus ring) with derived hover/pressed/ring/tint, a white-label contrast warning, and real-Chrome checks (theme smoke 20/20). See "The accent reaches X" in `docs/ARCHITECTURE.md`.
+- **Spotify race fixed.** A refresh during an in-flight poll was dropped (connect/disconnect showed the old state for up to 20 s) and the worker's reset kept the stale in-flight read. Requests are now sequenced; smoke covers it (17/17; the old code fails the new checks).
+- Smoke/perf scripts pass `--no-sandbox` only when run as root. In this container: catalog 116, insights 55, overlay 35, reload 4, theme 20, drag 22, plugins 17 all pass; `run`/`restart` fail only on real media downloads (no network to X's CDNs); `launch` crashes on a headless popup step identically on the pre-branch code.
+- Manual live-X checklist for all three features: `docs/MANUAL-CHECKLIST.md`.
 
 ## Not verified (needs the owner's browser)
 

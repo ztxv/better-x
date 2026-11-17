@@ -41,6 +41,16 @@ export interface ThemeTokens {
   accent: string;
   /** The accent nudged to 4.5:1 on `bg`, for accent-colored text (links). */
   accentText: string;
+  /**
+   * The accent under the pointer and while pressed: 10% and 20% toward black, which is exactly
+   * how X derives its own (rgb(29,155,240) → rgb(26,140,216) → rgb(23,124,192)).
+   */
+  accentHover: string;
+  accentActive: string;
+  /** The keyboard focus ring: the accent halfway to white, as X's rgb(142,205,248) is to its blue. */
+  ring: string;
+  /** The accent at 10% opacity, for the tinted circles behind icons and light hovers. */
+  accentTint: string;
   /** `bg` at 85% opacity, for X's translucent sticky bars. */
   backdrop: string;
   /** Behind modals. */

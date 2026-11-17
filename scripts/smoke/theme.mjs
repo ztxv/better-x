@@ -33,6 +33,9 @@ function themePage(mode = 'dark') {
     .r-1kqtdi0{border:1px solid rgb(47,51,54)} .r-1igl3o0{border-bottom:1px solid rgb(47,51,54)}
     .r-gu4em3{background-color:rgb(47,51,54);height:1px} .r-1bwzh9t{color:rgb(113,118,123)}
     .r-g2wdr4{background-color:rgb(22,24,28)} .r-1niwhzg{background-color:rgba(0,0,0,0)}
+    .r-1cvl2hr{color:rgb(29,155,240)} .r-l5o3uw{background-color:rgb(29,155,240)}
+    .r-1vtznih{background-color:rgb(26,140,216)} .r-1peqgm7{background-color:rgba(29,155,240,0.1)}
+    .r-vhj8yc{border:1px solid rgb(29,155,240)} .r-1xc9bm1{color:rgb(249,24,128)}
   </style>
   <script>requestAnimationFrame(() => { window.__firstFrame = document.documentElement.getAttribute('data-bx-theme'); });</script>
   </head>
@@ -49,6 +52,16 @@ function themePage(mode = 'dark') {
     <div id="crop" class="r-1niwhzg r-633pao">crop</div>
     <img id="media" width="20" height="20" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
     <video id="clip" width="20" height="20"></video>
+    <a id="link" class="r-1cvl2hr" href="#">#hashtag</a>
+    <span id="link-inline" style="color: rgb(29, 155, 240);">@mention</span>
+    <div id="fill" class="r-l5o3uw">tab underline</div>
+    <div id="fill-inline" style="background-color: rgb(29, 155, 240); color: rgb(255, 255, 255);">Show 12 posts</div>
+    <div id="hover" class="r-1vtznih">button hover</div>
+    <div id="tint" class="r-1peqgm7">icon circle</div>
+    <div id="field" class="r-vhj8yc">focused field</div>
+    <div id="ring" style="box-shadow: rgb(142, 205, 248) 0px 0px 0px 2px;">focused</div>
+    <svg id="badge" data-testid="icon-verified" class="r-1cvl2hr" width="10" height="10"></svg>
+    <span id="liked" class="r-1xc9bm1">♥ 12</span>
     <main style="width:600px">
       ${post({ id: '1300000000000000001', handle: 'themer', text: 'A post on a themed page' })}
       ${post({ id: '1300000000000000002', handle: 'themer', text: 'Another' })}
@@ -122,6 +135,19 @@ const colors = (page) =>
       crop: css('crop', 'backgroundColor'),
       media: [css('media', 'backgroundColor'), css('media', 'filter'), css('media', 'opacity')],
       clip: [css('clip', 'backgroundColor'), css('clip', 'filter')],
+      accent: {
+        link: css('link', 'color'),
+        linkInline: css('link-inline', 'color'),
+        fill: css('fill', 'backgroundColor'),
+        fillInline: css('fill-inline', 'backgroundColor'),
+        fillInlineText: css('fill-inline', 'color'),
+        hover: css('hover', 'backgroundColor'),
+        tint: css('tint', 'backgroundColor'),
+        field: css('field', 'borderTopColor'),
+        ring: css('ring', 'boxShadow'),
+        badge: css('badge', 'color'),
+        liked: css('liked', 'color'),
+      },
       controls: [...document.querySelectorAll('.bx-control')].filter((c) =>
         c.checkVisibility({ visibilityProperty: true }),
       ).length,
@@ -174,6 +200,51 @@ try {
   check(
     'Better X’s save controls still show',
     dim.controls === stock.controls && dim.controls >= 2,
+  );
+
+  // A custom accent: links, fills, borders, hover, tint and focus ring follow it; the verified
+  // badge, the like pink and white labels keep their colors.
+  await setTheme({
+    active: 'custom',
+    custom: {
+      bg: '#101820',
+      text: '#f0f0f0',
+      accent: '#ff5fa2',
+      raised: '#1a2430',
+      hover: '#141e28',
+      border: '#2a3540',
+      muted: '#9aa5b0',
+    },
+  });
+  await wait(page);
+  const custom = await colors(page);
+  const ACCENT = {
+    link: 'rgb(255, 95, 162)',
+    linkInline: 'rgb(255, 95, 162)',
+    fill: 'rgb(255, 95, 162)',
+    fillInline: 'rgb(255, 95, 162)',
+    fillInlineText: 'rgb(255, 255, 255)',
+    // 10% and 20% toward black, 50% toward white, 10% opacity: X's own steps for its blue.
+    hover: 'rgb(230, 86, 146)',
+    tint: 'rgba(255, 95, 162, 0.1)',
+    field: 'rgb(255, 95, 162)',
+    ring: 'rgb(255, 175, 209) 0px 0px 0px 2px',
+    badge: 'rgb(29, 155, 240)',
+    liked: 'rgb(249, 24, 128)',
+  };
+  const accentWrong = differences(custom.accent, ACCENT);
+  check(
+    'a custom accent reaches links, fills, borders, hover, tint and the focus ring; badge and like keep theirs',
+    accentWrong.length === 0,
+    accentWrong.join('; '),
+  );
+  check(
+    'the accent does not touch media',
+    JSON.stringify(custom.media) === JSON.stringify(stock.media),
+  );
+  check(
+    'with no theme, X’s blue is untouched',
+    stock.accent.link === 'rgb(29, 155, 240)' && stock.accent.fill === 'rgb(29, 155, 240)',
   );
 
   await setTheme({ active: 'nord' });

@@ -19,7 +19,7 @@ type SeedKey = keyof Required<ThemeSeed>;
 const PRIMARY: ReadonlyArray<{ key: SeedKey; label: string; hint: string }> = [
   { key: 'bg', label: 'Background', hint: 'The page and columns' },
   { key: 'text', label: 'Text', hint: 'Posts, names, menus' },
-  { key: 'accent', label: 'Accent', hint: 'Links and highlights' },
+  { key: 'accent', label: 'Accent', hint: 'Links, tabs, buttons, switches, focus' },
 ];
 const ADVANCED: ReadonlyArray<{ key: SeedKey; label: string; hint: string }> = [
   { key: 'raised', label: 'Raised', hint: 'Cards, menus, modals' },
@@ -32,6 +32,7 @@ const WARNINGS: Record<string, string> = {
   text: 'Text is hard to read on this background',
   accent: 'The accent barely stands out from the background',
   border: 'Lines between posts will be almost invisible',
+  label: 'X’s white button labels will be hard to read on this accent',
 };
 
 const number = (hex: string) => parseHex(hex) ?? 0;
@@ -196,6 +197,10 @@ export function ThemeEditor({
       )}
 
       {PRIMARY.map(field)}
+      <p className="setting-hint">
+        The accent replaces X’s blue, so keep X’s own color on Blue (X Settings → Display). Likes,
+        reposts, the verified badge and media keep their own colors.
+      </p>
 
       <button
         type="button"

@@ -27,6 +27,16 @@ export type Role =
   | 'text'
   | 'muted'
   | 'accent'
+  /** The accent as text (links): `accent` nudged to 4.5:1 on the background. */
+  | 'accent-text'
+  /** The accent as a fill or a border (tab underline, switches, buttons, pills). */
+  | 'accent-fill'
+  | 'accent-hover'
+  | 'accent-active'
+  /** The accent at 10%, behind icons under the pointer. */
+  | 'accent-tint'
+  /** The keyboard focus ring. */
+  | 'ring'
   | 'scrim'
   /** Tailwind tokens in Chat: the same roles as space-separated HSL components. */
   | 'bg-hsl'
@@ -55,7 +65,13 @@ export type AllowedProperty =
   | `--${string}`;
 
 export type SurfaceKind = 'stable' | 'inline-value' | 'rnw-class' | 'tailwind' | 'jetfuel';
-export type Source = 'dim-mode' | 'control-panel' | 'fixture' | 'live' | 'inferred';
+/**
+ * `rnw-hash`: the class React Native Web gives that exact declaration, computed with its own
+ * hash (murmurhash2, seed 1, base 36, over the camelCase property and the `rgba(r,g,b,a.toFixed(2))`
+ * value). The method reproduces the live-verified classes in this table; `surfaces.test.ts` checks
+ * both.
+ */
+export type Source = 'dim-mode' | 'control-panel' | 'fixture' | 'live' | 'inferred' | 'rnw-hash';
 
 export interface Surface {
   /** The token painted, or `keep` with `value`. */
@@ -443,6 +459,122 @@ export const SURFACES: readonly Surface[] = [
     verified: 'reference',
     chat: true,
     note: 'Chat drawer and its Tailwind background utilities.',
+  },
+  // -------------------------------------------------------------------------------- accent
+  // X's accent is its blue, rgb(29, 155, 240) (Settings → Display → Color: Blue, the default).
+  // Only blue is replaced: X's pink and green accents are also its like and repost colors, which
+  // must keep their meaning, so a theme's accent applies while X's own color is blue. The verified
+  // badge shares the blue text class and is excluded by its test ID.
+  {
+    role: 'accent-text',
+    properties: COLOR_PROPS,
+    kind: 'rnw-class',
+    selectors: ['.r-1cvl2hr:not([data-testid="icon-verified"])'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'Blue text: links in posts, mentions, hashtags, "Show more", selected icons. color rgb(29, 155, 240).',
+  },
+  {
+    role: 'accent-text',
+    properties: COLOR_PROPS,
+    kind: 'inline-value',
+    selectors: [
+      '[style^="color: rgb(29, 155, 240)"]:not([data-testid="icon-verified"])',
+      '[style*="; color: rgb(29, 155, 240)"]:not([data-testid="icon-verified"])',
+    ],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'Blue text written inline. Anchored on the start of the declaration so background-color never matches.',
+  },
+  {
+    role: 'accent-fill',
+    properties: BG,
+    kind: 'rnw-class',
+    selectors: ['.r-l5o3uw'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'Blue fills: the selected tab underline, switches and checkboxes when on, primary buttons, the new-posts pill, unread dots. background-color rgb(29, 155, 240).',
+  },
+  {
+    role: 'accent-fill',
+    properties: BG,
+    kind: 'inline-value',
+    selectors: ['[style*="background-color: rgb(29, 155, 240)"]'],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'Blue fills written inline.',
+  },
+  {
+    role: 'accent-fill',
+    properties: ['border-color'],
+    kind: 'rnw-class',
+    selectors: ['.r-vhj8yc'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'Blue borders: a focused search box or text field, outlined accent buttons. border-color rgb(29, 155, 240).',
+  },
+  {
+    role: 'accent-fill',
+    properties: ['border-color'],
+    kind: 'inline-value',
+    selectors: ['[style*="border-color: rgb(29, 155, 240)"]'],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'Blue borders written inline.',
+  },
+  {
+    role: 'accent-fill',
+    properties: ['border-bottom-color'],
+    kind: 'rnw-class',
+    selectors: ['.r-v35349'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'Blue bottom borders (underlines). border-bottom-color rgb(29, 155, 240).',
+  },
+  {
+    role: 'accent-fill',
+    properties: ['border-top-color'],
+    kind: 'rnw-class',
+    selectors: ['.r-17zyhjg'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'Blue top borders (spinners, progress). border-top-color rgb(29, 155, 240).',
+  },
+  {
+    role: 'accent-hover',
+    properties: BG,
+    kind: 'rnw-class',
+    selectors: ['.r-1vtznih'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'A blue button under the pointer. background-color rgb(26, 140, 216).',
+  },
+  {
+    role: 'accent-active',
+    properties: BG,
+    kind: 'rnw-class',
+    selectors: ['.r-yuvema'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'A blue button while pressed. background-color rgb(23, 124, 192).',
+  },
+  {
+    role: 'accent-tint',
+    properties: BG,
+    kind: 'rnw-class',
+    selectors: ['.r-1peqgm7', '.r-r18ze4'],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'The blue circle behind an icon under the pointer (reply, share): rgba(29, 155, 240, 0.1) and 0.2.',
+  },
+  {
+    role: 'ring',
+    properties: ['box-shadow'],
+    kind: 'inline-value',
+    selectors: ['[style*="box-shadow: rgb(142, 205, 248)"]'],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'The keyboard focus ring X writes inline: rgb(142, 205, 248) 0px 0px 0px 2px (its blue halfway to white).',
   },
   // ---------------------------------------------------------------------------------- keep
   // Last, so they win over the broader rules above (they are also more specific).

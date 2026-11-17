@@ -55,6 +55,20 @@ html[data-bx-theme] .r-1nao33i { color: var(--bx-t-text) !important; }
 html[data-bx-theme] .r-1o2jch0 { fill: var(--bx-t-text) !important; }
 html[data-bx-theme] [data-testid="mask"] { background-color: var(--bx-t-scrim) !important; }
 html[data-bx-theme] { scrollbar-color: var(--bx-t-border) var(--bx-t-bg) !important; }
+html[data-bx-theme] .r-1cvl2hr:not([data-testid="icon-verified"]) { color: var(--bx-t-accent-text) !important; }
+html[data-bx-theme] [style^="color: rgb(29, 155, 240)"]:not([data-testid="icon-verified"]),
+html[data-bx-theme] [style*="; color: rgb(29, 155, 240)"]:not([data-testid="icon-verified"]) { color: var(--bx-t-accent-text) !important; }
+html[data-bx-theme] .r-l5o3uw { background-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] [style*="background-color: rgb(29, 155, 240)"] { background-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] .r-vhj8yc { border-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] [style*="border-color: rgb(29, 155, 240)"] { border-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] .r-v35349 { border-bottom-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] .r-17zyhjg { border-top-color: var(--bx-t-accent-fill) !important; }
+html[data-bx-theme] .r-1vtznih { background-color: var(--bx-t-accent-hover) !important; }
+html[data-bx-theme] .r-yuvema { background-color: var(--bx-t-accent-active) !important; }
+html[data-bx-theme] .r-1peqgm7,
+html[data-bx-theme] .r-r18ze4 { background-color: var(--bx-t-accent-tint) !important; }
+html[data-bx-theme] [style*="box-shadow: rgb(142, 205, 248)"] { box-shadow: var(--bx-t-ring) 0px 0px 0px 2px !important; }
 html[data-bx-theme] .r-1niwhzg.r-633pao,
 html[data-bx-theme] .r-1niwhzg.r-sdzlij { background-color: transparent !important; }
 html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #000000 !important; }",
@@ -68,6 +82,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #8b98a5;
   --bx-t-accent: #1d9bf0;
   --bx-t-accent-text: #1d9bf0;
+  --bx-t-accent-fill: #1d9bf0;
+  --bx-t-accent-hover: #1a8cd8;
+  --bx-t-accent-active: #177cc0;
+  --bx-t-accent-tint: rgba(29, 155, 240, 0.1);
+  --bx-t-ring: #8ecdf8;
   --bx-t-backdrop: rgba(21, 32, 43, 0.85);
   --bx-t-scrim: rgba(11, 16, 22, 0.6);
   --bx-t-bg-hsl: 210 34.4% 12.5%;
@@ -87,6 +106,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #a9aaab;
   --bx-t-accent: #bd93f9;
   --bx-t-accent-text: #bd93f9;
+  --bx-t-accent-fill: #bd93f9;
+  --bx-t-accent-hover: #aa84e0;
+  --bx-t-accent-active: #9776c7;
+  --bx-t-accent-tint: rgba(189, 147, 249, 0.1);
+  --bx-t-ring: #dec9fc;
   --bx-t-backdrop: rgba(40, 42, 54, 0.85);
   --bx-t-scrim: rgba(20, 21, 27, 0.6);
   --bx-t-bg-hsl: 231.4 14.9% 18.4%;
@@ -106,6 +130,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #b99a8f;
   --bx-t-accent: #ff8a3d;
   --bx-t-accent-text: #ff8a3d;
+  --bx-t-accent-fill: #ff8a3d;
+  --bx-t-accent-hover: #e67c37;
+  --bx-t-accent-active: #cc6e31;
+  --bx-t-accent-tint: rgba(255, 138, 61, 0.1);
+  --bx-t-ring: #ffc59e;
   --bx-t-backdrop: rgba(26, 18, 16, 0.85);
   --bx-t-scrim: rgba(13, 9, 8, 0.6);
   --bx-t-bg-hsl: 12 23.8% 8.2%;
@@ -125,6 +154,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #8fb09b;
   --bx-t-accent: #3ddc84;
   --bx-t-accent-text: #3ddc84;
+  --bx-t-accent-fill: #3ddc84;
+  --bx-t-accent-hover: #37c677;
+  --bx-t-accent-active: #31b06a;
+  --bx-t-accent-tint: rgba(61, 220, 132, 0.1);
+  --bx-t-ring: #9eeec2;
   --bx-t-backdrop: rgba(15, 26, 20, 0.85);
   --bx-t-scrim: rgba(8, 13, 10, 0.6);
   --bx-t-bg-hsl: 147.3 26.8% 8%;
@@ -144,6 +178,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #9a9a9a;
   --bx-t-accent: #1d9bf0;
   --bx-t-accent-text: #1d9bf0;
+  --bx-t-accent-fill: #1d9bf0;
+  --bx-t-accent-hover: #1a8cd8;
+  --bx-t-accent-active: #177cc0;
+  --bx-t-accent-tint: rgba(29, 155, 240, 0.1);
+  --bx-t-ring: #8ecdf8;
   --bx-t-backdrop: rgba(18, 18, 18, 0.85);
   --bx-t-scrim: rgba(9, 9, 9, 0.6);
   --bx-t-bg-hsl: 0 0% 7.1%;
@@ -163,6 +202,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #a89984;
   --bx-t-accent: #fabd2f;
   --bx-t-accent-text: #fabd2f;
+  --bx-t-accent-fill: #fabd2f;
+  --bx-t-accent-hover: #e1aa2a;
+  --bx-t-accent-active: #c89726;
+  --bx-t-accent-tint: rgba(250, 189, 47, 0.1);
+  --bx-t-ring: #fdde97;
   --bx-t-backdrop: rgba(40, 40, 40, 0.85);
   --bx-t-scrim: rgba(20, 20, 20, 0.6);
   --bx-t-bg-hsl: 0 0% 15.7%;
@@ -182,6 +226,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #8b93b0;
   --bx-t-accent: #6c8cff;
   --bx-t-accent-text: #6c8cff;
+  --bx-t-accent-fill: #6c8cff;
+  --bx-t-accent-hover: #617ee6;
+  --bx-t-accent-active: #5670cc;
+  --bx-t-accent-tint: rgba(108, 140, 255, 0.1);
+  --bx-t-ring: #b6c6ff;
   --bx-t-backdrop: rgba(11, 16, 32, 0.85);
   --bx-t-scrim: rgba(6, 8, 16, 0.6);
   --bx-t-bg-hsl: 225.7 48.8% 8.4%;
@@ -201,6 +250,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #a6adc8;
   --bx-t-accent: #cba6f7;
   --bx-t-accent-text: #cba6f7;
+  --bx-t-accent-fill: #cba6f7;
+  --bx-t-accent-hover: #b795de;
+  --bx-t-accent-active: #a285c6;
+  --bx-t-accent-tint: rgba(203, 166, 247, 0.1);
+  --bx-t-ring: #e5d3fb;
   --bx-t-backdrop: rgba(30, 30, 46, 0.85);
   --bx-t-scrim: rgba(15, 15, 23, 0.6);
   --bx-t-bg-hsl: 240 21.1% 14.9%;
@@ -220,6 +274,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #a4a8b0;
   --bx-t-accent: #88c0d0;
   --bx-t-accent-text: #88c0d0;
+  --bx-t-accent-fill: #88c0d0;
+  --bx-t-accent-hover: #7aadbb;
+  --bx-t-accent-active: #6d9aa6;
+  --bx-t-accent-tint: rgba(136, 192, 208, 0.1);
+  --bx-t-ring: #c4e0e8;
   --bx-t-backdrop: rgba(46, 52, 64, 0.85);
   --bx-t-scrim: rgba(23, 26, 32, 0.6);
   --bx-t-bg-hsl: 220 16.4% 21.6%;
@@ -239,6 +298,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #908caa;
   --bx-t-accent: #c4a7e7;
   --bx-t-accent-text: #c4a7e7;
+  --bx-t-accent-fill: #c4a7e7;
+  --bx-t-accent-hover: #b096d0;
+  --bx-t-accent-active: #9d86b9;
+  --bx-t-accent-tint: rgba(196, 167, 231, 0.1);
+  --bx-t-ring: #e2d3f3;
   --bx-t-backdrop: rgba(25, 23, 36, 0.85);
   --bx-t-scrim: rgba(13, 12, 18, 0.6);
   --bx-t-bg-hsl: 249.2 22% 11.6%;
@@ -258,6 +322,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #7f9193;
   --bx-t-accent: #268bd2;
   --bx-t-accent-text: #5294be;
+  --bx-t-accent-fill: #268bd2;
+  --bx-t-accent-hover: #227dbd;
+  --bx-t-accent-active: #1e6fa8;
+  --bx-t-accent-tint: rgba(38, 139, 210, 0.1);
+  --bx-t-ring: #93c5e9;
   --bx-t-backdrop: rgba(0, 43, 54, 0.85);
   --bx-t-scrim: rgba(0, 22, 27, 0.6);
   --bx-t-bg-hsl: 192.2 100% 10.6%;
@@ -277,6 +346,11 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-muted: #9aa5ce;
   --bx-t-accent: #7aa2f7;
   --bx-t-accent-text: #7aa2f7;
+  --bx-t-accent-fill: #7aa2f7;
+  --bx-t-accent-hover: #6e92de;
+  --bx-t-accent-active: #6282c6;
+  --bx-t-accent-tint: rgba(122, 162, 247, 0.1);
+  --bx-t-ring: #bdd1fb;
   --bx-t-backdrop: rgba(26, 27, 38, 0.85);
   --bx-t-scrim: rgba(13, 14, 19, 0.6);
   --bx-t-bg-hsl: 235 18.8% 12.5%;
