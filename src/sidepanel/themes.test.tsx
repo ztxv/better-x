@@ -221,3 +221,84 @@ describe('section tabs with Themes', () => {
     ).toHaveLength(1);
   });
 });
+
+describe('named themes', () => {
+  const names = () => current.xTheme.saved.map((theme) => theme.name);
+
+  it('saves Custom as a named theme, selects it, and edits it in place', async () => {
+    await mount({ ...DEFAULT_SETTINGS, xTheme: { ...DEFAULT_SETTINGS.xTheme, active: 'custom' } });
+    type(host.querySelector<HTMLInputElement>('input[aria-label="Accent hex code"]')!, '#ff8a3d');
+    click(button('Save as new theme'));
+    expect(names()).toEqual(['My theme']);
+    const [own] = current.xTheme.saved;
+    expect(current.xTheme.active).toBe(own!.id);
+    expect(own!.seed.accent).toBe('#ff8a3d');
+    expect(pressed()).toEqual(['My theme']);
+
+    type(
+      host.querySelector<HTMLInputElement>('input[aria-label="Background hex code"]')!,
+      '#101820',
+    );
+    expect(current.xTheme.saved[0]!.seed.bg).toBe('#101820');
+    // Custom itself is untouched by edits to the named theme.
+    expect(current.xTheme.custom.bg).toBe(DEFAULT_SETTINGS.xTheme.custom.bg);
+  });
+
+  it('renames, duplicates and deletes (asking twice)', async () => {
+    await mount();
+    click(button('New theme'));
+    const name = host.querySelector<HTMLInputElement>('input[aria-label="Theme name"]')!;
+    type(name, '  Sunset  ');
+    act(() => name.blur());
+    expect(names()).toEqual(['Sunset']);
+
+    click(button('Duplicate'));
+    expect(names()).toEqual(['Sunset', 'Sunset copy']);
+    expect(pressed()).toEqual(['Sunset copy']);
+
+    click(button('Delete'));
+    expect(names()).toEqual(['Sunset', 'Sunset copy']);
+    click(button('Really delete?'));
+    expect(names()).toEqual(['Sunset']);
+    expect(current.xTheme.active).toBeNull();
+    expect(pressed()).toEqual(['Lights out']);
+  });
+
+  it('says which theme is on', async () => {
+    await mount();
+    const status = () => host.querySelector('.themes-active')!.textContent;
+    expect(status()).toContain('No Better X theme');
+    click(card('Nord'));
+    expect(status()).toContain('Better X theme on: Nord');
+  });
+
+  it('imports a theme file as a named theme, and refuses a bad one', async () => {
+    await mount();
+    const input = host.querySelector<HTMLInputElement>('input[aria-label="Theme file"]')!;
+    const choose = async (text: string) => {
+      const file = new File([text], 'theme.json', { type: 'application/json' });
+      Object.defineProperty(input, 'files', { value: [file], configurable: true });
+      await act(async () => {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    };
+    await choose('{"format":"nope"}');
+    expect(host.querySelector('.themes-file-status')!.textContent).toContain(
+      'not a Better X theme',
+    );
+    expect(names()).toEqual([]);
+
+    await choose(
+      JSON.stringify({
+        format: 'better-x-theme',
+        version: 1,
+        name: 'Shared',
+        colors: { bg: '#101820', text: '#f0f0f0', accent: '#ff8a3d' },
+      }),
+    );
+    expect(names()).toEqual(['Shared']);
+    expect(current.xTheme.saved[0]!.seed.bg).toBe('#101820');
+    expect(pressed()).toEqual(['Shared']);
+  });
+});

@@ -294,6 +294,7 @@ describe('settings: version 6 X theme', () => {
     expect(xTheme).toEqual({
       active: 'nord',
       chat: false,
+      saved: [],
       custom: { ...d, bg: '#abcdef' },
     });
     for (const bad of ['Nord', 'toString', '__proto__', 7, {}, ''])
@@ -310,6 +311,7 @@ describe('settings: version 6 X theme', () => {
     expect(xTheme).toEqual({
       active: 'dracula',
       chat: true,
+      saved: [],
       custom: { ...DEFAULT_SETTINGS.xTheme.custom, bg: '#112233', accent: '#445566' },
     });
     await saveSettings({ xTheme: { active: null } });

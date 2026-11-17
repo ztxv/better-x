@@ -43,9 +43,12 @@ export function deriveTokens(seed: ThemeSeed): ThemeTokens {
 export function resolveTheme(
   active: string | null,
   custom: ThemeSeed,
+  saved: ReadonlyArray<{ id: string; seed: ThemeSeed }> = [],
 ): Pick<ThemeDef, 'id' | 'base' | 'seed'> | undefined {
   if (active === CUSTOM_THEME_ID) return { id: CUSTOM_THEME_ID, base: 'dark', seed: custom };
-  return active ? presetById(active) : undefined;
+  if (!active) return undefined;
+  const own = saved.find((theme) => theme.id === active);
+  return own ? { id: own.id, base: 'dark', seed: own.seed } : presetById(active);
 }
 
 export interface ContrastWarning {

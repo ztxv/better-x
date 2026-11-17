@@ -21,8 +21,9 @@ export const SETTINGS_KEY = 'bx.settings';
  * `xTheme` (the palette that re-skins x.com itself, see `src/themes`), off by default. Version 7
  * added `panelMode` (on X, the side panel can be drawn inside the page instead), `overlay` by
  * default since 1.1.5, and `panelHandle` (a small tab on X's right edge that opens it), off by default.
+ * Version 8 added `xTheme.saved`, the person's own named themes (empty by default).
  */
-export const SETTINGS_VERSION = 7;
+export const SETTINGS_VERSION = 8;
 
 export type Theme = 'auto' | 'light' | 'dark';
 export type AfterSave = 'downloadOffer' | 'confirmationOnly' | 'quiet';
@@ -90,9 +91,21 @@ export interface FilterSettings {
 export interface XThemeSettings {
   active: string | null;
   custom: Required<ThemeSeed>;
+  /** The person's own named themes. `active` may name one by its id. */
+  saved: SavedTheme[];
   /** Experimental: also theme X's Chat, which lives in shadow DOM. */
   chat: boolean;
 }
+
+/** A palette the person named and kept. Its id (`my-…`) is made once and never changes. */
+export interface SavedTheme {
+  id: string;
+  name: string;
+  seed: Required<ThemeSeed>;
+}
+export const MAX_SAVED_THEMES = 30;
+export const MAX_THEME_NAME = 40;
+export const SAVED_THEME_ID = /^my-[a-z0-9]{4,16}$/;
 
 export const MAX_COUNTRIES = 250;
 export const MAX_ALWAYS_SHOW = 200;
@@ -150,7 +163,7 @@ export const DEFAULT_SETTINGS: Settings = {
   popupHeight: 'standard',
   insights: { lookup: 'hover' },
   filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
-  xTheme: { active: null, custom: { ...LIGHTS_OUT_SEED }, chat: false },
+  xTheme: { active: null, custom: { ...LIGHTS_OUT_SEED }, saved: [], chat: false },
   features: {},
   values: {},
 };
@@ -334,12 +347,47 @@ function normalizeFilter(input: unknown): FilterSettings {
 
 const SEED_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
 
-/** An X theme id a setting may name: a preset, `custom`, or null for none. Anything else is null. */
+/**
+ * An X theme id a setting may name: a preset, `custom`, a saved theme's id (by its form; whether
+ * that theme exists is checked against the list), or null for none. Anything else is null.
+ */
 export const parseThemeId = (value: unknown): string | null =>
-  typeof value === 'string' && (value === CUSTOM_THEME_ID || isPresetId(value)) ? value : null;
+  typeof value === 'string' &&
+  (value === CUSTOM_THEME_ID || isPresetId(value) || SAVED_THEME_ID.test(value))
+    ? value
+    : null;
+
+/** A theme name as stored: one line, trimmed, at most 40 characters; null when nothing is left. */
+export function normalizeThemeName(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const name = input
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_THEME_NAME)
+    .trim();
+  return name || null;
+}
+
+/** Saved themes with a well-formed unique id, a name and seven valid colors; the rest are dropped. */
+export function normalizeSavedThemes(input: unknown): SavedTheme[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  const result: SavedTheme[] = [];
+  for (const item of input.slice(0, MAX_SAVED_THEMES * 2)) {
+    if (!isRecord(item)) continue;
+    const { id } = item;
+    const name = normalizeThemeName(item.name);
+    if (typeof id !== 'string' || !SAVED_THEME_ID.test(id) || seen.has(id) || !name) continue;
+    seen.add(id);
+    result.push({ id, name, seed: normalizeSeed(item.seed) });
+    if (result.length >= MAX_SAVED_THEMES) break;
+  }
+  return result;
+}
 
 /** Every custom color `#rrggbb` lowercase; a missing or malformed one falls back to Lights Out's. */
-function normalizeSeed(input: unknown): Required<ThemeSeed> {
+export function normalizeSeed(input: unknown): Required<ThemeSeed> {
   const value = isRecord(input) ? input : {};
   const seed = { ...LIGHTS_OUT_SEED };
   for (const key of SEED_KEYS) {
@@ -351,9 +399,15 @@ function normalizeSeed(input: unknown): Required<ThemeSeed> {
 
 function normalizeXTheme(input: unknown): XThemeSettings {
   const value = isRecord(input) ? input : {};
+  const saved = normalizeSavedThemes(value.saved);
+  let active = parseThemeId(value.active);
+  // A saved theme that is gone (deleted, or never imported) leaves X's own look.
+  if (active && SAVED_THEME_ID.test(active) && !saved.some((theme) => theme.id === active))
+    active = null;
   return {
-    active: parseThemeId(value.active),
+    active,
     custom: normalizeSeed(value.custom),
+    saved,
     chat: bool(value.chat, DEFAULT_SETTINGS.xTheme.chat),
   };
 }
@@ -398,8 +452,10 @@ export type SettingsPatch = Partial<
     'version' | 'menuActions' | 'features' | 'values' | 'insights' | 'filter' | 'xTheme'
   >
 > & {
-  /** Merged field by field; `custom` is merged color by color. */
-  xTheme?: Partial<Pick<XThemeSettings, 'active' | 'chat'>> & { custom?: Partial<ThemeSeed> };
+  /** Merged field by field; `custom` is merged color by color; `saved` replaces the list. */
+  xTheme?: Partial<Pick<XThemeSettings, 'active' | 'chat' | 'saved'>> & {
+    custom?: Partial<ThemeSeed>;
+  };
   menuActions?: Partial<Settings['menuActions']>;
   /** Merged field by field into the stored insights settings. */
   insights?: Partial<InsightsSettings>;

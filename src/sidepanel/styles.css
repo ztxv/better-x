@@ -2853,3 +2853,68 @@ html:has(.modal-backdrop) .app-shell .app-body {
 .themes-chat {
   border-top: 1px solid var(--border);
 }
+
+/* Named themes: the active line, the editor's name box and the row of theme actions. */
+.themes-active {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.themes-active strong {
+  color: var(--text);
+}
+.themes-active-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.themes-active.is-on .themes-active-dot {
+  background: var(--brand);
+}
+.theme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0 0 12px;
+}
+.theme-editor .theme-actions {
+  margin: 10px 0 0;
+}
+.theme-actions .text-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.theme-actions .text-button.danger {
+  color: var(--danger, #f4212e);
+}
+.themes-file-status {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.themes-file-status.is-error {
+  color: var(--danger, #f4212e);
+}
+.theme-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.theme-name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}

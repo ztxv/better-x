@@ -33,7 +33,7 @@ beforeEach(async () => {
 
 describe('settings: version 7 panel mode', () => {
   it('defaults to the overlay (since 1.1.5), with no edge tab', () => {
-    expect(SETTINGS_VERSION).toBe(7);
+    expect(SETTINGS_VERSION).toBe(8);
     expect(DEFAULT_SETTINGS.panelMode).toBe('overlay');
     expect(DEFAULT_SETTINGS.panelHandle).toBe(false);
   });
@@ -48,7 +48,7 @@ describe('settings: version 7 panel mode', () => {
     };
     data['bx.settings'] = v6;
     const loaded = await loadSettings();
-    expect(loaded).toMatchObject({ ...v6, version: 7, panelMode: 'overlay', panelHandle: false });
+    expect(loaded).toMatchObject({ ...v6, version: 8, panelMode: 'overlay', panelHandle: false });
   });
 
   it('keeps only the two known modes and a real boolean', () => {
