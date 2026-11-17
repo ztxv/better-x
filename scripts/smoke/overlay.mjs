@@ -59,7 +59,11 @@ const browser = await puppeteer.launch({
   pipe: true,
   enableExtensions: [EXT],
   userDataDir: path.join(OUT, 'profile'),
-  args: ['--no-first-run', '--no-default-browser-check'],
+  args: [
+    '--no-first-run',
+    '--no-default-browser-check',
+    ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
+  ],
   defaultViewport: { width: 1280, height: 900 },
 });
 const pageErrors = [];

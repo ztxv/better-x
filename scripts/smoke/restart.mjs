@@ -24,6 +24,7 @@ const browser = await puppeteer.launch({
   pipe: true,
   enableExtensions: [EXT],
   userDataDir: path.join(OUT, 'profile'),
+  args: process.getuid?.() === 0 ? ['--no-sandbox'] : [],
 });
 const swTarget = await browser.waitForTarget(
   (t) => t.type() === 'service_worker' && t.url().startsWith('chrome-extension://'),

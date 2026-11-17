@@ -40,7 +40,12 @@ const browser = await puppeteer.launch({
   pipe: true,
   enableExtensions: [EXT],
   userDataDir: path.join(OUT, 'profile'),
-  args: ['--window-size=1280,900', '--no-first-run', '--no-default-browser-check'],
+  args: [
+    '--window-size=1280,900',
+    '--no-first-run',
+    '--no-default-browser-check',
+    ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
+  ],
   defaultViewport: { width: 1280, height: 900 },
 });
 const worker = await browser.waitForTarget(
