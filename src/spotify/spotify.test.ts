@@ -308,3 +308,33 @@ describe('service', () => {
     expect(state.status === 'error' && state.message).toContain('No active Spotify device');
   });
 });
+
+describe('service reset', () => {
+  it('does not hand an answer started before a reset to a caller asking after it', async () => {
+    data[SPOTIFY_AUTH_KEY] = auth();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let reads = 0;
+    const fetcher = (async (input: RequestInfo | URL) => {
+      if (String(input) !== PLAYER_URL) throw new TypeError('Failed to fetch');
+      reads++;
+      if (reads === 1) await gate;
+      return reply(null, 204);
+    }) as typeof fetch;
+    const service = createSpotifyService({
+      fetch: fetcher,
+      now: () => clock,
+      sleep: async () => {},
+    });
+    const old = service.state();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The account is disconnected while that read is still out.
+    delete data[SPOTIFY_AUTH_KEY];
+    service.reset();
+    expect(await service.state()).toEqual({ status: 'setup' });
+    release();
+    await old;
+    // The old read's answer was not stored for later callers either.
+    expect(await service.state()).toEqual({ status: 'setup' });
+  });
+});

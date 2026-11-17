@@ -40,7 +40,7 @@ const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
   'base64',
 );
-const spotify = { playing: true, progress: 23000, commands: [], product403: false };
+const spotify = { playing: true, progress: 23000, commands: [], product403: false, delayGet: 0 };
 const playback = () => ({
   is_playing: spotify.playing,
   progress_ms: spotify.progress,
@@ -90,8 +90,11 @@ cdp.on('Fetch.requestPaused', async ({ requestId, request }) => {
       .catch(() => {});
   const url = new URL(request.url);
   if (url.hostname === 'i.scdn.co') return respond(200, PNG, 'image/png');
-  if (url.pathname === '/v1/me/player' && request.method === 'GET')
-    return respond(200, JSON.stringify(playback()));
+  if (url.pathname === '/v1/me/player' && request.method === 'GET') {
+    const body = JSON.stringify(playback());
+    if (spotify.delayGet) await new Promise((r) => setTimeout(r, spotify.delayGet));
+    return respond(200, body);
+  }
   spotify.commands.push(`${request.method} ${url.pathname}${url.search}`);
   if (spotify.product403)
     return respond(
@@ -293,10 +296,24 @@ try {
     JSON.stringify(p),
   );
 
+  // Disconnect while a slow poll is still out: the poll's answer is about the old connection
+  // and must not be shown, and the disconnect must not wait for the next poll.
+  spotify.delayGet = 1500;
+  await pause(1300);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await pause(250);
   await sw.evaluate(() => chrome.storage.local.remove('bx.spotify.auth'));
-  await pause(900);
+  await pause(500);
   p = await player();
-  check('disconnecting shows at once', p?.status === 'disconnected', JSON.stringify(p));
+  check(
+    'disconnecting during a poll shows at once',
+    p?.status === 'disconnected',
+    JSON.stringify(p),
+  );
+  await pause(1500);
+  p = await player();
+  check('and the stale poll answer is dropped', p?.status === 'disconnected', JSON.stringify(p));
+  spotify.delayGet = 0;
 
   check('no page errors', pageErrors.length === 0, pageErrors.join(' | '));
 } catch (error) {

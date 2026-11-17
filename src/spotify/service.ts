@@ -44,6 +44,8 @@ export function createSpotifyService({
 }: Deps = {}): SpotifyService {
   let cached: { state: PlayerState; at: number } | null = null;
   let inFlight: Promise<PlayerState> | null = null;
+  /** Bumped by `reset`: a read started before it belongs to the old account and is not shared. */
+  let generation = 0;
   let pausedUntil = 0;
   const art = new Map<string, string>();
 
@@ -140,9 +142,12 @@ export function createSpotifyService({
 
   function state(): Promise<PlayerState> {
     if (cached && now() - cached.at < CACHE_MS) return Promise.resolve(cached.state);
-    inFlight ??= read()
+    if (inFlight) return inFlight;
+    const mine = generation;
+    const reading = read()
       .catch((): PlayerState => ({ status: 'error', message: 'Could not reach Spotify.' }))
       .then((result) => {
+        if (mine !== generation) return result;
         // Only answers that cost Spotify a request are shared; the others are free to recompute.
         cached =
           result.status === 'setup' || result.status === 'disconnected'
@@ -151,7 +156,8 @@ export function createSpotifyService({
         inFlight = null;
         return result;
       });
-    return inFlight;
+    inFlight = reading;
+    return reading;
   }
 
   async function command(input: SpotifyCommand): Promise<PlayerState> {
@@ -185,6 +191,8 @@ export function createSpotifyService({
     state,
     command,
     reset() {
+      generation++;
+      inFlight = null;
       cached = null;
       pausedUntil = 0;
     },

@@ -57,7 +57,12 @@ function startSpotify(
   onRoute: (fn: () => void) => () => void,
 ) {
   let state: PlayerState | null = null;
-  let busy = false;
+  /** Every request takes the next number; an answer to an older one is out of date and dropped. */
+  let latest = 0;
+  /** A command is on its way. Polls wait for it rather than racing it. */
+  let commanding = false;
+  /** Something asked for a fresh look while a command was on its way. */
+  let again = false;
   let cancelPoll: (() => void) | null = null;
   let ticking: ReturnType<typeof setInterval> | undefined;
   let watched: Element | null = null;
@@ -136,27 +141,48 @@ function startSpotify(
     }
   }
 
+  /**
+   * Asks what is playing. A newer call supersedes one still on its way (connecting in the Plugins
+   * tab while a poll is out must show the new account, not the poll's old answer); during a
+   * command it waits and runs once the command's answer is in.
+   */
   async function refresh(showLoading = false) {
-    if (busy || scope.disposed) return;
-    busy = true;
+    if (scope.disposed) return;
+    if (commanding) {
+      again = true;
+      return;
+    }
+    const mine = ++latest;
+    cancelPoll?.();
+    cancelPoll = null;
     mount();
     if (showLoading) view.render({ status: 'loading' });
     const next = await ask({ type: 'spotifyState' });
-    busy = false;
-    if (!next || scope.disposed) return;
+    if (!next || scope.disposed || mine !== latest) return;
     show(next);
     schedule();
   }
 
   async function send(command: SpotifyCommand) {
-    if (busy || scope.disposed || state?.status !== 'playing') return;
-    busy = true;
+    if (commanding || scope.disposed || state?.status !== 'playing') return;
+    commanding = true;
+    again = false;
+    // Any poll still out is older than this command: its answer would undo the button press.
+    const mine = ++latest;
     cancelPoll?.();
+    cancelPoll = null;
     const before = state;
     show(predict(before, command, Date.now()));
     const next = await ask({ type: 'spotifyCommand', command });
-    busy = false;
-    if (!next || scope.disposed) return;
+    commanding = false;
+    if (!next || scope.disposed || mine !== latest) return;
+    if (again) {
+      // The account or the Client ID changed meanwhile: what Spotify said about the command
+      // may be about the old one. Look again instead.
+      again = false;
+      void refresh();
+      return;
+    }
     if (next.status === 'error') {
       // Spotify refused (no active device, a restriction): say so, and show what is true.
       show(before);
