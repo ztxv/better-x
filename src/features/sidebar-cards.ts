@@ -18,7 +18,7 @@ const MAX_CLIMB = 8;
  * - is the sidebar column itself, or the climb has gone eight levels without finding either.
  *
  * Before climbing out of an element with siblings it also stops, as Control Panel does (a card
- * among cards has siblings). If the result would be a direct child of the column (the structure
+ * among cards has siblings), unless every sibling is empty (`hasContentfulSibling`). If the result would be a direct child of the column (the structure
  * is not what was expected) it falls back to `node` itself, so a surprise hides too little, never
  * the whole sidebar.
  */
@@ -32,10 +32,30 @@ export function climbToCard(node: HTMLElement, column: HTMLElement): HTMLElement
       (other) => other !== node && !node.contains(other) && !card.contains(other),
     );
     if (shared) break;
-    if (card.nextElementSibling || card.previousElementSibling) break;
+    if (hasContentfulSibling(card)) break;
     card = parent;
   }
   return card.parentElement === column ? node : card;
+}
+
+/** Anything a person would see: text, an image or icon, a control, a link. */
+const VISIBLE_CONTENT = 'img, svg, video, picture, canvas, input, button, a, [role="button"]';
+
+/**
+ * Whether `element` sits beside something a person would see. X puts empty siblings inside a
+ * card (spacers, a placeholder that keeps the card's height while it loads, a div for a later
+ * dialog); those must not stop the climb, or the card's bordered wrapper is left behind as an
+ * empty box. A sibling with text, media, a control or a landmark is another thing: the climb
+ * stops before it.
+ */
+function hasContentfulSibling(element: HTMLElement): boolean {
+  for (const sibling of element.parentElement?.children ?? []) {
+    if (sibling === element) continue;
+    if ((sibling.textContent ?? '').trim()) return true;
+    if (sibling.matches(VISIBLE_CONTENT) || sibling.querySelector(VISIBLE_CONTENT)) return true;
+    if (sibling.matches(LANDMARKS) || sibling.querySelector(LANDMARKS)) return true;
+  }
+  return false;
 }
 
 /** The attribute that marks a card hidden by one feature. */
