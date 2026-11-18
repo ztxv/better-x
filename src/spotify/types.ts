@@ -35,6 +35,11 @@ export interface SpotifyTrack {
   album: string;
   /** A small cover as a `data:image/…` URL (X's page may only show images from its own hosts). */
   art: string | null;
+  /**
+   * The largest cover's address on Spotify's image host, for the big cover view. The page never
+   * loads it itself: it asks the worker (`spotifyArt`) for it as a data URL, only when opened.
+   */
+  artLarge?: string | null;
   /** The item's page on open.spotify.com. */
   url: string | null;
   durationMs: number;

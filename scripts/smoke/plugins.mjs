@@ -40,7 +40,14 @@ const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
   'base64',
 );
-const spotify = { playing: true, progress: 23000, commands: [], product403: false, delayGet: 0 };
+const spotify = {
+  playing: true,
+  progress: 23000,
+  commands: [],
+  art: [],
+  product403: false,
+  delayGet: 0,
+};
 const playback = () => ({
   is_playing: spotify.playing,
   progress_ms: spotify.progress,
@@ -55,7 +62,10 @@ const playback = () => ({
     artists: [{ name: '406ahmad' }, { name: 'Dragnutz' }],
     album: {
       name: 'LIFE OF AHMAD 3',
-      images: [{ url: 'https://i.scdn.co/image/cover', width: 300 }],
+      images: [
+        { url: 'https://i.scdn.co/image/big', width: 640 },
+        { url: 'https://i.scdn.co/image/cover', width: 300 },
+      ],
     },
     external_urls: { spotify: 'https://open.spotify.com/track/abc' },
   },
@@ -93,7 +103,10 @@ cdp.on('Fetch.requestPaused', async ({ requestId, request }) => {
       })
       .catch(() => {});
   const url = new URL(request.url);
-  if (url.hostname === 'i.scdn.co') return respond(200, PNG, 'image/png');
+  if (url.hostname === 'i.scdn.co') {
+    spotify.art.push(url.pathname);
+    return respond(200, PNG, 'image/png');
+  }
   if (url.pathname === '/v1/me/player' && request.method === 'GET') {
     const body = JSON.stringify(playback());
     if (spotify.delayGet) await new Promise((r) => setTimeout(r, spotify.delayGet));
@@ -229,6 +242,101 @@ try {
     'next is sent to Spotify',
     spotify.commands.includes('POST /v1/me/player/next'),
     spotify.commands.join(', '),
+  );
+
+  // X's menu handles presses itself; a press on the player must not reach it (it opened the
+  // account switcher on live X). Real mouse clicks, through the shadow root.
+  await page.evaluate(() => {
+    window.menuPresses = 0;
+    const foot = document.getElementById('foot');
+    for (const type of ['click', 'mousedown', 'pointerdown'])
+      foot.addEventListener(type, () => window.menuPresses++);
+  });
+  const inPlayer = (selector) =>
+    page.evaluateHandle(
+      (s) => document.querySelector('bx-spotify-player').shadowRoot.querySelector(s),
+      selector,
+    );
+  const before403 = spotify.commands.length;
+  await (await inPlayer('.toggle')).click();
+  await pause(900);
+  await (await inPlayer('.times')).click();
+  await pause(200);
+  check(
+    'pressing the player does not reach X’s menu (no account switcher)',
+    (await page.evaluate(() => window.menuPresses)) === 0 &&
+      spotify.commands.length === before403 + 1,
+    JSON.stringify({
+      presses: await page.evaluate(() => window.menuPresses),
+      commands: spotify.commands,
+    }),
+  );
+
+  // The big cover view.
+  const coverState = () =>
+    page.evaluate(() => {
+      const host = document.querySelector('bx-spotify-cover');
+      const root = host?.shadowRoot;
+      const card = document.querySelector('bx-spotify-player').shadowRoot;
+      return {
+        open: !!host,
+        image: root?.querySelector('.cover')?.src.slice(0, 22) ?? null,
+        title: root?.querySelector('.caption strong')?.textContent ?? null,
+        controlsInView: !!root?.querySelector('.controls .toggle'),
+        controlsInCard: !!card.querySelector('.controls .toggle'),
+        size: host ? Math.round(root.querySelector('.cover').getBoundingClientRect().width) : 0,
+      };
+    });
+  spotify.art.length = 0;
+  await (await inPlayer('.art')).click();
+  await pause(700);
+  let c = await coverState();
+  check(
+    'clicking the cover opens it large, with the title and the controls',
+    c.open &&
+      c.image === 'data:image/png;base64,' &&
+      c.title === 'And 1 : 100 sum' &&
+      c.controlsInView &&
+      !c.controlsInCard &&
+      c.size >= 300,
+    JSON.stringify(c),
+  );
+  check(
+    'the full-size cover is fetched by the worker',
+    spotify.art.includes('/image/big'),
+    spotify.art.join(', '),
+  );
+  await page.screenshot({ path: path.join(OUT, 'cover.png') });
+  const commandsBefore = spotify.commands.length;
+  await page.evaluate(() =>
+    document
+      .querySelector('bx-spotify-cover')
+      .shadowRoot.querySelector('.controls .toggle')
+      .click(),
+  );
+  await pause(900);
+  check(
+    'the controls in the big view work',
+    spotify.commands.length === commandsBefore + 1,
+    spotify.commands.slice(commandsBefore).join(', '),
+  );
+  await page.keyboard.press('Escape');
+  await pause(200);
+  c = await coverState();
+  check(
+    'Escape closes it and the controls go back to the card',
+    !c.open && c.controlsInCard,
+    JSON.stringify(c),
+  );
+  await (await inPlayer('.art')).click();
+  await pause(300);
+  await page.mouse.click(5, 5);
+  await pause(200);
+  c = await coverState();
+  check(
+    'a click outside closes it too, and never reaches X’s menu',
+    !c.open && c.controlsInCard && (await page.evaluate(() => window.menuPresses)) === 0,
+    JSON.stringify(c),
   );
 
   // X re-renders its menu: the player puts itself back, once.

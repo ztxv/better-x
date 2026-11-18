@@ -49,6 +49,28 @@ export function pickArt(images: unknown): string | null {
   return (sharp[0] ?? usable[0])!.url;
 }
 
+/** Whether `url` is an https address on Spotify's image hosts (the only art ever fetched). */
+export function isArtUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || url.length > 500) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ART_HOST.test(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** The largest cover Spotify lists, for the big cover view. */
+export function pickLargestArt(images: unknown): string | null {
+  if (!Array.isArray(images)) return null;
+  const usable = images
+    .filter(isRecord)
+    .map((image) => ({ url: text(image.url, 500), width: count(image.width) }))
+    .filter(({ url }) => isArtUrl(url))
+    .sort((a, b) => b.width - a.width);
+  return usable[0]?.url ?? null;
+}
+
 const openUrl = (item: Record<string, unknown>) => {
   const url = isRecord(item.external_urls) ? text(item.external_urls.spotify, 300) : '';
   return url.startsWith('https://open.spotify.com/') ? url : null;
@@ -85,6 +107,10 @@ export function parsePlayback(
       artists: artists || text(show?.name) || text(show?.publisher),
       album: text(album?.name),
       art: null,
+      artLarge:
+        pickLargestArt(album?.images) ??
+        pickLargestArt(item.images) ??
+        pickLargestArt(show?.images),
       url: openUrl(item),
       durationMs: count(item.duration_ms),
     };

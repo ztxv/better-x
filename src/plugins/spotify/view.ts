@@ -20,12 +20,42 @@ export interface PlayerView {
   /** Shows a short message under the player for a moment (a command Spotify refused). */
   flash(message: string): void;
   setTheme(theme: 'light' | 'dark'): void;
+  /** Whether the big cover view is open. */
+  coverOpen(): boolean;
+  /** Closes the big cover view, if open. Also part of switching the plugin off. */
+  closeCover(): void;
 }
 
 export interface PlayerHandlers {
   onCommand(command: SpotifyCommand): void;
   onRetry(): void;
   onOpenPanel(): void;
+  /** The full-size cover as a data URL, fetched by the worker; null when it cannot be had. */
+  loadCover?(url: string): Promise<string | null>;
+}
+
+/**
+ * Events that must not reach X from the player. X's menu around the player handles presses
+ * itself (a press on the player opened the account switcher above it), and X's keyboard
+ * shortcuts would act on keys meant for the player. Stopped on the way out of the player, after
+ * its own controls have had them; nothing is prevented, so links and buttons work as usual.
+ */
+const CONTAINED = [
+  'click',
+  'dblclick',
+  'auxclick',
+  'mousedown',
+  'mouseup',
+  'pointerdown',
+  'pointerup',
+  'touchstart',
+  'touchend',
+  'keydown',
+  'keyup',
+  'keypress',
+] as const;
+export function containEvents(host: HTMLElement): void {
+  for (const type of CONTAINED) host.addEventListener(type, (event) => event.stopPropagation());
 }
 
 const svg = (body: string, filled = false) =>
@@ -103,6 +133,9 @@ const CSS = `
   color: var(--sp-muted);
 }
 .art img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.art[role='button'] { cursor: zoom-in; }
+.art[role='button']:hover img { opacity: 0.85; }
+.art[role='button']:focus-visible { outline: 2px solid var(--sp-accent); outline-offset: 2px; }
 .art svg { width: 20px; height: 20px; }
 .meta { flex: 1; min-width: 0; }
 .meta > * { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -196,6 +229,74 @@ button {
 }
 `;
 
+/** The big cover view: its own element on <body>, over the page, styled like the card. */
+const COVER_CSS = `
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  margin: 0;
+  container-type: normal;
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.72);
+  animation: fade 140ms ease-out;
+}
+.big {
+  position: relative;
+  width: min(440px, 92vw, calc(100vh - 230px));
+  min-width: 240px;
+  padding: 14px;
+  border: 1px solid var(--sp-border);
+  border-radius: 16px;
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  font: 400 12px/1.35 TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+  animation: rise 160ms ease-out;
+}
+.cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--sp-track);
+}
+.caption { margin-top: 10px; min-width: 0; }
+.caption > * { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.caption strong { font-size: 15px; }
+.caption span { color: var(--sp-muted); }
+.big .controls button { width: 36px; height: 36px; }
+.big .controls svg { width: 18px; height: 18px; }
+.big .controls .toggle svg { width: 22px; height: 22px; }
+.close {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+.close:hover { background: rgba(0, 0, 0, 0.75); }
+.close:focus-visible { box-shadow: 0 0 0 2px var(--sp-accent); }
+.close svg { width: 16px; height: 16px; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: scale(0.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .scrim, .big { animation: none; }
+}
+`;
+const CLOSE_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
 export const formatTime = (ms: number) => {
   const total = Math.max(0, Math.floor(ms / 1000));
   const minutes = Math.floor(total / 60);
@@ -260,6 +361,7 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
   meta.append(title, artists, album);
   const now = make('div', 'now');
   now.append(art, meta);
+  containEvents(host);
   const progress = make('div', 'progress');
   const fill = make('div', 'fill');
   const bar = make('div', 'bar');
@@ -320,6 +422,104 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     seekTo(positionAt(Date.now()) + step);
   });
 
+  // ---- The big cover view (like Vencord's): click the cover to see it large, with the same
+  // live progress bar and controls under it. Those elements are moved into the view while it is
+  // open and put back when it closes, so there is one set of controls and nothing to keep in step.
+  let cover: {
+    host: HTMLElement;
+    image: HTMLImageElement;
+    heading: HTMLElement;
+    sub: HTMLElement;
+    shownArt: string | null;
+    onKey: (event: KeyboardEvent) => void;
+  } | null = null;
+
+  const coverLabel = 'Show the cover larger';
+  art.addEventListener('click', () => openCover());
+  art.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    openCover();
+  });
+
+  /** Shows the current cover in the view: the small one at once, the full-size one when it arrives. */
+  function showCoverImage() {
+    if (!cover || !current) return;
+    const track = current.track;
+    if (cover.shownArt === (track.artLarge ?? track.art)) return;
+    cover.shownArt = track.artLarge ?? track.art;
+    if (track.art?.startsWith('data:image/')) cover.image.src = track.art;
+    cover.heading.textContent = track.title;
+    cover.sub.textContent = [track.artists, track.album !== track.title ? track.album : '']
+      .filter(Boolean)
+      .join(' · ');
+    const wanted = track.artLarge;
+    if (wanted && handlers.loadCover)
+      void handlers.loadCover(wanted).then((data) => {
+        // Only if the view is still open on that same track.
+        if (cover && current?.track.artLarge === wanted && data?.startsWith('data:image/'))
+          cover.image.src = data;
+      });
+  }
+
+  function openCover() {
+    if (cover || !current?.track.art) return;
+    const coverHost = doc.createElement('bx-spotify-cover');
+    coverHost.setAttribute('data-theme', host.getAttribute('data-theme') ?? 'dark');
+    const coverShadow = coverHost.attachShadow({ mode: 'open' });
+    const coverStyle = doc.createElement('style');
+    coverStyle.textContent = CSS + COVER_CSS;
+    const scrim = make('div', 'scrim');
+    const big = make('div', 'big');
+    big.setAttribute('role', 'dialog');
+    big.setAttribute('aria-modal', 'true');
+    big.setAttribute('aria-label', 'Spotify cover');
+    const image = doc.createElement('img');
+    image.className = 'cover';
+    image.alt = '';
+    const close = make('button', 'close');
+    close.type = 'button';
+    close.innerHTML = CLOSE_ICON;
+    close.setAttribute('aria-label', 'Close');
+    close.title = 'Close';
+    close.addEventListener('click', () => closeCover());
+    const heading = make('strong');
+    const sub = make('span');
+    const caption = make('div', 'caption');
+    caption.append(heading, sub);
+    big.append(image, close, caption, progress, times, controls);
+    scrim.append(big);
+    coverShadow.append(coverStyle, scrim);
+    scrim.addEventListener('click', (event) => {
+      if (event.target === scrim) closeCover();
+    });
+    containEvents(coverHost);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeCover();
+    };
+    doc.addEventListener('keydown', onKey, true);
+    cover = { host: coverHost, image, heading, sub, shownArt: null, onKey };
+    (doc.body ?? doc.documentElement).append(coverHost);
+    showCoverImage();
+    tick(Date.now());
+    close.focus();
+  }
+
+  function closeCover() {
+    if (!cover) return;
+    doc.removeEventListener('keydown', cover.onKey, true);
+    cover.host.remove();
+    cover = null;
+    // The controls go back to the card, in their place above the note.
+    playing.insertBefore(progress, note);
+    playing.insertBefore(times, note);
+    playing.insertBefore(controls, note);
+    if (art.isConnected) art.focus();
+  }
+
   function tick(time: number) {
     if (!current) return;
     const position = positionAt(time);
@@ -366,6 +566,17 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     album.title = track.album;
     album.hidden = !track.album || track.album === track.title;
     art.title = [track.title, track.artists].filter(Boolean).join(' — ');
+    if (track.art?.startsWith('data:image/')) {
+      art.setAttribute('role', 'button');
+      art.tabIndex = 0;
+      art.setAttribute('aria-label', coverLabel);
+      art.title = `${art.title} (click to enlarge)`;
+    } else {
+      art.removeAttribute('role');
+      art.removeAttribute('tabindex');
+      art.removeAttribute('aria-label');
+    }
+    showCoverImage();
 
     const timed = track.durationMs > 0;
     progress.hidden = times.hidden = !timed;
@@ -420,6 +631,8 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
 
   function render(state: ViewState) {
     card.dataset.status = state.status;
+    // Nothing playing any more: the big view has nothing to show.
+    if (state.status !== 'playing') closeCover();
     switch (state.status) {
       case 'playing':
         return renderPlaying(state);
@@ -474,6 +687,9 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     },
     setTheme(theme) {
       if (host.getAttribute('data-theme') !== theme) host.setAttribute('data-theme', theme);
+      cover?.host.setAttribute('data-theme', theme);
     },
+    coverOpen: () => cover !== null,
+    closeCover,
   };
 }

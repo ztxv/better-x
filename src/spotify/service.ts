@@ -3,6 +3,7 @@ import {
   apiError,
   commandRequest,
   describeFailure,
+  isArtUrl,
   parsePlayback,
   PLAYER_URL,
   PREMIUM_NOTE,
@@ -24,6 +25,8 @@ export interface SpotifyService {
   command(command: SpotifyCommand): Promise<PlayerState>;
   /** Forgets the shared answer: the account or the Client ID just changed. */
   reset(): void;
+  /** A cover from Spotify's image host as a data URL (the big cover view), or null. */
+  cover(url: unknown): Promise<string | null>;
 }
 
 interface Deps {
@@ -50,7 +53,7 @@ export function createSpotifyService({
   const art = new Map<string, string>();
 
   /** A cover as a data URL: X's page cannot load images from Spotify's hosts itself. */
-  async function artData(url: string | null): Promise<string | null> {
+  async function artData(url: string | null | undefined): Promise<string | null> {
     if (!url) return null;
     const known = art.get(url);
     if (known) return known;
@@ -190,6 +193,7 @@ export function createSpotifyService({
   return {
     state,
     command,
+    cover: (url) => (isArtUrl(url) ? artData(url) : Promise.resolve(null)),
     reset() {
       generation++;
       inFlight = null;

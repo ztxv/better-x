@@ -33,6 +33,7 @@ const CONTENT_REQUESTS = new Set<Request['type']>([
   'overlayTab',
   'spotifyState',
   'spotifyCommand',
+  'spotifyArt',
 ]);
 
 /** What a toolbar click can do (see `routeActionClick`). */
@@ -170,6 +171,8 @@ export default defineBackground(() => {
           }
           case 'spotifyState':
             return spotify.state();
+          case 'spotifyArt':
+            return spotify.cover(message.url);
           case 'spotifyCommand': {
             const command = parseCommand(message.command);
             if (!command) throw new Error('Invalid command.');

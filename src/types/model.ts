@@ -225,6 +225,8 @@ export type Request =
   /** The Spotify plugin's player on an X tab: what is playing, and a playback command. */
   | { type: 'spotifyState' }
   | { type: 'spotifyCommand'; command: SpotifyCommand }
+  /** The big cover view: a cover on Spotify's image host, as a data URL (or null). */
+  | { type: 'spotifyArt'; url: string }
   /** Extension pages only: run Spotify's sign-in from the worker (see `connectSpotify`). */
   | { type: 'spotifyConnect'; clientId: string };
 

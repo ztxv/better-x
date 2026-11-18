@@ -72,10 +72,18 @@ function startSpotify(
     onCommand: (command) => void send(command),
     onRetry: () => void refresh(true),
     onOpenPanel: openPanel,
+    loadCover: async (url) => {
+      try {
+        return await request<string | null>({ type: 'spotifyArt', url });
+      } catch {
+        return null;
+      }
+    },
   });
   view.render({ status: 'loading' });
   scope.add(() => {
     clearInterval(ticking);
+    view.closeCover();
     view.host.remove();
   });
 
