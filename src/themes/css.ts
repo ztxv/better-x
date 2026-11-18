@@ -21,6 +21,9 @@ const HEX_KEYS = [
   'accentHover',
   'accentActive',
   'ring',
+  'mention',
+  'badge',
+  'badgeText',
 ] as const;
 
 /**
@@ -58,6 +61,9 @@ export function themeVars(input: ThemeTokens): string {
     `--bx-t-ring: ${t.ring};`,
     `--bx-t-backdrop: ${t.backdrop};`,
     `--bx-t-scrim: ${t.scrim};`,
+    `--bx-t-mention: ${t.mention};`,
+    `--bx-t-badge: ${t.badge};`,
+    `--bx-t-badge-text: ${t.badgeText};`,
     `--bx-t-bg-hsl: ${hsl(t.bg)};`,
     `--bx-t-raised-hsl: ${hsl(t.raised)};`,
     `--bx-t-hover-hsl: ${hsl(t.hover)};`,

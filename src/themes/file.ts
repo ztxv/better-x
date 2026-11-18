@@ -1,7 +1,7 @@
 import { isHex } from '../lib/color';
 import { MAX_THEME_NAME, normalizeThemeName } from '../lib/settings';
 import { fillSeed } from './derive';
-import type { ThemeSeed } from './types';
+import type { FullSeed, ThemeSeed } from './types';
 
 /**
  * One X theme as a file, to share or keep: `{ format, version, name, colors }`, colors `#rrggbb`.
@@ -14,16 +14,16 @@ export const THEME_FILE_VERSION = 1;
 export const MAX_THEME_FILE_BYTES = 20_000;
 
 const REQUIRED = ['bg', 'text', 'accent'] as const;
-const OPTIONAL = ['raised', 'hover', 'border', 'muted'] as const;
+const OPTIONAL = ['raised', 'hover', 'border', 'muted', 'mention', 'badge', 'badgeText'] as const;
 
 export interface ThemeFile {
   format: typeof THEME_FILE_FORMAT;
   version: typeof THEME_FILE_VERSION;
   name: string;
-  colors: Required<ThemeSeed>;
+  colors: FullSeed;
 }
 
-export const createThemeFile = (name: string, seed: Required<ThemeSeed>): ThemeFile => ({
+export const createThemeFile = (name: string, seed: FullSeed): ThemeFile => ({
   format: THEME_FILE_FORMAT,
   version: THEME_FILE_VERSION,
   name,
@@ -41,7 +41,7 @@ export function themeFilename(name: string): string {
 }
 
 export type ParsedThemeFile =
-  { ok: true; name: string; seed: Required<ThemeSeed> } | { ok: false; error: string };
+  { ok: true; name: string; seed: FullSeed } | { ok: false; error: string };
 
 export function parseThemeFile(text: string): ParsedThemeFile {
   const fail = (error: string): ParsedThemeFile => ({ ok: false, error });

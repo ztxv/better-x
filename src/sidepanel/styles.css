@@ -3054,3 +3054,17 @@ html:has(.modal-backdrop) .app-shell .app-body {
   opacity: 0.5;
   cursor: default;
 }
+
+/* "Match Better X to my X theme" switch, above the theme cards. */
+.themes-match {
+  margin: 0 0 12px;
+  padding: 2px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+/* "Follow the accent" under an optional theme color that has its own value. */
+.theme-follow-accent {
+  margin-top: 4px;
+}
+

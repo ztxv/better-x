@@ -8,6 +8,7 @@ import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, PRESETS } from '../themes/presets';
 import type { XMode } from '../themes/types';
 import { ThemeCard } from './ThemeCard';
 import { ThemeEditor } from './ThemeEditor';
+import { Toggle } from './Toggle';
 
 const LIGHTS_OUT = deriveTokens(LIGHTS_OUT_SEED);
 const PRESET_TOKENS = new Map(PRESETS.map((preset) => [preset.id, deriveTokens(preset.seed)]));
@@ -142,6 +143,15 @@ export function Themes({
           )}
         </p>
       )}
+
+      <div className="themes-match">
+        <Toggle
+          label="Match Better X to my X theme"
+          hint="Paint this panel, the popup and the overlay on X with the theme above (Lights out when none is chosen), Custom and your own themes included. Overrides Better X’s own light/dark and accent while on."
+          checked={theme.matchPanel}
+          onChange={(matchPanel) => onChange({ xTheme: { matchPanel } })}
+        />
+      </div>
 
       <div className="theme-grid" role="group" aria-label="Theme">
         <ThemeCard

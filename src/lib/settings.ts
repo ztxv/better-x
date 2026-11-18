@@ -8,7 +8,7 @@
 import { placeKey, resolveSelectable } from '../insights/places';
 import { BLACK, WHITE, isHex, mix, readable, toHex, toRgb, type Rgb } from './color';
 import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, isPresetId } from '../themes/presets';
-import type { ThemeSeed } from '../themes/types';
+import { EXTRA_SEED_KEYS, type FullSeed, type ThemeSeed } from '../themes/types';
 
 export const SETTINGS_KEY = 'bx.settings';
 /**
@@ -90,18 +90,23 @@ export interface FilterSettings {
  */
 export interface XThemeSettings {
   active: string | null;
-  custom: Required<ThemeSeed>;
+  custom: FullSeed;
   /** The person's own named themes. `active` may name one by its id. */
   saved: SavedTheme[];
   /** Experimental: also theme X's Chat, which lives in shadow DOM. */
   chat: boolean;
+  /**
+   * Paint Better X's own panel (side panel, popup, the overlay on X) with the X theme that is on,
+   * so the two match. Off: the panel keeps its own light/dark look and accent.
+   */
+  matchPanel: boolean;
 }
 
 /** A palette the person named and kept. Its id (`my-…`) is made once and never changes. */
 export interface SavedTheme {
   id: string;
   name: string;
-  seed: Required<ThemeSeed>;
+  seed: FullSeed;
 }
 export const MAX_SAVED_THEMES = 30;
 export const MAX_THEME_NAME = 40;
@@ -163,7 +168,13 @@ export const DEFAULT_SETTINGS: Settings = {
   popupHeight: 'standard',
   insights: { lookup: 'hover' },
   filter: { countries: [], mode: 'collapse', posts: true, quotes: true, alwaysShow: [] },
-  xTheme: { active: null, custom: { ...LIGHTS_OUT_SEED }, saved: [], chat: false },
+  xTheme: {
+    active: null,
+    custom: { ...LIGHTS_OUT_SEED },
+    saved: [],
+    chat: false,
+    matchPanel: false,
+  },
   features: {},
   values: {},
 };
@@ -386,11 +397,19 @@ export function normalizeSavedThemes(input: unknown): SavedTheme[] {
   return result;
 }
 
-/** Every custom color `#rrggbb` lowercase; a missing or malformed one falls back to Lights Out's. */
-export function normalizeSeed(input: unknown): Required<ThemeSeed> {
+/**
+ * Every custom color `#rrggbb` lowercase; a missing or malformed core color falls back to Lights
+ * Out's. The extras (mention, badge, badge text) are kept only when they are colors: anything else,
+ * the empty string included, removes one so it follows the accent again.
+ */
+export function normalizeSeed(input: unknown): FullSeed {
   const value = isRecord(input) ? input : {};
-  const seed = { ...LIGHTS_OUT_SEED };
+  const seed: FullSeed = { ...LIGHTS_OUT_SEED };
   for (const key of SEED_KEYS) {
+    const color = value[key];
+    if (isHex(color)) seed[key] = color.toLowerCase();
+  }
+  for (const key of EXTRA_SEED_KEYS) {
     const color = value[key];
     if (isHex(color)) seed[key] = color.toLowerCase();
   }
@@ -409,6 +428,7 @@ function normalizeXTheme(input: unknown): XThemeSettings {
     custom: normalizeSeed(value.custom),
     saved,
     chat: bool(value.chat, DEFAULT_SETTINGS.xTheme.chat),
+    matchPanel: bool(value.matchPanel, DEFAULT_SETTINGS.xTheme.matchPanel),
   };
 }
 
@@ -453,7 +473,7 @@ export type SettingsPatch = Partial<
   >
 > & {
   /** Merged field by field; `custom` is merged color by color; `saved` replaces the list. */
-  xTheme?: Partial<Pick<XThemeSettings, 'active' | 'chat' | 'saved'>> & {
+  xTheme?: Partial<Pick<XThemeSettings, 'active' | 'chat' | 'saved' | 'matchPanel'>> & {
     custom?: Partial<ThemeSeed>;
   };
   menuActions?: Partial<Settings['menuActions']>;

@@ -69,6 +69,20 @@ html[data-bx-theme] .r-yuvema { background-color: var(--bx-t-accent-active) !imp
 html[data-bx-theme] .r-1peqgm7,
 html[data-bx-theme] .r-r18ze4 { background-color: var(--bx-t-accent-tint) !important; }
 html[data-bx-theme] [style*="box-shadow: rgb(142, 205, 248)"] { box-shadow: var(--bx-t-ring) 0px 0px 0px 2px !important; }
+html[data-bx-theme] [data-testid="tweetText"] a[href]:not([data-bx-none]),
+html[data-bx-theme] [data-testid="tweetText"] a[href]:not([data-bx-none]) span,
+html[data-bx-theme] [data-testid="UserDescription"] a[href]:not([data-bx-none]),
+html[data-bx-theme] [data-testid="UserDescription"] a[href]:not([data-bx-none]) span { color: var(--bx-t-mention) !important; }
+html[data-bx-theme] header[role="banner"] nav a .r-l5o3uw,
+html[data-bx-theme] nav[role="navigation"] a .r-l5o3uw,
+html[data-bx-theme] [data-testid="BottomBar"] a .r-l5o3uw { background-color: var(--bx-t-badge) !important; }
+html[data-bx-theme] header[role="banner"] nav a [aria-label][style*="background-color: rgb(29, 155, 240)"],
+html[data-bx-theme] header[role="banner"] nav a [aria-live][style*="background-color: rgb(29, 155, 240)"] { background-color: var(--bx-t-badge) !important; }
+html[data-bx-theme] header[role="banner"] nav a .r-l5o3uw,
+html[data-bx-theme] header[role="banner"] nav a .r-l5o3uw span,
+html[data-bx-theme] nav[role="navigation"] a .r-l5o3uw,
+html[data-bx-theme] nav[role="navigation"] a .r-l5o3uw span,
+html[data-bx-theme] [data-testid="BottomBar"] a .r-l5o3uw span { color: var(--bx-t-badge-text) !important; }
 html[data-bx-theme] .r-1niwhzg.r-633pao,
 html[data-bx-theme] .r-1niwhzg.r-sdzlij { background-color: transparent !important; }
 html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #000000 !important; }",
@@ -89,6 +103,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #8ecdf8;
   --bx-t-backdrop: rgba(21, 32, 43, 0.85);
   --bx-t-scrim: rgba(11, 16, 22, 0.6);
+  --bx-t-mention: #1d9bf0;
+  --bx-t-badge: #1d9bf0;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 210 34.4% 12.5%;
   --bx-t-raised-hsl: 211.4 20.8% 19.8%;
   --bx-t-hover-hsl: 208.6 25.9% 15.9%;
@@ -113,6 +130,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #dec9fc;
   --bx-t-backdrop: rgba(40, 42, 54, 0.85);
   --bx-t-scrim: rgba(20, 21, 27, 0.6);
+  --bx-t-mention: #bd93f9;
+  --bx-t-badge: #bd93f9;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 231.4 14.9% 18.4%;
   --bx-t-raised-hsl: 230 14.8% 23.9%;
   --bx-t-hover-hsl: 231.4 12.7% 21.6%;
@@ -137,6 +157,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #ffc59e;
   --bx-t-backdrop: rgba(26, 18, 16, 0.85);
   --bx-t-scrim: rgba(13, 9, 8, 0.6);
+  --bx-t-mention: #ff8a3d;
+  --bx-t-badge: #ff8a3d;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 12 23.8% 8.2%;
   --bx-t-raised-hsl: 14.1 25.4% 13.1%;
   --bx-t-hover-hsl: 16.4 18.6% 11.6%;
@@ -161,6 +184,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #9eeec2;
   --bx-t-backdrop: rgba(15, 26, 20, 0.85);
   --bx-t-scrim: rgba(8, 13, 10, 0.6);
+  --bx-t-mention: #3ddc84;
+  --bx-t-badge: #3ddc84;
+  --bx-t-badge-text: #0f1419;
   --bx-t-bg-hsl: 147.3 26.8% 8%;
   --bx-t-raised-hsl: 150 25% 12.5%;
   --bx-t-hover-hsl: 141.8 18.6% 11.6%;
@@ -185,6 +211,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #8ecdf8;
   --bx-t-backdrop: rgba(18, 18, 18, 0.85);
   --bx-t-scrim: rgba(9, 9, 9, 0.6);
+  --bx-t-mention: #1d9bf0;
+  --bx-t-badge: #1d9bf0;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 0 0% 7.1%;
   --bx-t-raised-hsl: 0 0% 11.8%;
   --bx-t-hover-hsl: 0 0% 10.6%;
@@ -209,6 +238,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #fdde97;
   --bx-t-backdrop: rgba(40, 40, 40, 0.85);
   --bx-t-scrim: rgba(20, 20, 20, 0.6);
+  --bx-t-mention: #fabd2f;
+  --bx-t-badge: #fabd2f;
+  --bx-t-badge-text: #0f1419;
   --bx-t-bg-hsl: 0 0% 15.7%;
   --bx-t-raised-hsl: 20 5.3% 22.4%;
   --bx-t-hover-hsl: 30 2.1% 18.4%;
@@ -233,6 +265,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #b6c6ff;
   --bx-t-backdrop: rgba(11, 16, 32, 0.85);
   --bx-t-scrim: rgba(6, 8, 16, 0.6);
+  --bx-t-mention: #6c8cff;
+  --bx-t-badge: #6c8cff;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 225.7 48.8% 8.4%;
   --bx-t-raised-hsl: 226.7 39.1% 13.5%;
   --bx-t-hover-hsl: 225.7 34.4% 12%;
@@ -257,6 +292,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #e5d3fb;
   --bx-t-backdrop: rgba(30, 30, 46, 0.85);
   --bx-t-scrim: rgba(15, 15, 23, 0.6);
+  --bx-t-mention: #cba6f7;
+  --bx-t-badge: #cba6f7;
+  --bx-t-badge-text: #0f1419;
   --bx-t-bg-hsl: 240 21.1% 14.9%;
   --bx-t-raised-hsl: 236.8 16.2% 22.9%;
   --bx-t-hover-hsl: 240 18.7% 17.8%;
@@ -281,6 +319,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #c4e0e8;
   --bx-t-backdrop: rgba(46, 52, 64, 0.85);
   --bx-t-scrim: rgba(23, 26, 32, 0.6);
+  --bx-t-mention: #88c0d0;
+  --bx-t-badge: #88c0d0;
+  --bx-t-badge-text: #0f1419;
   --bx-t-bg-hsl: 220 16.4% 21.6%;
   --bx-t-raised-hsl: 221.7 16.3% 27.6%;
   --bx-t-hover-hsl: 222.4 13.6% 24.5%;
@@ -305,6 +346,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #e2d3f3;
   --bx-t-backdrop: rgba(25, 23, 36, 0.85);
   --bx-t-scrim: rgba(13, 12, 18, 0.6);
+  --bx-t-mention: #c4a7e7;
+  --bx-t-badge: #c4a7e7;
+  --bx-t-badge-text: #0f1419;
   --bx-t-bg-hsl: 249.2 22% 11.6%;
   --bx-t-raised-hsl: 247.8 24.7% 18.2%;
   --bx-t-hover-hsl: 249.2 17.3% 14.7%;
@@ -329,6 +373,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #93c5e9;
   --bx-t-backdrop: rgba(0, 43, 54, 0.85);
   --bx-t-scrim: rgba(0, 22, 27, 0.6);
+  --bx-t-mention: #5294be;
+  --bx-t-badge: #268bd2;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 192.2 100% 10.6%;
   --bx-t-raised-hsl: 192.2 80.8% 14.3%;
   --bx-t-hover-hsl: 191.5 81.3% 12.5%;
@@ -353,6 +400,9 @@ html[data-bx-theme] .r-kemksi.r-16cnnyw.r-rs99b7:has(img) { background-color: #0
   --bx-t-ring: #bdd1fb;
   --bx-t-backdrop: rgba(26, 27, 38, 0.85);
   --bx-t-scrim: rgba(13, 14, 19, 0.6);
+  --bx-t-mention: #7aa2f7;
+  --bx-t-badge: #7aa2f7;
+  --bx-t-badge-text: #ffffff;
   --bx-t-bg-hsl: 235 18.8% 12.5%;
   --bx-t-raised-hsl: 228 23.4% 21%;
   --bx-t-hover-hsl: 235.4 16.5% 15.5%;

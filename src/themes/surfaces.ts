@@ -37,6 +37,12 @@ export type Role =
   | 'accent-tint'
   /** The keyboard focus ring. */
   | 'ring'
+  /** Links, @mentions and #hashtags inside posts and bios (follows the accent unless set). */
+  | 'mention'
+  /** The unread count bubble on Notifications / Messages (follows the accent unless set). */
+  | 'badge'
+  /** The number inside that bubble. */
+  | 'badge-text'
   | 'scrim'
   /** Tailwind tokens in Chat: the same roles as space-separated HSL components. */
   | 'bg-hsl'
@@ -575,6 +581,63 @@ export const SURFACES: readonly Surface[] = [
     from: ['inferred'],
     verified: 'reference',
     note: 'The keyboard focus ring X writes inline: rgb(142, 205, 248) 0px 0px 0px 2px (its blue halfway to white).',
+  },
+  // ------------------------------------------------------------------- mentions and badges
+  // After the accent entries, and more specific than them, so a theme's own mention and badge
+  // colors win over the plain accent. Both follow the accent when the person has not set them.
+  {
+    role: 'mention',
+    properties: COLOR_PROPS,
+    kind: 'stable',
+    selectors: [
+      '[data-testid="tweetText"] a[href]:not([data-bx-none])',
+      '[data-testid="tweetText"] a[href]:not([data-bx-none]) span',
+      '[data-testid="UserDescription"] a[href]:not([data-bx-none])',
+      '[data-testid="UserDescription"] a[href]:not([data-bx-none]) span',
+    ],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'Links, @mentions and #hashtags inside a post’s text and a profile bio. Test IDs only; the extra :not() lifts specificity over the blue-text class rule above.',
+  },
+  {
+    role: 'badge',
+    properties: BG,
+    kind: 'rnw-class',
+    selectors: [
+      'header[role="banner"] nav a .r-l5o3uw',
+      'nav[role="navigation"] a .r-l5o3uw',
+      '[data-testid="BottomBar"] a .r-l5o3uw',
+    ],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'The unread count bubble on the Notifications and Messages links: X’s blue fill (r-l5o3uw) inside a navigation link.',
+  },
+  {
+    role: 'badge',
+    properties: BG,
+    kind: 'inline-value',
+    selectors: [
+      'header[role="banner"] nav a [aria-label][style*="background-color: rgb(29, 155, 240)"]',
+      'header[role="banner"] nav a [aria-live][style*="background-color: rgb(29, 155, 240)"]',
+    ],
+    from: ['inferred'],
+    verified: 'reference',
+    note: 'The unread bubble when X writes its blue inline.',
+  },
+  {
+    role: 'badge-text',
+    properties: COLOR_PROPS,
+    kind: 'rnw-class',
+    selectors: [
+      'header[role="banner"] nav a .r-l5o3uw',
+      'header[role="banner"] nav a .r-l5o3uw span',
+      'nav[role="navigation"] a .r-l5o3uw',
+      'nav[role="navigation"] a .r-l5o3uw span',
+      '[data-testid="BottomBar"] a .r-l5o3uw span',
+    ],
+    from: ['rnw-hash'],
+    verified: 'reference',
+    note: 'The number inside the unread bubble (X writes it white).',
   },
   // ---------------------------------------------------------------------------------- keep
   // Last, so they win over the broader rules above (they are also more specific).

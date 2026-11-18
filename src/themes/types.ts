@@ -8,7 +8,7 @@
 export type XMode = 'dark' | 'light';
 
 /** What a person edits. `bg`, `text` and `accent` are required; the rest are derived when absent. */
-export interface ThemeSeed {
+export interface CoreSeed {
   bg: string;
   text: string;
   accent: string;
@@ -17,6 +17,34 @@ export interface ThemeSeed {
   border?: string;
   muted?: string;
 }
+
+/**
+ * Fine-tuning a theme may add on top of its core colors. Unlike the core colors these are never
+ * filled in: absent means "follow the accent", so changing the accent keeps moving them too.
+ */
+export interface SeedExtras {
+  /** @mentions, #hashtags and links inside posts and bios. Absent: the accent (as text). */
+  mention?: string;
+  /** The unread count bubble on Notifications and Messages. Absent: the accent. */
+  badge?: string;
+  /** The number inside that bubble. Absent: white, or black on a light badge. */
+  badgeText?: string;
+}
+
+export type ThemeSeed = CoreSeed & SeedExtras;
+/** Every core color present; extras only where the person set them. */
+export type FullSeed = Required<CoreSeed> & SeedExtras;
+
+export const CORE_SEED_KEYS = [
+  'bg',
+  'text',
+  'accent',
+  'raised',
+  'hover',
+  'border',
+  'muted',
+] as const;
+export const EXTRA_SEED_KEYS = ['mention', 'badge', 'badgeText'] as const;
 
 export interface ThemeDef {
   /** Stored in settings: never renamed once shipped. */
@@ -55,4 +83,9 @@ export interface ThemeTokens {
   backdrop: string;
   /** Behind modals. */
   scrim: string;
+  /** Links, mentions and hashtags in posts. */
+  mention: string;
+  /** The unread count bubble, and the number in it. */
+  badge: string;
+  badgeText: string;
 }

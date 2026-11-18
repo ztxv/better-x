@@ -62,6 +62,8 @@ function themePage(mode = 'dark') {
     <div id="ring" style="box-shadow: rgb(142, 205, 248) 0px 0px 0px 2px;">focused</div>
     <svg id="badge" data-testid="icon-verified" class="r-1cvl2hr" width="10" height="10"></svg>
     <span id="liked" class="r-1xc9bm1">♥ 12</span>
+    <div data-testid="tweetText">Hi <a id="mention" class="r-1cvl2hr" href="/someone">@someone</a></div>
+    <header role="banner"><nav><a href="/notifications"><div id="nbadge" class="r-l5o3uw" aria-label="3 unread items"><span id="nbadge-num" style="color: rgb(255, 255, 255);">3</span></div></a></nav></header>
     <main style="width:600px">
       ${post({ id: '1300000000000000001', handle: 'themer', text: 'A post on a themed page' })}
       ${post({ id: '1300000000000000002', handle: 'themer', text: 'Another' })}
@@ -147,6 +149,11 @@ const colors = (page) =>
         ring: css('ring', 'boxShadow'),
         badge: css('badge', 'color'),
         liked: css('liked', 'color'),
+      },
+      extras: {
+        mention: css('mention', 'color'),
+        badge: css('nbadge', 'backgroundColor'),
+        number: css('nbadge-num', 'color'),
       },
       controls: [...document.querySelectorAll('.bx-control')].filter((c) =>
         c.checkVisibility({ visibilityProperty: true }),
@@ -237,6 +244,37 @@ try {
     'a custom accent reaches links, fills, borders, hover, tint and the focus ring; badge and like keep theirs',
     accentWrong.length === 0,
     accentWrong.join('; '),
+  );
+  check(
+    'mentions and the notification badge follow the accent when not set',
+    custom.extras.mention === ACCENT.link &&
+      custom.extras.badge === ACCENT.fill &&
+      custom.extras.number === 'rgb(255, 255, 255)',
+    JSON.stringify(custom.extras),
+  );
+  await setTheme({
+    custom: {
+      bg: '#101820',
+      text: '#f0f0f0',
+      accent: '#ff5fa2',
+      raised: '#1a2430',
+      hover: '#141e28',
+      border: '#2a3540',
+      muted: '#9aa5b0',
+      mention: '#00ff88',
+      badge: '#ffcc00',
+      badgeText: '#101010',
+    },
+  });
+  await new Promise((r) => setTimeout(r, 400));
+  const extras = await colors(page);
+  check(
+    'a theme’s own mention, badge and badge-number colors win; other links keep the accent',
+    extras.extras.mention === 'rgb(0, 255, 136)' &&
+      extras.extras.badge === 'rgb(255, 204, 0)' &&
+      extras.extras.number === 'rgb(16, 16, 16)' &&
+      extras.accent.link === ACCENT.link,
+    JSON.stringify({ extras: extras.extras, link: extras.accent.link }),
   );
   check(
     'the accent does not touch media',

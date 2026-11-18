@@ -10,11 +10,12 @@ import {
 import { createThemeFile, newThemeId, themeFilename, uniqueThemeName } from '../themes/file';
 import { contrastWarnings, deriveTokens, fillSeed } from '../themes/derive';
 import { LIGHTS_OUT_SEED, PRESETS } from '../themes/presets';
-import type { ThemeSeed } from '../themes/types';
+import type { FullSeed } from '../themes/types';
 import { ColorField, parseHex, toHex } from './ColorField';
 import { ThemePreview } from './ThemeCard';
 
-type SeedKey = keyof Required<ThemeSeed>;
+type SeedKey = 'bg' | 'text' | 'accent' | 'raised' | 'hover' | 'border' | 'muted';
+type ExtraKey = 'mention' | 'badge' | 'badgeText';
 
 const PRIMARY: ReadonlyArray<{ key: SeedKey; label: string; hint: string }> = [
   { key: 'bg', label: 'Background', hint: 'The page and columns' },
@@ -26,6 +27,13 @@ const ADVANCED: ReadonlyArray<{ key: SeedKey; label: string; hint: string }> = [
   { key: 'hover', label: 'Hover', hint: 'Under the pointer' },
   { key: 'border', label: 'Border', hint: 'Lines between posts' },
   { key: 'muted', label: 'Secondary text', hint: 'Handles, times, counts' },
+];
+
+/** Optional colors that follow the accent until the person picks one. */
+const EXTRAS: ReadonlyArray<{ key: ExtraKey; label: string; hint: string }> = [
+  { key: 'mention', label: 'Mentions and links', hint: '@names, #hashtags and links in posts' },
+  { key: 'badge', label: 'Notification badge', hint: 'The unread count bubble' },
+  { key: 'badgeText', label: 'Badge number', hint: 'The count inside the bubble' },
 ];
 
 const WARNINGS: Record<string, string> = {
@@ -65,6 +73,7 @@ export function ThemeEditor({
   onChange: (patch: SettingsPatch) => void;
 }) {
   const [advanced, setAdvanced] = useState(false);
+  const [extrasOpen, setExtrasOpen] = useState(false);
   const own = theme.saved.find((saved) => saved.id === theme.active);
   const seed = own?.seed ?? theme.custom;
   const [name, setName] = useState(own?.name ?? '');
@@ -75,7 +84,7 @@ export function ThemeEditor({
   }, [own?.id, own?.name]);
 
   /** Writes colors to whichever theme is being edited. */
-  const write = (colors: Partial<Required<ThemeSeed>>) =>
+  const write = (colors: Partial<FullSeed>) =>
     onChange(
       own
         ? {
@@ -123,6 +132,38 @@ export function ThemeEditor({
     });
   }
   const warnings = contrastWarnings(seed);
+  const tokens = deriveTokens(seed);
+
+  /** An optional color: shows what it is now (its own, or the accent it follows) and a reset. */
+  const extraField = ({ key, label, hint }: { key: ExtraKey; label: string; hint: string }) => {
+    const own = seed[key];
+    return (
+      <div className="theme-field" key={key}>
+        <div className="theme-field-label">
+          <strong>{label}</strong>
+          <small>
+            {hint}
+            {own ? '' : ' · follows the accent'}
+          </small>
+        </div>
+        <ColorField
+          label={label}
+          value={number(own ?? tokens[key])}
+          swatches={key !== 'badgeText'}
+          onValue={(value) => write({ [key]: toHex(value) })}
+        />
+        {own && (
+          <button
+            type="button"
+            className="text-button theme-follow-accent"
+            onClick={() => write({ [key]: '' })}
+          >
+            <RotateCcw size={12} /> Follow the accent
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const field = ({ key, label, hint }: { key: SeedKey; label: string; hint: string }) => (
     <div className="theme-field" key={key}>
@@ -183,7 +224,7 @@ export function ThemeEditor({
         </label>
       )}
 
-      <ThemePreview tokens={deriveTokens(seed)} large />
+      <ThemePreview tokens={tokens} large />
 
       {warnings.length > 0 && (
         <ul className="theme-warnings" role="status">
@@ -216,6 +257,20 @@ export function ThemeEditor({
         {ADVANCED.map(field)}
       </div>
 
+      <button
+        type="button"
+        className="theme-advanced-toggle"
+        aria-expanded={extrasOpen}
+        aria-controls="theme-extras"
+        onClick={() => setExtrasOpen(!extrasOpen)}
+      >
+        <ChevronDown size={14} aria-hidden="true" />
+        Mentions and notifications
+      </button>
+      <div id="theme-extras" hidden={!extrasOpen}>
+        {EXTRAS.map(extraField)}
+      </div>
+
       <div className="theme-actions">
         <button
           type="button"
@@ -238,7 +293,11 @@ export function ThemeEditor({
         >
           <Download size={13} /> Export
         </button>
-        <button type="button" className="text-button" onClick={() => write({ ...LIGHTS_OUT_SEED })}>
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => write({ ...LIGHTS_OUT_SEED, mention: '', badge: '', badgeText: '' })}
+        >
           <RotateCcw size={13} /> Reset to Lights out
         </button>
         {own && (

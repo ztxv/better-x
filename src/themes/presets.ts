@@ -1,4 +1,4 @@
-import type { ThemeDef, ThemeSeed } from './types';
+import type { FullSeed, ThemeDef, ThemeSeed } from './types';
 
 /**
  * Preset X themes. Ids are stored in settings and backups: never rename or reuse one.
@@ -182,7 +182,7 @@ export const CUSTOM_THEME_ID = 'custom';
  * X's stock Lights Out colors as Control Panel for Twitter documents them: where the Custom theme
  * starts, so a fresh Custom looks like X.
  */
-export const LIGHTS_OUT_SEED: Required<ThemeSeed> = {
+export const LIGHTS_OUT_SEED: FullSeed = {
   bg: '#000000',
   raised: '#202327',
   hover: '#16181c',

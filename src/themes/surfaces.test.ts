@@ -22,7 +22,16 @@ const ALLOWED = new Set([
 ]);
 const FORBIDDEN =
   /\b(display|visibility|opacity|transform|content|position|width|height|filter|margin|padding)\b|url\(|@import|expression\(/i;
-const TEXT_ROLES = new Set(['text', 'muted', 'accent', 'accent-text', 'text-hsl', 'muted-hsl']);
+const TEXT_ROLES = new Set([
+  'text',
+  'muted',
+  'accent',
+  'accent-text',
+  'mention',
+  'badge-text',
+  'text-hsl',
+  'muted-hsl',
+]);
 const SURFACE_ROLES = new Set([
   'bg',
   'raised',
@@ -34,6 +43,7 @@ const SURFACE_ROLES = new Set([
   'accent-hover',
   'accent-active',
   'accent-tint',
+  'badge',
 ]);
 const ALL = buildThemeCss(deriveTokens(LIGHTS_OUT_SEED), { chat: true });
 

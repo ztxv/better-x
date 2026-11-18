@@ -10,7 +10,8 @@ import {
   type Rgb,
 } from '../lib/color';
 import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, presetById } from './presets';
-import type { ThemeDef, ThemeSeed, ThemeTokens } from './types';
+import { EXTRA_SEED_KEYS } from './types';
+import type { FullSeed, ThemeDef, ThemeSeed, ThemeTokens } from './types';
 
 /** A seed color, or the fallback when it is missing or not `#rrggbb`. */
 const color = (value: string | undefined, fallback: string): Rgb =>
@@ -35,6 +36,13 @@ export function deriveTokens(seed: ThemeSeed): ThemeTokens {
   const border = pick(seed.border, mix(bg, text, 0.16));
   const muted = ensureContrast(pick(seed.muted, mix(bg, text, 0.62)), bg, 4.5, text);
   const accentText = ensureContrast(accent, bg, 4.5, text);
+  // The extras follow the accent unless the person chose their own; their choice is used as is.
+  const mention = pick(seed.mention, accentText);
+  const badge = pick(seed.badge, accent);
+  const badgeText = pick(
+    seed.badgeText,
+    contrast(WHITE, badge) >= 2.2 ? WHITE : ([15, 20, 25] as Rgb),
+  );
   return {
     bg: toHex(bg),
     raised: toHex(raised),
@@ -50,6 +58,9 @@ export function deriveTokens(seed: ThemeSeed): ThemeTokens {
     accentTint: rgba(accent, 0.1),
     backdrop: rgba(bg, 0.85),
     scrim: rgba(mix(bg, BLACK, 0.5), 0.6),
+    mention: toHex(mention),
+    badge: toHex(badge),
+    badgeText: toHex(badgeText),
   };
 }
 
@@ -93,10 +104,16 @@ export function contrastWarnings(seed: ThemeSeed): ContrastWarning[] {
   return warnings;
 }
 
-/** Every seed color filled in (derived where absent), for "Start from" a preset. */
-export function fillSeed(seed: ThemeSeed): Required<ThemeSeed> {
+/**
+ * Every core seed color filled in (derived where absent), for "Start from" a preset. Extras the
+ * seed sets are kept; absent ones stay absent so they keep following the accent.
+ */
+export function fillSeed(seed: ThemeSeed): FullSeed {
   const tokens = deriveTokens(seed);
+  const extras: Partial<FullSeed> = {};
+  for (const key of EXTRA_SEED_KEYS) if (isHex(seed[key])) extras[key] = seed[key];
   return {
+    ...extras,
     bg: tokens.bg,
     text: tokens.text,
     accent: tokens.accent,

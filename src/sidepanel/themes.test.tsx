@@ -173,7 +173,40 @@ describe('Themes tab', () => {
 
   it('has no Chat switch yet (back burner)', async () => {
     await mount();
-    expect(host.querySelector('.themes input[role="switch"]')).toBeNull();
+    const labels = [...host.querySelectorAll('.themes label.setting-toggle')].map(
+      (label) => label.textContent ?? '',
+    );
+    expect(labels.some((text) => /chat/i.test(text))).toBe(false);
+  });
+
+  it('has a switch that matches Better X to the X theme', async () => {
+    await mount();
+    const label = [...host.querySelectorAll('.themes label.setting-toggle')].find((el) =>
+      el.textContent?.includes('Match Better X'),
+    )!;
+    const input = label.querySelector<HTMLInputElement>('input[role="switch"]')!;
+    expect(input.checked).toBe(false);
+    await act(async () => input.click());
+    expect(patches.at(-1)).toEqual({ xTheme: { matchPanel: true } });
+  });
+
+  it('lets Custom set mention and badge colors, and put them back to the accent', async () => {
+    await mount({ ...DEFAULT_SETTINGS, xTheme: { ...DEFAULT_SETTINGS.xTheme, active: 'custom' } });
+    expect(host.querySelector('#theme-extras')!.textContent).toContain('follows the accent');
+    expect(button('Follow the accent')).toBeUndefined();
+  });
+
+  it('puts a theme’s own mention color back to the accent', async () => {
+    await mount({
+      ...DEFAULT_SETTINGS,
+      xTheme: {
+        ...DEFAULT_SETTINGS.xTheme,
+        active: 'custom',
+        custom: { ...DEFAULT_SETTINGS.xTheme.custom, mention: '#ff0000' },
+      },
+    });
+    await act(async () => button('Follow the accent')!.click());
+    expect(patches.at(-1)).toEqual({ xTheme: { custom: { mention: '' } } });
   });
 
   it('says the theme is paused while X is in Default', async () => {

@@ -294,6 +294,7 @@ describe('settings: version 6 X theme', () => {
     expect(xTheme).toEqual({
       active: 'nord',
       chat: false,
+      matchPanel: false,
       saved: [],
       custom: { ...d, bg: '#abcdef' },
     });
@@ -311,6 +312,7 @@ describe('settings: version 6 X theme', () => {
     expect(xTheme).toEqual({
       active: 'dracula',
       chat: true,
+      matchPanel: false,
       saved: [],
       custom: { ...DEFAULT_SETTINGS.xTheme.custom, bg: '#112233', accent: '#445566' },
     });

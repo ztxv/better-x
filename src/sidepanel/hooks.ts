@@ -13,12 +13,27 @@ import {
   type SettingsPatch,
 } from '../lib/settings';
 import { DOWNLOADS_REVISION_KEY } from '../storage/db';
+import { panelTokens } from '../themes/panel';
 import type { DownloadRecord } from '../types/model';
 
 /** The theme is also cached locally so the panel opens without a flash of the wrong theme. */
 const THEME_CACHE = 'bx.theme';
 /** Cached the same way, so the popup opens at its chosen height instead of growing after load. */
 const POPUP_HEIGHT_CACHE = 'bx.popupHeight';
+
+const PANEL_VARS = [
+  '--bg',
+  '--surface',
+  '--surface-muted',
+  '--hover',
+  '--text',
+  '--muted',
+  '--border',
+  '--brand',
+  '--accent',
+  '--accent-soft',
+  '--on-accent',
+] as const;
 
 function applyAppearance(settings: Settings) {
   const root = document.documentElement;
@@ -32,6 +47,16 @@ function applyAppearance(settings: Settings) {
   root.style.setProperty('--accent-soft-light', accent.softLight);
   root.style.setProperty('--accent-soft-dark', accent.softDark);
   root.style.setProperty('--popup-height', `${POPUP_HEIGHT_PX[settings.popupHeight]}px`);
+  // "Match Better X to my X theme": the X theme's palette replaces the panel's own colors. Set
+  // inline on <html>, so it wins over the light/dark blocks in styles.css; cleared when off.
+  const matched = panelTokens(settings.xTheme);
+  for (const name of PANEL_VARS)
+    if (matched) root.style.setProperty(name, matched[name]);
+    else root.style.removeProperty(name);
+  if (matched) {
+    root.dataset.theme = 'dark';
+    root.dataset.xtheme = 'match';
+  } else delete root.dataset.xtheme;
   try {
     localStorage.setItem(THEME_CACHE, settings.theme);
     localStorage.setItem(POPUP_HEIGHT_CACHE, settings.popupHeight);
