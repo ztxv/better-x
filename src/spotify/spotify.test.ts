@@ -420,3 +420,41 @@ describe('openConsent (Spotify sign-in window)', () => {
     await expect(result).rejects.toThrow(/tab was closed/);
   });
 });
+
+describe('checkAuthorizeUrl (before the Spotify sign-in opens)', () => {
+  const REDIRECT = 'https://abc.chromiumapp.org/spotify';
+  const page = (status: number, body: string) =>
+    (async () => new Response(body, { status })) as unknown as typeof fetch;
+
+  it('names the fix when Spotify says the redirect URI is not set up', async () => {
+    const { checkAuthorizeUrl } = await import('./auth');
+    const error = await checkAuthorizeUrl(
+      'https://accounts.spotify.com/authorize?x',
+      REDIRECT,
+      page(400, 'redirect_uri: Not matching configuration'),
+    ).catch((e: Error) => e);
+    expect(String(error)).toContain(REDIRECT);
+    expect(String(error)).toContain('Save');
+  });
+
+  it('says the Client ID is unknown', async () => {
+    const { checkAuthorizeUrl } = await import('./auth');
+    await expect(
+      checkAuthorizeUrl('u', REDIRECT, page(400, 'INVALID_CLIENT: Invalid client')),
+    ).rejects.toThrow(/Client ID/);
+  });
+
+  it('lets a good answer, a login redirect or a network failure through', async () => {
+    const { checkAuthorizeUrl } = await import('./auth');
+    await expect(checkAuthorizeUrl('u', REDIRECT, page(200, '<html>Agree</html>'))).resolves.toBe(
+      undefined,
+    );
+    const redirected = (async () =>
+      ({ type: 'opaqueredirect', status: 0 }) as Response) as unknown as typeof fetch;
+    await expect(checkAuthorizeUrl('u', REDIRECT, redirected)).resolves.toBe(undefined);
+    const offline = (async () => {
+      throw new TypeError('offline');
+    }) as unknown as typeof fetch;
+    await expect(checkAuthorizeUrl('u', REDIRECT, offline)).resolves.toBe(undefined);
+  });
+});

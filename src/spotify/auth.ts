@@ -84,6 +84,60 @@ export const disconnectSpotify = () => chrome.storage.local.remove(SPOTIFY_AUTH_
 /** What went wrong while connecting, in words the settings panel can show as they are. */
 export class SpotifyConnectError extends Error {}
 
+/**
+ * Asks Spotify about the sign-in address before showing it. When the app's settings do not match,
+ * Spotify answers with a bare error page ("redirect_uri: Not matching configuration", "INVALID_CLIENT"),
+ * which Chrome's sign-in window reports only as "could not be loaded" and a tab shows with nothing
+ * to do but wait. Read here first, it becomes a message that says what to fix. A good address
+ * answers with a redirect (to log in, or straight back with a code that is never used) or the
+ * consent page. Spotify checks the app only for a signed-in person (signed out, it sends everyone
+ * to its login page first), so the request carries Spotify's cookies, as the tab would. A network
+ * failure or a login redirect is not a verdict, so the sign-in goes ahead.
+ */
+export async function checkAuthorizeUrl(
+  url: string,
+  redirect: string,
+  fetcher: typeof fetch = fetch,
+): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetcher(url, {
+      redirect: 'manual',
+      credentials: 'include',
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    return;
+  }
+  if (response.type === 'opaqueredirect' || response.status < 400) return;
+  let text = '';
+  try {
+    text = (await response.text()).slice(0, 2000);
+  } catch {
+    /* the status is enough */
+  }
+  if (/redirect_uri/i.test(text))
+    throw new SpotifyConnectError(
+      `Spotify says the Redirect URI is not set up on your app. In the Spotify developer dashboard open your app → Settings → Edit, add exactly ${redirect} under Redirect URIs, press Add, then Save at the bottom of the page, and connect again.`,
+    );
+  if (/invalid.client|client_id/i.test(text))
+    throw new SpotifyConnectError(
+      'Spotify does not know that Client ID. Copy it again from your app’s page in the Spotify developer dashboard (Settings → Basic Information).',
+    );
+  if (response.status >= 400 && response.status < 500)
+    throw new SpotifyConnectError(
+      `Spotify refused the sign-in request${
+        text
+          ? `: ${text
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 160)}`
+          : ` (HTTP ${response.status})`
+      }.`,
+    );
+}
+
 /** Chrome's wording when the person closes the sign-in window themselves. */
 const CLOSED = /did not approve|cancel|closed/i;
 
@@ -179,6 +233,7 @@ export async function connectSpotify(
   const state = randomToken(16);
   const url = authorizeUrl(clientId, redirect, await challengeFor(verifier), state);
 
+  await checkAuthorizeUrl(url, redirect, fetcher);
   const returned = await openConsent(url, redirect);
   if (!returned) throw new SpotifyConnectError('Spotify did not send an answer.');
   const params = new URL(returned).searchParams;

@@ -184,6 +184,12 @@ export function SpotifySettings({ state }: { state: PluginState }) {
           </button>
         )}
       </div>
+      {busy && (
+        <p className="setting-hint" role="status">
+          Finish signing in on the Spotify page that opened. If Spotify shows an error there
+          instead, close that tab or window to stop waiting.
+        </p>
+      )}
       {error && (
         <p className="spotify-error" role="alert">
           {error}
