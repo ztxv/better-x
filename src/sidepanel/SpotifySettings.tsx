@@ -1,13 +1,8 @@
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { parseClientId, updatePluginState, type PluginState } from '../plugins/state';
-import {
-  connectSpotify,
-  disconnectSpotify,
-  loadAuth,
-  redirectUri,
-  SpotifyConnectError,
-} from '../spotify/auth';
+import { request } from '../lib/api';
+import { disconnectSpotify, loadAuth, redirectUri } from '../spotify/auth';
 import { parseAuth, SPOTIFY_AUTH_KEY, type SpotifyAuth } from '../spotify/types';
 
 const DASHBOARD = 'https://developer.spotify.com/dashboard';
@@ -75,10 +70,12 @@ export function SpotifySettings({ state }: { state: PluginState }) {
     setError(null);
     try {
       await saveClientId(parsed);
-      await connectSpotify(parsed);
+      // The worker opens the sign-in window: Chrome does not open it reliably from this page
+      // when it is framed inside x.com or shown in the side panel.
+      await request({ type: 'spotifyConnect', clientId: parsed });
     } catch (problem) {
       setError(
-        problem instanceof SpotifyConnectError
+        problem instanceof Error && problem.message
           ? problem.message
           : 'Could not connect to Spotify. Try again.',
       );

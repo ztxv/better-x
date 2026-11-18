@@ -84,33 +84,102 @@ export const disconnectSpotify = () => chrome.storage.local.remove(SPOTIFY_AUTH_
 /** What went wrong while connecting, in words the settings panel can show as they are. */
 export class SpotifyConnectError extends Error {}
 
+/** Chrome's wording when the person closes the sign-in window themselves. */
+const CLOSED = /did not approve|cancel|closed/i;
+
 /**
- * Opens Spotify's consent window and stores the resulting tokens. Run from an extension page
- * (the Plugins tab), in answer to a click. Throws `SpotifyConnectError` with a usable message.
+ * Shows Spotify's consent page and resolves with the address Spotify sent the person back to.
+ *
+ * First through `chrome.identity.launchWebAuthFlow`, Chrome's own sign-in window. That window can
+ * fail to open from some places (Chrome reports "Authorization page could not be loaded" when it
+ * is asked from a page framed inside x.com, and on some Chrome builds from the side panel), so the
+ * worker runs it, and when it still fails for any reason other than the person closing it, the
+ * same page opens in an ordinary tab instead: the tab is watched until Spotify sends it to the
+ * redirect address, then closed. Chrome's own words are kept in the final error, so a wrong
+ * Client ID or redirect URI can be told apart from a window that would not open.
+ */
+export async function openConsent(url: string, redirect: string): Promise<string> {
+  let firstProblem = '';
+  if (chrome.identity?.launchWebAuthFlow) {
+    try {
+      const returned = await chrome.identity.launchWebAuthFlow({ url, interactive: true });
+      if (returned) return returned;
+      firstProblem = 'Chrome returned no address.';
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      if (CLOSED.test(text))
+        throw new SpotifyConnectError('The Spotify window was closed before finishing.');
+      firstProblem = text;
+    }
+  }
+  if (chrome.tabs?.onUpdated) return consentInTab(url, redirect);
+  throw new SpotifyConnectError(
+    `Spotify’s sign-in page could not be loaded${firstProblem ? ` (${firstProblem})` : ''}. Check the Client ID, and that the redirect URI above is added to your Spotify app exactly.`,
+  );
+}
+
+/** How long the tab fallback waits for the person to finish signing in. */
+const TAB_TIMEOUT_MS = 10 * 60_000;
+
+/** The consent page in a normal tab; resolves when the tab reaches `redirect`. */
+function consentInTab(url: string, redirect: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let tabId: number | undefined;
+    let done = false;
+    const finish = (result: () => void) => {
+      if (done) return;
+      done = true;
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+      clearTimeout(timer);
+      result();
+    };
+    const onUpdated = (id: number, change: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (id !== tabId) return;
+      const at = change.url ?? tab.pendingUrl ?? tab.url ?? '';
+      if (!at.startsWith(redirect)) return;
+      finish(() => resolve(at));
+      void chrome.tabs.remove(id).catch(() => {});
+    };
+    const onRemoved = (id: number) => {
+      if (id === tabId)
+        finish(() =>
+          reject(new SpotifyConnectError('The Spotify tab was closed before finishing.')),
+        );
+    };
+    const timer = setTimeout(
+      () => finish(() => reject(new SpotifyConnectError('Signing in to Spotify timed out.'))),
+      TAB_TIMEOUT_MS,
+    );
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onRemoved.addListener(onRemoved);
+    chrome.tabs.create({ url, active: true }).then(
+      (tab) => (tabId = tab.id),
+      () =>
+        finish(() =>
+          reject(new SpotifyConnectError('Spotify’s sign-in page could not be opened.')),
+        ),
+    );
+  });
+}
+
+/**
+ * Opens Spotify's consent window and stores the resulting tokens. Run by the background worker
+ * (the Plugins tab asks it with `spotifyConnect`), because Chrome's sign-in window does not open
+ * reliably from a framed or side-panel page. Throws `SpotifyConnectError` with a usable message.
  */
 export async function connectSpotify(
   clientId: string,
   fetcher: typeof fetch = fetch,
 ): Promise<SpotifyAuth> {
-  if (!chrome.identity?.launchWebAuthFlow)
+  if (!chrome.identity?.getRedirectURL)
     throw new SpotifyConnectError('This browser does not let extensions open a sign-in window.');
   const redirect = redirectUri();
   const verifier = randomToken(64);
   const state = randomToken(16);
   const url = authorizeUrl(clientId, redirect, await challengeFor(verifier), state);
 
-  let returned: string | undefined;
-  try {
-    returned = await chrome.identity.launchWebAuthFlow({ url, interactive: true });
-  } catch (error) {
-    const text = error instanceof Error ? error.message : String(error);
-    // Chrome's wording when the person closes the window.
-    if (/did not approve|cancel|closed/i.test(text))
-      throw new SpotifyConnectError('The Spotify window was closed before finishing.');
-    throw new SpotifyConnectError(
-      'Spotify’s sign-in page could not be loaded. Check the Client ID, and that the redirect URI above is added to your Spotify app exactly.',
-    );
-  }
+  const returned = await openConsent(url, redirect);
   if (!returned) throw new SpotifyConnectError('Spotify did not send an answer.');
   const params = new URL(returned).searchParams;
   if (params.get('state') !== state)

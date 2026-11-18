@@ -224,7 +224,9 @@ export type Request =
   | { type: 'import'; data: ExportData }
   /** The Spotify plugin's player on an X tab: what is playing, and a playback command. */
   | { type: 'spotifyState' }
-  | { type: 'spotifyCommand'; command: SpotifyCommand };
+  | { type: 'spotifyCommand'; command: SpotifyCommand }
+  /** Extension pages only: run Spotify's sign-in from the worker (see `connectSpotify`). */
+  | { type: 'spotifyConnect'; clientId: string };
 
 /** The worker to an X tab's content script (`chrome.tabs.sendMessage`): open or close the overlay. */
 export const TOGGLE_OVERLAY = 'bx.toggleOverlay';

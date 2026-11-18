@@ -9,9 +9,10 @@ import {
   type LaunchMode,
 } from '../src/lib/launch-mode';
 import { loadSettings } from '../src/lib/settings';
+import { connectSpotify, SpotifyConnectError } from '../src/spotify/auth';
 import { createSpotifyService } from '../src/spotify/service';
 import { parseCommand, SPOTIFY_AUTH_KEY } from '../src/spotify/types';
-import { PLUGINS_KEY } from '../src/plugins/state';
+import { parseClientId, PLUGINS_KEY } from '../src/plugins/state';
 import { BookmarkRepository } from '../src/storage/repository';
 import {
   TOGGLE_OVERLAY,
@@ -173,6 +174,20 @@ export default defineBackground(() => {
             const command = parseCommand(message.command);
             if (!command) throw new Error('Invalid command.');
             return spotify.command(command);
+          }
+          case 'spotifyConnect': {
+            const clientId = parseClientId(String(message.clientId ?? ''));
+            if (!clientId) throw new Error('That is not a Spotify Client ID.');
+            try {
+              const auth = await connectSpotify(clientId);
+              return { user: auth.user ?? null };
+            } catch (problem) {
+              throw new Error(
+                problem instanceof SpotifyConnectError
+                  ? problem.message
+                  : 'Could not connect to Spotify. Try again.',
+              );
+            }
           }
           case 'savedIds':
             return repository.savedIds();

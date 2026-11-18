@@ -31,6 +31,9 @@ export default defineConfig({
       'https://accounts.spotify.com/*',
       'https://*.scdn.co/*',
       'https://*.spotifycdn.com/*',
+      // Only to see a sign-in tab arrive at the Spotify redirect address (the fallback when
+      // Chrome's own sign-in window will not open); nothing is fetched from it.
+      'https://*.chromiumapp.org/*',
     ],
     action: { default_title: `Open ${PRODUCT_NAME}` },
     // The shortcut does exactly what clicking the toolbar icon does, in every mode.

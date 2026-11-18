@@ -338,3 +338,85 @@ describe('service reset', () => {
     expect(await service.state()).toEqual({ status: 'setup' });
   });
 });
+
+describe('openConsent (Spotify sign-in window)', () => {
+  const REDIRECT = 'https://abc.chromiumapp.org/spotify';
+  type Listener<A extends unknown[]> = (...args: A) => void;
+
+  /** Chrome's identity and tabs APIs, with the web auth flow failing the given way. */
+  function fakeChrome(failure: string | null) {
+    const updated = new Set<Listener<[number, { url?: string }, { url?: string }]>>();
+    const removed = new Set<Listener<[number]>>();
+    const opened: string[] = [];
+    const closed: number[] = [];
+    const g = globalThis as unknown as { chrome: Record<string, unknown> };
+    g.chrome = {
+      ...g.chrome,
+      identity: {
+        getRedirectURL: () => REDIRECT,
+        launchWebAuthFlow: async () => {
+          if (failure) throw new Error(failure);
+          return `${REDIRECT}?code=c&state=s`;
+        },
+      },
+      tabs: {
+        create: async ({ url }: { url: string }) => {
+          opened.push(url);
+          return { id: 7 };
+        },
+        remove: async (id: number) => {
+          closed.push(id);
+        },
+        onUpdated: {
+          addListener: (l: never) => updated.add(l),
+          removeListener: (l: never) => updated.delete(l),
+        },
+        onRemoved: {
+          addListener: (l: never) => removed.add(l),
+          removeListener: (l: never) => removed.delete(l),
+        },
+      },
+    };
+    return { updated, removed, opened, closed };
+  }
+
+  it('uses Chrome’s sign-in window when it works', async () => {
+    const { openConsent } = await import('./auth');
+    const fake = fakeChrome(null);
+    await expect(openConsent('https://accounts.spotify.com/authorize?x', REDIRECT)).resolves.toBe(
+      `${REDIRECT}?code=c&state=s`,
+    );
+    expect(fake.opened).toEqual([]);
+  });
+
+  it('falls back to a tab when the window cannot load, and closes it at the redirect', async () => {
+    const { openConsent } = await import('./auth');
+    const fake = fakeChrome('Authorization page could not be loaded.');
+    const result = openConsent('https://accounts.spotify.com/authorize?x', REDIRECT);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(fake.opened).toEqual(['https://accounts.spotify.com/authorize?x']);
+    for (const l of fake.updated) l(7, { url: 'https://accounts.spotify.com/login' }, {});
+    for (const l of fake.updated) l(7, { url: `${REDIRECT}?code=k&state=s` }, {});
+    await expect(result).resolves.toBe(`${REDIRECT}?code=k&state=s`);
+    expect(fake.closed).toEqual([7]);
+    expect(fake.updated.size).toBe(0);
+  });
+
+  it('says the window was closed, and does not open a tab, when the person closes it', async () => {
+    const { openConsent } = await import('./auth');
+    const fake = fakeChrome('The user did not approve access.');
+    await expect(openConsent('https://accounts.spotify.com/authorize?x', REDIRECT)).rejects.toThrow(
+      /closed/,
+    );
+    expect(fake.opened).toEqual([]);
+  });
+
+  it('reports a closed fallback tab', async () => {
+    const { openConsent } = await import('./auth');
+    const fake = fakeChrome('Authorization page could not be loaded.');
+    const result = openConsent('https://accounts.spotify.com/authorize?x', REDIRECT);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    for (const l of fake.removed) l(7);
+    await expect(result).rejects.toThrow(/tab was closed/);
+  });
+});
