@@ -58,6 +58,10 @@ export function createFeatureRegistry(defs: readonly FeatureDef[]): FeatureRegis
     if (!def.id.startsWith(`${def.category}.`))
       throw new Error(`Feature "${def.id}" is not in category "${def.category}"`);
     if (byId.has(def.id)) throw new Error(`Feature "${def.id}" is registered twice`);
+    if (def.requires !== undefined && !byId.has(def.requires))
+      throw new Error(
+        `Feature "${def.id}" requires "${def.requires}", which is not listed before it`,
+      );
     if (def.kind === 'slider') checkSlider(def);
     byId.set(def.id, def);
   }
@@ -68,7 +72,9 @@ export function createFeatureRegistry(defs: readonly FeatureDef[]): FeatureRegis
       const result: Record<string, boolean> = {};
       for (const def of defs) {
         const value = stored?.[def.id];
-        result[def.id] = typeof value === 'boolean' ? value : def.defaultEnabled;
+        const own = typeof value === 'boolean' ? value : def.defaultEnabled;
+        // Listed after what it requires (checked above), so that answer is already here.
+        result[def.id] = own && (def.requires === undefined || result[def.requires] === true);
       }
       return result;
     },

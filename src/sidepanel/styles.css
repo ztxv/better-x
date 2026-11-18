@@ -3068,3 +3068,13 @@ html:has(.modal-backdrop) .app-shell .app-body {
   margin-top: 4px;
 }
 
+/* A feature that refines the one above it (`requires`): indented under it, no divider between. */
+.feature-row[data-sub='true'] {
+  padding-left: 18px;
+}
+.feature-row + .feature-row[data-sub='true'] {
+  border-top: 0;
+}
+.feature-row[data-sub='true'] .setting-toggle {
+  padding-top: 2px;
+}

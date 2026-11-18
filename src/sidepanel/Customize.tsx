@@ -291,12 +291,14 @@ export function Customize({
           >
             {shown.map((def) => {
               const state = states.get(def.id)!;
+              const parentOff = def.requires !== undefined && !states.get(def.requires)?.enabled;
               return (
                 <div
                   className="feature-row"
                   key={def.id}
                   data-feature={def.id}
                   data-on={state.enabled}
+                  data-sub={def.requires !== undefined || undefined}
                 >
                   {def.kind === 'slider' ? (
                     <SliderRow
@@ -319,6 +321,7 @@ export function Customize({
                       label={def.title}
                       hint={def.description}
                       checked={state.enabled}
+                      disabled={parentOff}
                       onChange={(on) => change({ features: { [def.id]: on } })}
                     />
                   )}

@@ -548,6 +548,7 @@ export const COVERED_ELSEWHERE = new Set([
   'filtering.country',
   // A pointer gesture in the photo viewer, not static markup: scripts/smoke/drag.mjs.
   'posts.dragPhotos',
+  'posts.dragTimelinePhotos',
   // Twitter branding changes the tab's icon and title (<head>), not the page: scripts/smoke/theme.mjs.
   'appearance.twitterBird',
   'appearance.twitterTitle',
