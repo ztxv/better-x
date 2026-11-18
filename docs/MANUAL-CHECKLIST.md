@@ -223,6 +223,16 @@ Not verified on live X: `scripts/smoke/drag.mjs` drives a real mouse on an X-sha
 - [ ] **Reduced motion.** With the OS reduce-motion setting on, the photo changes without the settle animation.
 - [ ] **Off.** Turn the setting off with the viewer open: dragging does nothing new, the browser's image drag is back, everything else is as before.
 
+## 1.3.0 changes
+
+Not verified on live X or real Spotify. Real-Chrome fixture checks: `scripts/smoke/drag-timeline.mjs`, `scripts/smoke/theme.mjs`, `scripts/smoke/catalog.mjs`.
+
+- [ ] **Who to follow.** Customize → Sidebar → **Hide “Who to follow”** on Home: the card is gone completely, no empty bordered box. On a post's own page "Relevant people" still shows. Search, Today's News and trends stay.
+- [ ] **Timeline drag.** Customize → Posts: **Also drag photos in the timeline** is greyed out until **Drag to navigate photos** is on. With both on, on a post with 2–4 photos in the timeline: drag the photos left/right; they follow the mouse and glide to the next/previous photo; a short drag snaps back; a plain click still opens the viewer; no ghost image; vertical page scrolling is unaffected; a single-photo post is unaffected. If nothing moves, inspect the photo row: `findCarousel` expects an ancestor of `[data-testid="tweetPhoto"]` inside the post that scrolls sideways.
+- [ ] **Mention and badge colors.** Themes → Custom (or your own theme) → **Mentions and notifications**: set Mentions and links, Notification badge and Badge number; check @mentions and #hashtags in posts and a bio, and the unread count on Notifications/Messages in the left menu. **Follow the accent** puts each back. Other links (for example "Show more") keep the accent.
+- [ ] **Match Better X.** Themes → **Match Better X to my X theme**: the panel, popup and overlay take the theme's colors; switching theme updates them; off restores Better X's own look.
+- [ ] **Spotify connect.** In the overlay on X and in the side panel, **Connect Spotify** opens Spotify's sign-in (a window, or a normal tab as fallback). After approving, the tab closes and the panel says Connected. If it fails, the message now includes Chrome's reason.
+
 ## Plugins and SpotifyControls (1.2.0)
 
 Not verified against real Spotify or live X: `scripts/smoke/plugins.mjs` scripts Spotify's API. You need a Spotify app (README → Plugins).

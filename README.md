@@ -106,6 +106,14 @@ Limits that come from Spotify, not Better X: playback controls need **Spotify Pr
 
 **Drag to navigate photos** (Customize → Posts): in X's expanded photo viewer, drag a photo left for the next one or right for the previous one. Off by default like every customization.
 
+## What's new in 1.3.0
+
+- **Drag photos in the timeline.** Under **Drag to navigate photos** there is now **Also drag photos in the timeline**: drag a post's photos left or right where they are in your feed, without opening the viewer. A short drag snaps back; a plain click still opens the photo. It can only be switched on while **Drag to navigate photos** is on.
+- **Mention and notification colors.** In the theme editor (Custom or one of your own themes), the new **Mentions and notifications** section sets the color of @mentions, #hashtags and links in posts and bios, the unread badge on Notifications and Messages, and the number inside it. Each follows the accent until you pick a color, and **Follow the accent** puts it back.
+- **Match Better X to my X theme.** A switch at the top of the Themes tab paints Better X's own panel, popup and the overlay on X with the X theme that is on (presets, Custom and your own themes; X's Lights out when none is chosen). It overrides Better X's own light/dark and accent while on.
+- **Hide “Who to follow” no longer leaves an empty box.** The whole card, border included, is hidden, also when X puts empty spacer or placeholder elements inside it.
+- **Spotify connects from the background.** Chrome's sign-in window would not open from the panel when it is shown inside x.com (the overlay) or, on some Chrome builds, from the side panel, which showed “Spotify’s sign-in page could not be loaded”. The background worker now opens it, falls back to a normal tab when Chrome's window still cannot open, and the error names Chrome's own reason.
+
 ## Install
 
 Requires Node.js 20.19+ and Chrome 116+.
@@ -185,6 +193,7 @@ All data lives in your browser. Exports contain metadata only, never media files
 | `x.com`, `twitter.com` (content script)                                    | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
 | `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com`            | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
 | `identity`                                                                 | Open Spotify's own sign-in window when you connect the Spotify plugin. Unused otherwise.                                                                                                                        |
+| `*.chromiumapp.org`                                                        | Only to notice a Spotify sign-in tab reaching its redirect address (used when Chrome's own sign-in window cannot open). Nothing is fetched from it.                                                             |
 | `api.spotify.com`, `accounts.spotify.com`, `*.scdn.co`, `*.spotifycdn.com` | The Spotify plugin only: what is playing, playback commands, sign-in, and cover art. Contacted only while that plugin is on and connected.                                                                      |
 
 The Spotify plugin is the one place a sign-in is kept: its tokens stay in this browser's extension storage, are used only by the background worker to talk to Spotify, are never sent to X or put in any backup, and are removed by Disconnect. There is no client secret.
