@@ -60,6 +60,11 @@ interface FeatureBase {
   /** Extra words the Customize search matches besides the title and description. */
   keywords?: readonly string[];
   defaultEnabled: boolean;
+  /**
+   * A feature this one refines (an id listed earlier). It runs only while that one is on too, and
+   * Customize shows it indented under it, switched off and greyed out while that one is off.
+   */
+  requires?: string;
   activate?(context: FeatureContext): void;
 }
 

@@ -192,3 +192,65 @@ Not verified on live X: `scripts/smoke/overlay.mjs` checks an X-shaped page serv
 - [ ] **Extension reload.** Open the overlay, reload Better X at chrome://extensions: the overlay goes away from the open X tab (nothing stuck on screen). Reload the X tab: it is back, open. Clicking the icon in the stale tab before reloading it opens Chrome's panel or does nothing; it never errors.
 - [ ] **Back to Native.** Switch Side panel on X back to Native with an X tab open: the overlay disappears, and the icon on that X tab opens Chrome's side panel again.
 - [ ] **X's CSP.** DevTools console on x.com shows no Content Security Policy error for `chrome-extension://…/sidepanel.html`.
+
+## Named themes (1.2.0)
+
+Not verified on live X: `src/sidepanel/themes.test.tsx` and `src/themes/file.test.ts` check the panel and the files; `scripts/smoke/theme.mjs` checks painting on an X-shaped page. Set X to **Lights out** (Settings → Display) first.
+
+- [ ] **New theme.** Themes → **New theme**: a card "My theme" appears, is selected, and the editor opens with a Name box. X keeps the colors it had (a new theme starts from the theme that was on).
+- [ ] **Live edit.** Change Background, Accent and (under Advanced) Raised, Border, Secondary text with the picker and by typing a hex code: X changes as you go, in every open X tab, with no reload.
+- [ ] **Accent everywhere.** With X's own color on **Blue** (X Settings → Display), pick an unusual accent (e.g. `#ff5fa2`). It should show on: links, @mentions and #hashtags in posts, "Show more", the selected Home tab's underline, the "Show N posts" pill, switches and checkboxes in X's settings, a focused search box's border, the blue circle behind reply/share on hover, a primary button's hover and pressed shades, and the keyboard focus ring (Tab through the page). Likes (pink), reposts (green), error red, the verified badge, photos and videos keep their own colors. Note anything still blue: that is a class or inline color the table does not know yet (`src/themes/surfaces.ts`).
+- [ ] **Light accent warning.** Pick a pale yellow accent: the editor warns that white button labels will be hard to read; nothing is blocked.
+- [ ] **Contrast warning.** Set Text close to Background: a warning appears, nothing is blocked.
+- [ ] **Rename, duplicate, delete.** Rename it (Enter or click away), **Duplicate** (a "… copy" is selected), **Delete** asks "Really delete?" first; after deleting, X goes back to its own colors.
+- [ ] **Persistence and navigation.** Reload X and restart the browser: the chosen theme is still on. Navigate Home → Explore → a profile → a post → back, open the composer and a photo: the theme stays on everything X loads.
+- [ ] **Export / import.** **Export** saves `better-x-theme-<name>.json`; **Import theme** of that file adds it as a new card. Importing a settings backup or a random JSON file is refused with a message.
+- [ ] **Light mode.** Switch X to Default: the theme steps aside and the Themes tab says it is paused; switch back to Lights out and it returns.
+- [ ] **Backups.** Settings → export a settings backup, import it in another browser profile: the named themes come along.
+
+## Drag to navigate photos (1.2.0)
+
+Not verified on live X: `scripts/smoke/drag.mjs` drives a real mouse on an X-shaped photo viewer. If nothing moves on live X, the viewer's arrow buttons or slide markup differ from what `src/features/drag-photos.ts` expects (constants at the top). Turn on Customize → Posts → **Drag to navigate photos**.
+
+- [ ] **Both directions.** Open a post with 3–4 photos, click one to open the viewer. Hold the mouse on the photo and drag left: the photo follows the pointer; release past a short distance: the next photo. Drag right: the previous one.
+- [ ] **Boundaries.** On the first photo a drag right only stretches a little and snaps back; same for a drag left on the last.
+- [ ] **Clicks still work.** A plain click on the photo does what it did before (whatever X does on click). A short drag (under ~5 % of the width) snaps back without changing photo or clicking.
+- [ ] **No ghost, no selection.** No translucent image copy follows the pointer; no text gets selected while dragging.
+- [ ] **Arrows and keys.** X's own arrow buttons and the ← → keys still work, and Esc still closes the viewer.
+- [ ] **Release outside.** Drag and release over the post on the right, or outside the window: the drag ends, nothing sticks. Alt+Tab mid-drag: it snaps back.
+- [ ] **Leave alone.** A video in the viewer is not dragged; the post text beside it still selects; scrolling the reply column still works; vertical mouse movement on the photo is not taken over.
+- [ ] **New posts.** Close the viewer, open another post's photos, then another: dragging works each time and changes exactly one photo per drag (no doubled handlers).
+- [ ] **Reduced motion.** With the OS reduce-motion setting on, the photo changes without the settle animation.
+- [ ] **Off.** Turn the setting off with the viewer open: dragging does nothing new, the browser's image drag is back, everything else is as before.
+
+## 1.3.5 changes
+
+- [ ] **Export bookmarks / customization settings.** A Save As window opens with `better-x-bookmarks-…json` / `better-x-customizations-…json`; rename it, save, and the panel's message names the saved file. Cancelling shows no message. Import the customization file in another browser or account and the settings arrive.
+
+## 1.3.0 changes
+
+Not verified on live X or real Spotify. Real-Chrome fixture checks: `scripts/smoke/drag-timeline.mjs`, `scripts/smoke/theme.mjs`, `scripts/smoke/catalog.mjs`.
+
+- [ ] **Who to follow.** Customize → Sidebar → **Hide “Who to follow”** on Home: the card is gone completely, no empty bordered box. On a post's own page "Relevant people" still shows. Search, Today's News and trends stay.
+- [ ] **Timeline drag.** Customize → Posts: **Also drag photos in the timeline** is greyed out until **Drag to navigate photos** is on. With both on, on a post with 2–4 photos in the timeline: drag the photos left/right; they follow the mouse and glide to the next/previous photo; a short drag snaps back; a plain click still opens the viewer; no ghost image; vertical page scrolling is unaffected; a single-photo post is unaffected. If nothing moves, inspect the photo row: `findCarousel` expects an ancestor of `[data-testid="tweetPhoto"]` inside the post that scrolls sideways.
+- [ ] **Mention and badge colors.** Themes → Custom (or your own theme) → **Mentions and notifications**: set Mentions and links, Notification badge and Badge number; check @mentions and #hashtags in posts and a bio, and the unread count on Notifications/Messages in the left menu. **Follow the accent** puts each back. Other links (for example "Show more") keep the accent.
+- [ ] **Match Better X.** Themes → **Match Better X to my X theme**: the panel, popup and overlay take the theme's colors; switching theme updates them; off restores Better X's own look.
+- [ ] **Spotify player clicks.** Press play/pause, next, the progress bar and empty parts of the player: X's account switcher never opens. Click the cover: it grows inside the player (no pop-up, sharp, not the small thumbnail) with the progress and controls under it; clicking it again or Esc shrinks it.
+- [ ] **Spotify connect.** In the overlay on X and in the side panel, **Connect Spotify** opens Spotify's sign-in (a window, or a normal tab as fallback). After approving, the tab closes and the panel says Connected. If it fails, the message now includes Chrome's reason.
+
+## Plugins and SpotifyControls (1.2.0)
+
+Not verified against real Spotify or live X: `scripts/smoke/plugins.mjs` scripts Spotify's API. You need a Spotify app (README → Plugins).
+
+- [ ] **Plugins tab.** A card for SpotifyControls with description, gear and switch. The switch is off on a fresh install and nothing is added to X.
+- [ ] **Setup states.** Switch it on: the settings open, and X shows a player above your account button saying setup is needed, with **Set up** (which opens the Plugins tab). Paste a bad Client ID: an inline error. Paste the real one: X says "Not connected".
+- [ ] **Connect.** Add the Redirect URI shown to your Spotify app, press **Connect Spotify**, approve: the panel says "Connected as <you> (Premium/Free)". Close the Spotify window instead: a clear message, nothing stuck.
+- [ ] **Placement.** The player sits directly above the account button in X's left menu, the width of the menu, and stays there across navigation and window resizes. In X's collapsed icon-only menu only the cover and play/pause remain.
+- [ ] **Now playing.** With music playing on any device: cover, title (links to open.spotify.com), artists, album, a moving progress bar with times. Pause on your phone: within ~10 s the player shows paused. Skip on your phone: the new track shows.
+- [ ] **Controls (Premium).** Play/pause, next, previous, shuffle (highlights), repeat (all → one → off), click the bar and use ← → on it to seek. Each acts on the playing device.
+- [ ] **No Premium.** On a Free account: the track shows, no buttons, and a line says controls need Premium.
+- [ ] **Nothing playing.** Stop all Spotify apps: "Nothing is playing", no fake song, no buttons. Pressing play with no active device is never offered; if a device goes away mid-use, the message says so.
+- [ ] **Theme.** The card follows the Better X theme (and X's Default/Lights out when no theme is on).
+- [ ] **Off.** Switch the plugin off: the player disappears from every X tab at once; DevTools → Network shows no more Spotify requests.
+- [ ] **Disconnect.** Disconnect in the settings: X says "Not connected" at once. Removing access at spotify.com/account/apps does the same within a poll.
+- [ ] **Privacy.** DevTools on x.com: no `Authorization` header or token in the page; Spotify requests come only from the extension's service worker.

@@ -48,7 +48,8 @@ describe('deriveTokens', () => {
   it('writes only #rrggbb and its own rgba()', () => {
     const tokens = deriveTokens({ bg: '#15202B', text: '#f7f9f9', accent: '#1D9BF0' });
     for (const [key, value] of Object.entries(tokens))
-      if (key === 'backdrop' || key === 'scrim') expect(value).toMatch(/^rgba\(/);
+      if (key === 'backdrop' || key === 'scrim' || key === 'accentTint')
+        expect(value).toMatch(/^rgba\(/);
       else expect(value).toMatch(HEX);
     expect(tokens.backdrop).toBe('rgba(21, 32, 43, 0.85)');
   });
@@ -125,5 +126,30 @@ describe('resolveTheme, warnings, fillSeed', () => {
       ['accent', 'bg', 'border', 'hover', 'muted', 'raised', 'text'].sort(),
     );
     for (const value of Object.values(filled)) expect(value).toMatch(HEX);
+  });
+});
+
+describe('mention and badge colors', () => {
+  it('follow the accent until the seed sets its own', () => {
+    const t = deriveTokens(LIGHTS_OUT_SEED);
+    expect(t.mention).toBe(t.accentText);
+    expect(t.badge).toBe(t.accent);
+    expect(t.badgeText).toBe('#ffffff');
+    const own = deriveTokens({
+      ...LIGHTS_OUT_SEED,
+      mention: '#ff00aa',
+      badge: '#00ff00',
+      badgeText: '#123456',
+    });
+    expect([own.mention, own.badge, own.badgeText]).toEqual(['#ff00aa', '#00ff00', '#123456']);
+  });
+
+  it('writes a dark badge number on a light badge', () => {
+    expect(deriveTokens({ ...LIGHTS_OUT_SEED, badge: '#ffd400' }).badgeText).not.toBe('#ffffff');
+  });
+
+  it('keeps extras through fillSeed and leaves absent ones absent', () => {
+    expect(fillSeed(LIGHTS_OUT_SEED)).not.toHaveProperty('mention');
+    expect(fillSeed({ ...LIGHTS_OUT_SEED, badge: '#00ff00' }).badge).toBe('#00ff00');
   });
 });

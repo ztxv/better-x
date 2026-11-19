@@ -1,3 +1,4 @@
+import type { SpotifyCommand } from '../spotify/types';
 export const SCHEMA_VERSION = 3;
 /** Better X backups. Imports also accept older formats; see `src/lib/backup.ts`. */
 export const EXPORT_FORMAT = 'better-x';
@@ -220,7 +221,14 @@ export type Request =
   | { type: 'createCollection'; name: string }
   | { type: 'renameCollection'; id: string; name: string }
   | { type: 'deleteCollection'; id: string }
-  | { type: 'import'; data: ExportData };
+  | { type: 'import'; data: ExportData }
+  /** The Spotify plugin's player on an X tab: what is playing, and a playback command. */
+  | { type: 'spotifyState' }
+  | { type: 'spotifyCommand'; command: SpotifyCommand }
+  /** The big cover view: a cover on Spotify's image host, as a data URL (or null). */
+  | { type: 'spotifyArt'; url: string }
+  /** Extension pages only: run Spotify's sign-in from the worker (see `connectSpotify`). */
+  | { type: 'spotifyConnect'; clientId: string };
 
 /** The worker to an X tab's content script (`chrome.tabs.sendMessage`): open or close the overlay. */
 export const TOGGLE_OVERLAY = 'bx.toggleOverlay';

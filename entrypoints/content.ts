@@ -1,5 +1,9 @@
 import { startPanelOverlay } from '../src/content/overlay';
 import { featureRegistry } from '../src/features';
+import { request } from '../src/lib/api';
+import { CONTENT_PLUGINS } from '../src/plugins/content';
+import { startPlugins } from '../src/plugins/host';
+import { OPEN_SECTION_KEY } from '../src/plugins/state';
 import { startFeatures } from '../src/features/host';
 import { startRuntime } from '../src/runtime';
 import { Scope } from '../src/runtime/scope';
@@ -25,6 +29,15 @@ export default defineContentScript({
       saved.openLibrary = () => overlay.open();
     } catch (error) {
       console.error('[Better X] panel overlay could not start', error);
+    }
+    // Plugins (the Spotify player, ...) are optional in the same way, and independent of each other.
+    try {
+      startPlugins(scope, runtime, CONTENT_PLUGINS, () => {
+        void chrome.storage.local.set({ [OPEN_SECTION_KEY]: 'plugins' }).catch(() => {});
+        if (!saved.openLibrary?.()) void request({ type: 'openPanel' }).catch(() => {});
+      });
+    } catch (error) {
+      console.error('[Better X] plugins could not start', error);
     }
     // Customization is optional: if it cannot start, Saved and Downloads are already running.
     try {

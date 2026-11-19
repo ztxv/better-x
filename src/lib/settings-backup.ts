@@ -8,7 +8,10 @@ import {
   normalizeHandle,
   normalizeCountries,
   parseAccent,
+  normalizeSavedThemes,
   parseThemeId,
+  SAVED_THEME_ID,
+  type SavedTheme,
   type Accent,
   type AfterSave,
   type AlwaysShowEntry,
@@ -67,7 +70,20 @@ const MAX_ENTRIES = 1024;
 const THEMES: readonly Theme[] = ['auto', 'light', 'dark'];
 const LOOKUPS: readonly LookupMode[] = ['manual', 'hover', 'visible'];
 const MODES: readonly FilterMode[] = ['collapse', 'hide', 'highlight'];
-const SEED_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
+const SEED_KEYS = [
+  'bg',
+  'text',
+  'accent',
+  'raised',
+  'hover',
+  'border',
+  'muted',
+  'mention',
+  'badge',
+  'badgeText',
+] as const;
+/** The colors every saved theme has; the rest are optional. */
+const CORE_KEYS = ['bg', 'text', 'accent', 'raised', 'hover', 'border', 'muted'] as const;
 const DENSITIES: readonly Density[] = ['comfortable', 'compact', 'dense'];
 const AFTER_SAVES: readonly AfterSave[] = ['downloadOffer', 'confirmationOnly', 'quiet'];
 
@@ -103,7 +119,12 @@ export interface SettingsBackup {
   insights: { lookup: LookupMode };
   filter: FilterSettings;
   /** `custom` holds only the colors that differ from Lights Out (where Custom starts). */
-  xTheme: Pick<XThemeSettings, 'active' | 'chat'> & { custom?: Partial<ThemeSeed> };
+  xTheme: Pick<XThemeSettings, 'active' | 'chat'> & {
+    matchPanel?: boolean;
+    custom?: Partial<ThemeSeed>;
+    /** The person's named themes; left out when there are none. */
+    saved?: SavedTheme[];
+  };
 }
 
 /** What a file may set, after validation: only known features, in range, of the right type. */
@@ -134,7 +155,13 @@ export interface ValidatedBackup {
   };
   /** True when the file's version (3+) knows about X themes, so Replace may reset them. */
   themes: boolean;
-  xTheme: { active?: string | null; chat?: boolean; custom?: Partial<ThemeSeed> };
+  xTheme: {
+    active?: string | null;
+    chat?: boolean;
+    matchPanel?: boolean;
+    custom?: Partial<ThemeSeed>;
+    saved?: SavedTheme[];
+  };
 }
 
 export interface ImportPreview {
@@ -235,12 +262,16 @@ function themeForBackup(theme: XThemeSettings): SettingsBackup['xTheme'] {
   return {
     active: theme.active,
     chat: theme.chat,
+    ...(theme.matchPanel ? { matchPanel: true } : {}),
     ...(Object.keys(custom).length ? { custom } : {}),
+    ...(theme.saved?.length
+      ? { saved: theme.saved.map((own) => ({ ...own, seed: { ...own.seed } })) }
+      : {}),
   };
 }
 
 export const settingsBackupFilename = (now: Date = new Date()) =>
-  `better-x-settings-${now.toISOString().slice(0, 10)}.json`;
+  `better-x-customizations-${now.toISOString().slice(0, 10)}.json`;
 
 const fail = (error: string): ParsedBackup => ({ ok: false, error });
 
@@ -269,7 +300,7 @@ export function parseSettingsBackup(
   }
   if (!isRecord(data)) return fail('That file is not a Better X settings backup.');
   if (data.format === 'better-x' || data.format === 'saved-for-x')
-    return fail('That is a Library backup. Use Import Library for it.');
+    return fail('That is a bookmarks backup. Use Import bookmarks for it.');
   if (data.format !== SETTINGS_BACKUP_FORMAT)
     return fail('That file is not a Better X settings backup.');
   if (typeof data.version !== 'number' || !Number.isInteger(data.version) || data.version < 1)
@@ -455,6 +486,11 @@ export function parseSettingsBackup(
     if (typeof xTheme.chat === 'boolean') backup.xTheme.chat = xTheme.chat;
     else invalid++;
   }
+  if (xTheme.matchPanel !== undefined) {
+    found++;
+    if (typeof xTheme.matchPanel === 'boolean') backup.xTheme.matchPanel = xTheme.matchPanel;
+    else invalid++;
+  }
   if (xTheme.custom !== undefined) {
     if (!isRecord(xTheme.custom)) {
       found++;
@@ -469,6 +505,26 @@ export function parseSettingsBackup(
         else invalid++;
       }
       if (Object.keys(custom).length) backup.xTheme.custom = custom;
+    }
+  }
+  if (xTheme.saved !== undefined) {
+    if (!Array.isArray(xTheme.saved)) {
+      found++;
+      invalid++;
+    } else {
+      // One setting per named theme; a theme with a bad id, no name or a bad color is skipped whole.
+      const good = xTheme.saved.filter(
+        (item) =>
+          isRecord(item) &&
+          typeof item.id === 'string' &&
+          SAVED_THEME_ID.test(item.id) &&
+          isRecord(item.seed) &&
+          CORE_KEYS.every((key) => isHex((item.seed as Record<string, unknown>)[key])),
+      );
+      const saved = normalizeSavedThemes(good);
+      found += xTheme.saved.length;
+      invalid += xTheme.saved.length - saved.length;
+      backup.xTheme.saved = saved;
     }
   }
 
@@ -507,7 +563,7 @@ export function importPatch(
   backup: ValidatedBackup,
   mode: ImportMode,
   registry: FeatureRegistry,
-  current: Partial<Pick<Settings, 'insights' | 'filter'>> = {},
+  current: Partial<Pick<Settings, 'insights' | 'filter' | 'xTheme'>> = {},
 ): SettingsPatch {
   const features: Record<string, boolean | null> = {};
   const values: Record<string, number | null> = {};
@@ -580,8 +636,26 @@ export function importPatch(
   else if (themeResets) xTheme.active = d.active;
   if (backup.xTheme.chat !== undefined) xTheme.chat = backup.xTheme.chat;
   else if (themeResets) xTheme.chat = d.chat;
+  if (backup.xTheme.matchPanel !== undefined) xTheme.matchPanel = backup.xTheme.matchPanel;
+  else if (themeResets) xTheme.matchPanel = d.matchPanel;
+  // Replacing clears the optional colors too ('' removes one; see `normalizeSeed`).
   if (backup.xTheme.custom || themeResets)
-    xTheme.custom = { ...(themeResets ? d.custom : {}), ...backup.xTheme.custom };
+    xTheme.custom = {
+      ...(themeResets ? { ...d.custom, mention: '', badge: '', badgeText: '' } : {}),
+      ...backup.xTheme.custom,
+    };
+  // Named themes: merging adds the file's themes the browser does not have (its own win, by id);
+  // replacing makes the list the file's.
+  const ownThemes = (current?.xTheme ?? d).saved ?? [];
+  if (backup.xTheme.saved)
+    xTheme.saved =
+      mode === 'merge'
+        ? normalizeSavedThemes([
+            ...ownThemes,
+            ...backup.xTheme.saved.filter((t) => !ownThemes.some((own) => own.id === t.id)),
+          ])
+        : backup.xTheme.saved;
+  else if (themeResets) xTheme.saved = [];
   if (Object.keys(xTheme).length) patch.xTheme = xTheme;
   return patch;
 }
@@ -648,9 +722,17 @@ function countChanges(
   if (nextTheme) {
     if (nextTheme.active !== undefined && nextTheme.active !== theme.active) changes++;
     if (nextTheme.chat !== undefined && nextTheme.chat !== theme.chat) changes++;
+    if (nextTheme.matchPanel !== undefined && nextTheme.matchPanel !== theme.matchPanel) changes++;
     for (const key of SEED_KEYS) {
       const color = nextTheme.custom?.[key];
-      if (color !== undefined && color !== theme.custom[key]) changes++;
+      // '' clears an optional color: a change only when one was set.
+      if (color !== undefined && (color || undefined) !== theme.custom[key]) changes++;
+    }
+    if (nextTheme.saved) {
+      const before = new Map((theme.saved ?? []).map((own) => [own.id, JSON.stringify(own)]));
+      const after = new Map(nextTheme.saved.map((own) => [own.id, JSON.stringify(own)]));
+      for (const [id, text] of after) if (before.get(id) !== text) changes++;
+      for (const id of before.keys()) if (!after.has(id)) changes++;
     }
   }
   return changes;

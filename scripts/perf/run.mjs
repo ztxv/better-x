@@ -208,7 +208,12 @@ async function run(withExtension, features = [], extra = {}) {
     pipe: true,
     userDataDir: profile,
     ...(withExtension ? { enableExtensions: [EXT] } : {}),
-    args: ['--window-size=1280,900', '--no-first-run', '--no-default-browser-check'],
+    args: [
+      '--window-size=1280,900',
+      '--no-first-run',
+      '--no-default-browser-check',
+      ...(process.getuid?.() === 0 ? ['--no-sandbox'] : []),
+    ],
     defaultViewport: { width: 1280, height: 900 },
   });
   try {

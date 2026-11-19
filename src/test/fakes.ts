@@ -26,6 +26,16 @@ export async function freshEnvironment() {
           }
           listeners.forEach((listener) => listener(changes, 'local'));
         },
+        remove: async (keys: string | string[]) => {
+          const changes: Record<string, unknown> = {};
+          for (const key of [keys].flat()) {
+            if (!(key in data)) continue;
+            changes[key] = { oldValue: data[key] };
+            delete data[key];
+          }
+          if (Object.keys(changes).length)
+            listeners.forEach((listener) => listener(changes, 'local'));
+        },
       },
       onChanged: {
         addListener: (listener: never) => listeners.add(listener),

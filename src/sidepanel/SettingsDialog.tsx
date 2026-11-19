@@ -432,11 +432,11 @@ export function SettingsDialog({
           <h4 className="data-group">Library</h4>
           <button onClick={onExport}>
             <Download size={15} />
-            Export Library
+            Export bookmarks
           </button>
           <button onClick={onImport}>
             <Upload size={15} />
-            Import Library
+            Import bookmarks
           </button>
           <p className="setting-hint">
             Backups hold bookmarks, collections, and download history, not the media files.

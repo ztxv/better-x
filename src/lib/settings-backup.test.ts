@@ -136,7 +136,7 @@ describe('settings backup: export', () => {
   });
 
   it('is named by date', () => {
-    expect(settingsBackupFilename(NOW)).toBe('better-x-settings-2026-10-08.json');
+    expect(settingsBackupFilename(NOW)).toBe('better-x-customizations-2026-10-08.json');
   });
 });
 
@@ -249,11 +249,11 @@ describe('settings backup: refusing files', () => {
     ['a string', '"hi"', /not a Better X settings backup/],
     ['another format', file({ format: 'something', version: 1 }), /not a Better X settings backup/],
     ['no format', file({ version: 1, features: {} }), /not a Better X settings backup/],
-    ['a Library backup', file({ format: 'better-x', version: 1, bookmarks: [] }), /Library backup/],
+    ['a Library backup', file({ format: 'better-x', version: 1, bookmarks: [] }), /bookmarks backup/],
     [
       'a Saved for X backup',
       file({ format: 'saved-for-x', version: 3, bookmarks: [] }),
-      /Library backup/,
+      /bookmarks backup/,
     ],
     ['no version', file({ format: SETTINGS_BACKUP_FORMAT, features: {} }), /valid version/],
     ['version 0', file(valid({ version: 0 })), /valid version/],

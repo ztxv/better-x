@@ -11,18 +11,29 @@ export default defineConfig({
   manifest: {
     name: PRODUCT_NAME,
     description: 'Save, organize, and download posts from X in a private, local library.',
-    version: '1.1.5',
+    version: '1.3.5',
     minimum_chrome_version: '116',
     // `downloads` saves media through the browser's own downloader. The host permissions are
     // only for the background worker's media checks: X's photo/video CDNs and the public
     // post-metadata endpoint used to find video files. No other site is reachable.
     // `activeTab` (no install warning, no standing access) lets a toolbar click or the shortcut
     // read the clicked tab's URL, so the panel overlay can tell an X tab from any other.
-    permissions: ['storage', 'sidePanel', 'downloads', 'activeTab'],
+    // `identity` opens Spotify's consent window when the person connects the Spotify plugin
+    // (Authorization Code + PKCE; there is no client secret). The Spotify hosts are reached only
+    // by that plugin: the token endpoint, the Web API, and cover art (fetched by the worker
+    // because X's page may not load images from Spotify's hosts).
+    permissions: ['storage', 'sidePanel', 'downloads', 'activeTab', 'identity'],
     host_permissions: [
       'https://pbs.twimg.com/*',
       'https://video.twimg.com/*',
       'https://cdn.syndication.twimg.com/*',
+      'https://api.spotify.com/*',
+      'https://accounts.spotify.com/*',
+      'https://*.scdn.co/*',
+      'https://*.spotifycdn.com/*',
+      // Only to see a sign-in tab arrive at the Spotify redirect address (the fallback when
+      // Chrome's own sign-in window will not open); nothing is fetched from it.
+      'https://*.chromiumapp.org/*',
     ],
     action: { default_title: `Open ${PRODUCT_NAME}` },
     // The shortcut does exactly what clicking the toolbar icon does, in every mode.

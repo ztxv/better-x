@@ -9,6 +9,10 @@ import {
   type LaunchMode,
 } from '../src/lib/launch-mode';
 import { loadSettings } from '../src/lib/settings';
+import { connectSpotify, SpotifyConnectError } from '../src/spotify/auth';
+import { createSpotifyService } from '../src/spotify/service';
+import { parseCommand, SPOTIFY_AUTH_KEY } from '../src/spotify/types';
+import { parseClientId, PLUGINS_KEY } from '../src/plugins/state';
 import { BookmarkRepository } from '../src/storage/repository';
 import {
   TOGGLE_OVERLAY,
@@ -27,6 +31,9 @@ const CONTENT_REQUESTS = new Set<Request['type']>([
   'downloadsFor',
   'cancelDownload',
   'overlayTab',
+  'spotifyState',
+  'spotifyCommand',
+  'spotifyArt',
 ]);
 
 /** What a toolbar click can do (see `routeActionClick`). */
@@ -80,6 +87,12 @@ export default defineBackground(() => {
     bookmark: (id) => repository.get(id),
     downloader,
     settings: loadSettings,
+  });
+
+  const spotify = createSpotifyService();
+  // Connecting, disconnecting or a new Client ID must show in the player at once.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes[SPOTIFY_AUTH_KEY] || changes[PLUGINS_KEY])) spotify.reset();
   });
 
   // Registered synchronously so events that wake the worker are never missed.
@@ -155,6 +168,29 @@ export default defineBackground(() => {
             const tabId = sender.tab?.id;
             if (tabId === undefined) throw new Error('Could not find this tab.');
             return chrome.sidePanel.setOptions({ tabId, enabled: message.on !== true });
+          }
+          case 'spotifyState':
+            return spotify.state();
+          case 'spotifyArt':
+            return spotify.cover(message.url);
+          case 'spotifyCommand': {
+            const command = parseCommand(message.command);
+            if (!command) throw new Error('Invalid command.');
+            return spotify.command(command);
+          }
+          case 'spotifyConnect': {
+            const clientId = parseClientId(String(message.clientId ?? ''));
+            if (!clientId) throw new Error('That is not a Spotify Client ID.');
+            try {
+              const auth = await connectSpotify(clientId);
+              return { user: auth.user ?? null };
+            } catch (problem) {
+              throw new Error(
+                problem instanceof SpotifyConnectError
+                  ? problem.message
+                  : 'Could not connect to Spotify. Try again.',
+              );
+            }
           }
           case 'savedIds':
             return repository.savedIds();

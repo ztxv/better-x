@@ -123,3 +123,29 @@ describe('slider features', () => {
     expect(() => createFeatureRegistry([slider({ defaultValue: 1500 })])).toThrow(/default/);
   });
 });
+
+describe('features that refine another (requires)', () => {
+  const parent = {
+    id: 'posts.parent',
+    category: 'posts',
+    title: 'Parent',
+    description: 'The parent feature.',
+    kind: 'toggle',
+    defaultEnabled: false,
+  } as const;
+  const child = { ...parent, id: 'posts.child', title: 'Child', requires: 'posts.parent' } as const;
+
+  it('runs a child only while its parent is on', () => {
+    const registry = createFeatureRegistry([parent, child]);
+    expect(registry.enabled({ 'posts.child': true })['posts.child']).toBe(false);
+    expect(registry.enabled({ 'posts.parent': true, 'posts.child': true })['posts.child']).toBe(
+      true,
+    );
+    expect(registry.enabled({ 'posts.parent': true })['posts.child']).toBe(false);
+  });
+
+  it('refuses a child listed before its parent, or one whose parent is missing', () => {
+    expect(() => createFeatureRegistry([child, parent])).toThrow(/requires/);
+    expect(() => createFeatureRegistry([child])).toThrow(/requires/);
+  });
+});

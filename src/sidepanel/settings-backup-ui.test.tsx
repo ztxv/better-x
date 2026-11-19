@@ -61,9 +61,7 @@ describe('settings backup interface', () => {
     await mount();
     expect(button('Export customization settings')).toBeTruthy();
     expect(button('Import customization settings')).toBeTruthy();
-    expect(host.textContent).toContain(
-      'Transfer your Better X settings between browsers without an account',
-    );
+    expect(host.textContent).toContain('Save them under a name you choose');
     expect(host.textContent).toContain('library and download preferences');
     expect(host.textContent).toContain('how Better X opens');
   });
@@ -87,7 +85,7 @@ describe('settings backup interface', () => {
     });
     await mount(await loadSettings());
     await act(async () => button('Export customization settings').click());
-    expect(clicks[0]).toMatch(/^better-x-settings-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(clicks[0]).toMatch(/^better-x-customizations-\d{4}-\d{2}-\d{2}\.json$/);
     const data = JSON.parse(await urls[0]!.text());
     expect(data).toMatchObject({
       format: 'better-x-settings',
@@ -167,7 +165,7 @@ describe('settings backup interface', () => {
 
   it.each([
     ['not JSON', '{oops', /not valid JSON/],
-    ['a Library backup', JSON.stringify({ format: 'better-x', version: 1 }), /Library backup/],
+    ['a Library backup', JSON.stringify({ format: 'better-x', version: 1 }), /bookmarks backup/],
     ['a newer version', backup({ version: 7 }), /newer Better X/],
     ['the wrong shape', backup({ features: [1] }), /damaged/],
   ])('shows a clear error for %s and changes nothing', async (_, contents, message) => {

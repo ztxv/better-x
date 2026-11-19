@@ -90,6 +90,36 @@ Save a post in one click. Browse, search, tag, and organize it in a side panel. 
 - Light, dark, or automatic theme, and five accent colors, applied live on X and in the library.
 - Choose what happens after saving (offer a download, show a confirmation, or stay quiet) and which actions the saved-post menu shows.
 
+## Plugins, themes and photo dragging (1.2.0)
+
+**Plugins** (the Plugins tab): larger additions, each a card with a description, a gear for its settings and a switch. A switch takes effect in every open X tab at once and removes everything the plugin added when turned off.
+
+**SpotifyControls** shows a player above X's account switcher: cover, title, artists, album, a seekable progress bar, and shuffle / previous / play-pause / next / repeat. Setup (once, about two minutes), all shown in the plugin's settings:
+
+1. Open <https://developer.spotify.com/dashboard>, create an app (any name, tick **Web API**).
+2. In the app's settings add the **Redirect URI** the plugin shows you (`https://<extension id>.chromiumapp.org/spotify`), exactly.
+3. Paste the app's **Client ID** into the plugin (never the secret: it is not used) and press **Connect Spotify**.
+
+Limits that come from Spotify, not Better X: playback controls need **Spotify Premium** (without it the player shows what is playing and no buttons); a new Spotify app is in development mode and works only for accounts listed under its User Management (yours by default); the player controls whatever device is already playing and cannot start playback when no Spotify app is active. An unpacked extension's id depends on the folder it is loaded from, so if you move the folder, add the new Redirect URI to your Spotify app.
+
+**Your own themes** (the Themes tab): pick any preset or Custom, edit Background, Text, Accent and (under Advanced) Raised, Hover, Border and Secondary text with a color picker or a hex code, live on X. The accent replaces X's blue on links, tabs, buttons, switches, hover circles and the focus ring, with hover and pressed shades derived from it; keep X's own color (Settings → Display) on Blue, since X's pink and green double as its like and repost colors. **New theme** / **Save as new theme** keeps a palette under a name; named themes can be renamed, duplicated, exported to a JSON file, imported, and deleted. Themes apply while X is in Lights out (dark) and step aside, with a notice, when X is in Default (light).
+
+**Drag to navigate photos** (Customize → Posts): in X's expanded photo viewer, drag a photo left for the next one or right for the previous one. Off by default like every customization.
+
+## What's new in 1.3.5
+
+- **Save exports under a name you choose.** Exporting bookmarks or customization settings opens a Save As window with a clear suggested name (`better-x-bookmarks-DATE.json`, `better-x-customizations-DATE.json`). Where the browser has no Save As window, the file downloads under that name. The settings file still imports in another browser or account, and files exported by 1.3.0 and earlier import unchanged.
+- **Spotify cover grows inside the player.** Click the cover to enlarge it in place; click again or press Esc to shrink it.
+
+## What's new in 1.3.0
+
+- **Drag photos in the timeline.** Under **Drag to navigate photos** there is now **Also drag photos in the timeline**: drag a post's photos left or right where they are in your feed, without opening the viewer. A short drag snaps back; a plain click still opens the photo. It can only be switched on while **Drag to navigate photos** is on.
+- **Mention and notification colors.** In the theme editor (Custom or one of your own themes), the new **Mentions and notifications** section sets the color of @mentions, #hashtags and links in posts and bios, the unread badge on Notifications and Messages, and the number inside it. Each follows the accent until you pick a color, and **Follow the accent** puts it back.
+- **Match Better X to my X theme.** A switch at the top of the Themes tab paints Better X's own panel, popup and the overlay on X with the X theme that is on (presets, Custom and your own themes; X's Lights out when none is chosen). It overrides Better X's own light/dark and accent while on.
+- **Hide “Who to follow” no longer leaves an empty box.** The whole card, border included, is hidden, also when X puts empty spacer or placeholder elements inside it.
+- **Spotify player: big cover, and no more account switcher.** Click the song's cover and it grows to the player's width, right where it is, with the progress bar and controls under it. Click it again (or press Esc) to shrink it. Pressing the player no longer opens X's account switcher underneath it.
+- **Spotify connects from the background.** Chrome's sign-in window would not open from the panel when it is shown inside x.com (the overlay) or, on some Chrome builds, from the side panel, which showed “Spotify’s sign-in page could not be loaded”. The background worker now opens it, falls back to a normal tab when Chrome's window still cannot open, and the error names Chrome's own reason.
+
 ## Install
 
 Requires Node.js 20.19+ and Chrome 116+.
@@ -160,14 +190,19 @@ The video lookup uses an undocumented X endpoint, so it can change without notic
 
 All data lives in your browser. Exports contain metadata only, never media files or local file paths.
 
-| Permission                                                      | Why                                                                                                                                                                                                             |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                                                       | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
-| `sidePanel`                                                     | Open the library from the toolbar icon.                                                                                                                                                                         |
-| `activeTab`                                                     | Read the address of the tab you click the toolbar icon on (or press the shortcut in), only at that moment, so the panel overlay can tell an X tab from another site. No install warning, no standing access.    |
-| `downloads`                                                     | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
-| `x.com`, `twitter.com` (content script)                         | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
-| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com` | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
+| Permission                                                                 | Why                                                                                                                                                                                                             |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`                                                                  | Settings, and a small change marker that keeps open tabs and the library in sync.                                                                                                                               |
+| `sidePanel`                                                                | Open the library from the toolbar icon.                                                                                                                                                                         |
+| `activeTab`                                                                | Read the address of the tab you click the toolbar icon on (or press the shortcut in), only at that moment, so the panel overlay can tell an X tab from another site. No install warning, no standing access.    |
+| `downloads`                                                                | Save the media you choose and follow those downloads to completion. Other downloads are never read or recorded.                                                                                                 |
+| `x.com`, `twitter.com` (content script)                                    | Add the save control and read only the post you choose to save. With Account insights or country filtering on, it asks x.com (same origin, your own session) for an account's public “About this account” data. |
+| `pbs.twimg.com`, `video.twimg.com`, `cdn.syndication.twimg.com`            | Verify a chosen file and find a public post's video. Contacted only when you click Download.                                                                                                                    |
+| `identity`                                                                 | Open Spotify's own sign-in window when you connect the Spotify plugin. Unused otherwise.                                                                                                                        |
+| `*.chromiumapp.org`                                                        | Only to notice a Spotify sign-in tab reaching its redirect address (used when Chrome's own sign-in window cannot open). Nothing is fetched from it.                                                             |
+| `api.spotify.com`, `accounts.spotify.com`, `*.scdn.co`, `*.spotifycdn.com` | The Spotify plugin only: what is playing, playback commands, sign-in, and cover art. Contacted only while that plugin is on and connected.                                                                      |
+
+The Spotify plugin is the one place a sign-in is kept: its tokens stay in this browser's extension storage, are used only by the background worker to talk to Spotify, are never sent to X or put in any backup, and are removed by Disconnect. There is no client secret.
 
 No browsing history, no all-site access, no analytics, no remote code. Better X never stores or sends a cookie, token or header: account lookups read X's `ct0` page token for the one request and keep nothing. The cached account facts (public data X showed on profiles) stay on this device, are not part of any backup, and can be cleared in Customize → Account insights.
 

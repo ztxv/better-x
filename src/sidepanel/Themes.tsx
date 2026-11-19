@@ -1,22 +1,24 @@
-import { Undo2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import type { Settings, SettingsPatch } from '../lib/settings';
-import { deriveTokens } from '../themes/derive';
+import { Plus, Undo2, Upload } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MAX_SAVED_THEMES, type Settings, type SettingsPatch } from '../lib/settings';
+import { MAX_THEME_FILE_BYTES, newThemeId, parseThemeFile, uniqueThemeName } from '../themes/file';
+import { deriveTokens, fillSeed } from '../themes/derive';
 import { XMODE_CACHE_KEY } from '../themes/host';
 import { CUSTOM_THEME_ID, LIGHTS_OUT_SEED, PRESETS } from '../themes/presets';
 import type { XMode } from '../themes/types';
 import { ThemeCard } from './ThemeCard';
 import { ThemeEditor } from './ThemeEditor';
+import { Toggle } from './Toggle';
 
 const LIGHTS_OUT = deriveTokens(LIGHTS_OUT_SEED);
 const PRESET_TOKENS = new Map(PRESETS.map((preset) => [preset.id, deriveTokens(preset.seed)]));
 
-const titleOf = (id: string | null) =>
+const titleOf = (id: string | null, saved: Settings['xTheme']['saved'] = []) =>
   id === null
     ? 'Lights out'
     : id === CUSTOM_THEME_ID
       ? 'Custom'
-      : (PRESETS.find((p) => p.id === id)?.title ?? id);
+      : (saved.find((own) => own.id === id)?.name ?? PRESETS.find((p) => p.id === id)?.title ?? id);
 
 /** The X mode the theme script last saw (`bx.xmode`), kept up to date. Null until one is known. */
 function useXMode(): XMode | null {
@@ -55,6 +57,51 @@ export function Themes({
   const mode = useXMode();
   const [previous, setPrevious] = useState<{ id: string | null } | null>(null);
   const customTokens = useMemo(() => deriveTokens(theme.custom), [theme.custom]);
+  const [fileStatus, setFileStatus] = useState<{ text: string; error: boolean } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const editing =
+    theme.active === CUSTOM_THEME_ID || theme.saved.some((t) => t.id === theme.active);
+  const full = theme.saved.length >= MAX_SAVED_THEMES;
+
+  /** Adds a named theme and turns it on. */
+  function addTheme(name: string, seed: Settings['xTheme']['custom']) {
+    const id = newThemeId();
+    const title = uniqueThemeName(
+      name,
+      theme.saved.map((own) => own.name),
+    );
+    setPrevious({ id: theme.active });
+    onChange({ xTheme: { active: id, saved: [...theme.saved, { id, name: title, seed }] } });
+    return title;
+  }
+  async function importTheme(file: File | undefined) {
+    if (fileRef.current) fileRef.current.value = '';
+    if (!file) return;
+    if (full) {
+      setFileStatus({
+        text: `You can keep ${MAX_SAVED_THEMES} themes. Delete one first.`,
+        error: true,
+      });
+      return;
+    }
+    if (file.size > MAX_THEME_FILE_BYTES) {
+      setFileStatus({ text: 'That file is too large to be a theme.', error: true });
+      return;
+    }
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      setFileStatus({ text: 'That file could not be read.', error: true });
+      return;
+    }
+    const result = parseThemeFile(text);
+    if (!result.ok) {
+      setFileStatus({ text: result.error, error: true });
+      return;
+    }
+    setFileStatus({ text: `Imported “${addTheme(result.name, result.seed)}”.`, error: false });
+  }
 
   function choose(id: string | null) {
     if (id === theme.active) return;
@@ -79,12 +126,32 @@ export function Themes({
       <p className="customize-summary">
         Recolors x.com while X is set to Lights out. Switch X to Default and the theme steps aside.
       </p>
-      {theme.active !== null && mode === 'light' && (
+      {theme.active !== null && mode === 'light' ? (
         <p className="themes-paused" role="status">
-          X is in Default (light) right now, so {titleOf(theme.active)} is paused. It comes back
-          when X is in Lights out.
+          X is in Default (light) right now, so {titleOf(theme.active, theme.saved)} is paused. It
+          comes back when X is in Lights out.
+        </p>
+      ) : (
+        <p className={`themes-active ${theme.active === null ? '' : 'is-on'}`} role="status">
+          <span className="themes-active-dot" aria-hidden="true" />
+          {theme.active === null ? (
+            'No Better X theme: X shows its own colors.'
+          ) : (
+            <>
+              Better X theme on: <strong>{titleOf(theme.active, theme.saved)}</strong>
+            </>
+          )}
         </p>
       )}
+
+      <div className="themes-match">
+        <Toggle
+          label="Match Better X to my X theme"
+          hint="Paint this panel, the popup and the overlay on X with the theme above (Lights out when none is chosen), Custom and your own themes included. Overrides Better X’s own light/dark and accent while on."
+          checked={theme.matchPanel}
+          onChange={(matchPanel) => onChange({ xTheme: { matchPanel } })}
+        />
+      </div>
 
       <div className="theme-grid" role="group" aria-label="Theme">
         <ThemeCard
@@ -111,12 +178,58 @@ export function Themes({
           selected={theme.active === CUSTOM_THEME_ID}
           onSelect={() => choose(CUSTOM_THEME_ID)}
         />
+        {theme.saved.map((own) => (
+          <ThemeCard
+            key={own.id}
+            title={own.name}
+            description="Your theme"
+            tokens={deriveTokens(own.seed)}
+            selected={theme.active === own.id}
+            onSelect={() => choose(own.id)}
+          />
+        ))}
       </div>
+
+      <div className="theme-actions">
+        <button
+          type="button"
+          className="text-button"
+          disabled={full}
+          onClick={() => {
+            setFileStatus(null);
+            // Starts from what is on screen now, so a new theme is never a surprise.
+            const from =
+              theme.saved.find((own) => own.id === theme.active)?.seed ??
+              (theme.active === CUSTOM_THEME_ID
+                ? theme.custom
+                : PRESETS.find((p) => p.id === theme.active)?.seed);
+            addTheme('My theme', fillSeed(from ?? LIGHTS_OUT_SEED));
+          }}
+        >
+          <Plus size={13} /> New theme
+        </button>
+        <button type="button" className="text-button" onClick={() => fileRef.current?.click()}>
+          <Upload size={13} /> Import theme
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          aria-label="Theme file"
+          onChange={(event) => void importTheme(event.target.files?.[0])}
+        />
+      </div>
+      {fileStatus && (
+        <p className={`themes-file-status ${fileStatus.error ? 'is-error' : ''}`} role="status">
+          {fileStatus.text}
+        </p>
+      )}
 
       {previous && (
         <div className="preset-notice" role="status">
           <span>
-            <strong>{titleOf(theme.active)}</strong> on.
+            <strong>{titleOf(theme.active, theme.saved)}</strong> on.
           </span>
           <button type="button" onClick={undo}>
             <Undo2 size={13} /> Undo
@@ -124,7 +237,7 @@ export function Themes({
         </div>
       )}
 
-      {theme.active === CUSTOM_THEME_ID && (
+      {editing && (
         <ThemeEditor
           theme={theme}
           onChange={(patch) => {

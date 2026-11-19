@@ -37,8 +37,8 @@ export function startTheme(scope: Scope, doc: Document = document): void {
 
   const apply = () => {
     if (scope.disposed || !settings) return;
-    const { active, custom, chat } = settings.xTheme;
-    const theme = resolveTheme(active, custom);
+    const { active, custom, saved, chat } = settings.xTheme;
+    const theme = resolveTheme(active, custom, saved);
     const current = mode ?? cached;
     if (!theme || current !== theme.base) {
       root.removeAttribute(THEME_ATTR);

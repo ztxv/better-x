@@ -70,6 +70,8 @@ Load `.output/chrome-mv3` through `chrome://extensions` → Developer mode → L
 
 Performance: `npm run perf` is the 200-post baseline. `node scripts/perf/run.mjs --shape x --features default,typical,all` serves the same posts inside X's shell (timeline cells, test IDs, action rows, navigation, sidebar) with those customizations on (`cat:<category>` and `ids:<id>+<id>` also work, which is how to find what a new rule costs). Compare builds only by alternating them in one session (see `perf/README.md`).
 
+On Windows, run Vitest from a path whose drive letter is upper case (`C:\Users\…`, not `c:\Users\…`, which is what VS Code's terminal can give). With a lower-case drive letter Vitest loads two copies of itself and every file fails with `Cannot read properties of undefined (reading 'config')`. In PowerShell, `Set-Location 'C:\path\to\better-x'` first. The smoke scripts run on Windows with `CHROME_PATH='C:\Program Files\Google\Chrome\Application\chrome.exe'`.
+
 Unit tests (`npm test`) cover extraction (including the avatar regressions), URL rules, the metadata adapter with recorded responses, resolution outcomes, the download lifecycle with a scripted `chrome.downloads`, repository atomicity, settings, backup round-trips, and opening a version 1 database.
 
 ## Current limits

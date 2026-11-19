@@ -57,8 +57,11 @@ export const SIDEBAR_FEATURES: readonly ToggleFeature[] = [
       // The `aside` that holds user cells is hidden at once by CSS (anchored on the aside, which
       // has a role; see `cellWhere` in css.ts). `activate` then marks the whole card around it,
       // border and spacing included, and the second rule hides that.
+      // A third rule hides the section around it the way “Today’s News” is hidden, so the card's
+      // bordered wrapper goes too even before `activate` runs or if its climb stops early.
       hide(
         `html:not([data-bx-route="post"]) ${SIDEBAR} aside[role="complementary"]:has([data-testid="UserCell"])`,
+        `html:not([data-bx-route="post"]) ${SIDEBAR_SECTIONS} > div:has(aside[role="complementary"] [data-testid="UserCell"]):not(:has([role="search"], [data-testid="news_sidebar"], [data-testid="trend"]))`,
         `[${hiddenCardAttribute('whoToFollow')}]`,
       ),
       ['suggested accounts', 'recommended accounts', 'people'],

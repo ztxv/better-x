@@ -18,6 +18,12 @@ const HEX_KEYS = [
   'muted',
   'accent',
   'accentText',
+  'accentHover',
+  'accentActive',
+  'ring',
+  'mention',
+  'badge',
+  'badgeText',
 ] as const;
 
 /**
@@ -30,7 +36,7 @@ function safeTokens(tokens: ThemeTokens): ThemeTokens {
   const fallback = deriveTokens(LIGHTS_OUT_SEED);
   const result = { ...tokens };
   for (const key of HEX_KEYS) if (!isHex(result[key])) result[key] = fallback[key];
-  for (const key of ['backdrop', 'scrim'] as const)
+  for (const key of ['backdrop', 'scrim', 'accentTint'] as const)
     if (!RGBA.test(result[key])) result[key] = fallback[key];
   return result;
 }
@@ -48,8 +54,16 @@ export function themeVars(input: ThemeTokens): string {
     `--bx-t-muted: ${t.muted};`,
     `--bx-t-accent: ${t.accent};`,
     `--bx-t-accent-text: ${t.accentText};`,
+    `--bx-t-accent-fill: ${t.accent};`,
+    `--bx-t-accent-hover: ${t.accentHover};`,
+    `--bx-t-accent-active: ${t.accentActive};`,
+    `--bx-t-accent-tint: ${t.accentTint};`,
+    `--bx-t-ring: ${t.ring};`,
     `--bx-t-backdrop: ${t.backdrop};`,
     `--bx-t-scrim: ${t.scrim};`,
+    `--bx-t-mention: ${t.mention};`,
+    `--bx-t-badge: ${t.badge};`,
+    `--bx-t-badge-text: ${t.badgeText};`,
     `--bx-t-bg-hsl: ${hsl(t.bg)};`,
     `--bx-t-raised-hsl: ${hsl(t.raised)};`,
     `--bx-t-hover-hsl: ${hsl(t.hover)};`,
@@ -66,6 +80,9 @@ const prefix = (selector: string) =>
 function value(surface: Surface, property: string): string {
   if (surface.role === 'keep') return surface.value === 'black' ? '#000000' : 'transparent';
   if (property === 'scrollbar-color') return 'var(--bx-t-border) var(--bx-t-bg)';
+  // X's focus ring is a 2 px box-shadow; only its color changes.
+  if (property === 'box-shadow' && surface.role === 'ring')
+    return 'var(--bx-t-ring) 0px 0px 0px 2px';
   return `var(--bx-t-${surface.role})`;
 }
 

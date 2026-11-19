@@ -70,6 +70,22 @@ describe('climbToCard', () => {
     expect(card).not.toBe($('only'));
   });
 
+  it('climbs past empty siblings (spacers, placeholders) so no empty bordered box is left', () => {
+    document.body.innerHTML = sidebar(
+      `<div id="sec-search"><div role="search"><input></div></div>
+       <div id="sec-wtf" style="${CARD}"><div id="inner"><div style="min-height:280px"></div>${wtfAside}<div></div></div></div>
+       <div id="sec-news"><div data-testid="news_sidebar">News</div></div>`,
+    );
+    expect(climbToCard($('aside-wtf'), column())).toBe($('sec-wtf'));
+  });
+
+  it('still stops before a sibling with content', () => {
+    document.body.innerHTML = sidebar(
+      `<div id="mixed"><div id="a">${wtfAside}</div><div>Some text</div></div><div id="sec-z"></div>`,
+    );
+    expect(climbToCard($('aside-wtf'), column())).toBe($('a'));
+  });
+
   it('does not climb out of a wrapper shared with another card', () => {
     document.body.innerHTML = sidebar(
       `<div id="both"><div id="a">${wtfAside}</div><div id="b"><aside role="complementary" id="aside-b"></aside></div></div><div id="sec-z"></div>`,
