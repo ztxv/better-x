@@ -271,7 +271,7 @@ function themeForBackup(theme: XThemeSettings): SettingsBackup['xTheme'] {
 }
 
 export const settingsBackupFilename = (now: Date = new Date()) =>
-  `better-x-settings-${now.toISOString().slice(0, 10)}.json`;
+  `better-x-customizations-${now.toISOString().slice(0, 10)}.json`;
 
 const fail = (error: string): ParsedBackup => ({ ok: false, error });
 
@@ -300,7 +300,7 @@ export function parseSettingsBackup(
   }
   if (!isRecord(data)) return fail('That file is not a Better X settings backup.');
   if (data.format === 'better-x' || data.format === 'saved-for-x')
-    return fail('That is a Library backup. Use Import Library for it.');
+    return fail('That is a bookmarks backup. Use Import bookmarks for it.');
   if (data.format !== SETTINGS_BACKUP_FORMAT)
     return fail('That file is not a Better X settings backup.');
   if (typeof data.version !== 'number' || !Number.isInteger(data.version) || data.version < 1)

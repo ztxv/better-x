@@ -223,6 +223,10 @@ Not verified on live X: `scripts/smoke/drag.mjs` drives a real mouse on an X-sha
 - [ ] **Reduced motion.** With the OS reduce-motion setting on, the photo changes without the settle animation.
 - [ ] **Off.** Turn the setting off with the viewer open: dragging does nothing new, the browser's image drag is back, everything else is as before.
 
+## 1.3.5 changes
+
+- [ ] **Export bookmarks / customization settings.** A Save As window opens with `better-x-bookmarks-…json` / `better-x-customizations-…json`; rename it, save, and the panel's message names the saved file. Cancelling shows no message. Import the customization file in another browser or account and the settings arrive.
+
 ## 1.3.0 changes
 
 Not verified on live X or real Spotify. Real-Chrome fixture checks: `scripts/smoke/drag-timeline.mjs`, `scripts/smoke/theme.mjs`, `scripts/smoke/catalog.mjs`.

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { request } from '../lib/api';
 import { createBackup } from '../lib/backup';
+import { saveJsonFile } from '../lib/save-file';
 import { saveOverlay } from '../lib/overlay-state';
 import { resetSettings } from '../lib/settings';
 import { LIBRARY_REVISION_KEY } from '../storage/db';
@@ -444,14 +445,11 @@ export function App({ mode = 'panel' }: { mode?: AppMode }) {
   const exportJson = async () => {
     const history = await request<DownloadRecord[]>({ type: 'downloads' }).catch(() => []);
     const data = createBackup(library, history);
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    await saveJsonFile(
+      `better-x-bookmarks-${new Date().toISOString().slice(0, 10)}.json`,
+      data,
+      'Better X bookmarks',
     );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `better-x-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const importJson = async (file?: File) => {
     if (!file) return;

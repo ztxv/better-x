@@ -106,6 +106,11 @@ Limits that come from Spotify, not Better X: playback controls need **Spotify Pr
 
 **Drag to navigate photos** (Customize → Posts): in X's expanded photo viewer, drag a photo left for the next one or right for the previous one. Off by default like every customization.
 
+## What's new in 1.3.5
+
+- **Save exports under a name you choose.** Exporting bookmarks or customization settings opens a Save As window with a clear suggested name (`better-x-bookmarks-DATE.json`, `better-x-customizations-DATE.json`). Where the browser has no Save As window, the file downloads under that name. The settings file still imports in another browser or account, and files exported by 1.3.0 and earlier import unchanged.
+- **Spotify cover grows inside the player.** Click the cover to enlarge it in place; click again or press Esc to shrink it.
+
 ## What's new in 1.3.0
 
 - **Drag photos in the timeline.** Under **Drag to navigate photos** there is now **Also drag photos in the timeline**: drag a post's photos left or right where they are in your feed, without opening the viewer. A short drag snaps back; a plain click still opens the photo. It can only be switched on while **Drag to navigate photos** is on.

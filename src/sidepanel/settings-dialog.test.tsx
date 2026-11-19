@@ -72,8 +72,8 @@ describe('Settings dialog: data and backup', () => {
     ]);
     const labels = [...data.querySelectorAll('button')].map((b) => b.textContent?.trim());
     for (const label of [
-      'Export Library',
-      'Import Library',
+      'Export bookmarks',
+      'Import bookmarks',
       'Export customization settings',
       'Import customization settings',
     ])
@@ -106,8 +106,8 @@ describe('Settings dialog: data and backup', () => {
     );
     const button = (label: string) =>
       [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === label)!;
-    act(() => button('Export Library').click());
-    act(() => button('Import Library').click());
+    act(() => button('Export bookmarks').click());
+    act(() => button('Import bookmarks').click());
     expect(exportLibrary).toHaveBeenCalledTimes(1);
     expect(importLibrary).toHaveBeenCalledTimes(1);
   });

@@ -12,6 +12,7 @@ import {
   type ValidatedBackup,
 } from '../lib/settings-backup';
 import { loadSettings, type Settings, type SettingsPatch } from '../lib/settings';
+import { saveJsonFile } from '../lib/save-file';
 
 interface Pending {
   fileName: string;
@@ -40,21 +41,19 @@ export function SettingsBackup({
   const [status, setStatus] = useState<{ text: string; kind: 'ok' | 'error' } | null>(null);
   const modeName = useId();
 
-  function exportSettings() {
+  async function exportSettings() {
     const backup = createSettingsBackup(settings, featureRegistry);
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }),
+    const name = await saveJsonFile(
+      settingsBackupFilename(),
+      backup,
+      'Better X customization settings',
     );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = settingsBackupFilename();
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (!name) return; // the Save As window was cancelled
     const count = Object.keys(backup.features).length + Object.keys(backup.values).length;
     setStatus({
       text: count
-        ? `Exported ${plural(count, 'setting')} to ${link.download}.`
-        : `Exported your look (theme and accent) to ${link.download}; no customizations are switched on yet.`,
+        ? `Exported ${plural(count, 'setting')} to ${name}.`
+        : `Exported your look (theme and accent) to ${name}; no customizations are switched on yet.`,
       kind: 'ok',
     });
   }
@@ -111,7 +110,7 @@ export function SettingsBackup({
   return (
     <Fragment>
       <h4 className="data-group">Customization settings</h4>
-      <button onClick={exportSettings}>
+      <button onClick={() => void exportSettings()}>
         <FileJson size={15} />
         Export customization settings
       </button>
@@ -128,9 +127,10 @@ export function SettingsBackup({
         onChange={(event) => void chooseFile(event.target.files?.[0])}
       />
       <p className="setting-hint">
-        Transfer your Better X settings between browsers without an account: switches, sliders,
-        colors, theme, X theme, library and download preferences, how Better X opens, account
-        insights and country filter choices. Not your library, and never any cached account data.
+        Save them under a name you choose, then import that file in another browser or account, no
+        sign-in needed: switches, sliders, colors, theme, X theme, library and download preferences,
+        how Better X opens, account insights and country filter choices. Not your library, and never
+        any cached account data.
       </p>
 
       {pending && (

@@ -1383,8 +1383,8 @@ check(
   await panel.evaluate(() => {
     const t = document.querySelector('.data-section').textContent;
     return [
-      'Export Library',
-      'Import Library',
+      'Export bookmarks',
+      'Import bookmarks',
       'Export customization settings',
       'Import customization settings',
     ].every((l) => t.includes(l));
