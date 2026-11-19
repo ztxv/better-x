@@ -272,34 +272,35 @@ try {
     }),
   );
 
-  // The big cover view.
+  // The big cover, in the card itself.
   const coverState = () =>
     page.evaluate(() => {
-      const host = document.querySelector('bx-spotify-cover');
-      const root = host?.shadowRoot;
-      const card = document.querySelector('bx-spotify-player').shadowRoot;
+      const host = document.querySelector('bx-spotify-player');
+      const root = host.shadowRoot;
+      const art = root.querySelector('.art');
       return {
-        open: !!host,
-        image: root?.querySelector('.cover')?.src.slice(0, 22) ?? null,
-        title: root?.querySelector('.caption strong')?.textContent ?? null,
-        controlsInView: !!root?.querySelector('.controls .toggle'),
-        controlsInCard: !!card.querySelector('.controls .toggle'),
-        size: host ? Math.round(root.querySelector('.cover').getBoundingClientRect().width) : 0,
+        big: root.querySelector('.card').hasAttribute('data-big'),
+        overlay: !!document.querySelector('bx-spotify-cover'),
+        image: art.querySelector('img')?.src.slice(0, 22) ?? null,
+        artSize: Math.round(art.getBoundingClientRect().width),
+        cardSize: Math.round(root.querySelector('.card').getBoundingClientRect().width),
+        controlsVisible: root.querySelector('.controls .toggle').getBoundingClientRect().width > 0,
       };
     });
+  const small = await coverState();
   spotify.art.length = 0;
   await (await inPlayer('.art')).click();
   await pause(700);
   let c = await coverState();
   check(
-    'clicking the cover opens it large, with the title and the controls',
-    c.open &&
+    'clicking the cover grows it inside the player (no pop-up), controls still there',
+    c.big &&
+      !c.overlay &&
       c.image === 'data:image/png;base64,' &&
-      c.title === 'And 1 : 100 sum' &&
-      c.controlsInView &&
-      !c.controlsInCard &&
-      c.size >= 300,
-    JSON.stringify(c),
+      c.artSize > small.artSize * 3 &&
+      c.artSize >= c.cardSize - 30 &&
+      c.controlsVisible,
+    JSON.stringify({ small, c }),
   );
   check(
     'the full-size cover is fetched by the worker',
@@ -308,34 +309,25 @@ try {
   );
   await page.screenshot({ path: path.join(OUT, 'cover.png') });
   const commandsBefore = spotify.commands.length;
-  await page.evaluate(() =>
-    document
-      .querySelector('bx-spotify-cover')
-      .shadowRoot.querySelector('.controls .toggle')
-      .click(),
-  );
+  await (await inPlayer('.toggle')).click();
   await pause(900);
   check(
-    'the controls in the big view work',
+    'the controls work while it is big',
     spotify.commands.length === commandsBefore + 1,
     spotify.commands.slice(commandsBefore).join(', '),
   );
+  await (await inPlayer('.art')).click();
+  await pause(200);
+  c = await coverState();
+  check('clicking the cover again shrinks it', !c.big && c.artSize === small.artSize, JSON.stringify(c));
+  await (await inPlayer('.art')).click();
+  await pause(300);
   await page.keyboard.press('Escape');
   await pause(200);
   c = await coverState();
   check(
-    'Escape closes it and the controls go back to the card',
-    !c.open && c.controlsInCard,
-    JSON.stringify(c),
-  );
-  await (await inPlayer('.art')).click();
-  await pause(300);
-  await page.mouse.click(5, 5);
-  await pause(200);
-  c = await coverState();
-  check(
-    'a click outside closes it too, and never reaches X’s menu',
-    !c.open && c.controlsInCard && (await page.evaluate(() => window.menuPresses)) === 0,
+    'Escape shrinks it too, and none of this reaches X’s menu',
+    !c.big && (await page.evaluate(() => window.menuPresses)) === 0,
     JSON.stringify(c),
   );
 

@@ -20,9 +20,9 @@ export interface PlayerView {
   /** Shows a short message under the player for a moment (a command Spotify refused). */
   flash(message: string): void;
   setTheme(theme: 'light' | 'dark'): void;
-  /** Whether the big cover view is open. */
+  /** Whether the cover is shown big, in the card. */
   coverOpen(): boolean;
-  /** Closes the big cover view, if open. Also part of switching the plugin off. */
+  /** Shrinks the cover back, if big. Also part of switching the plugin off. */
   closeCover(): void;
 }
 
@@ -217,6 +217,17 @@ button {
   .skeleton .art, .skeleton .line { animation: none; }
   .controls button { transition: none; }
 }
+/* Click the cover: it grows to the card's width, right in the player. */
+@container (min-width: 171px) {
+  .card[data-big] .now { flex-direction: column; align-items: stretch; gap: 8px; }
+  .card[data-big] .art { width: 100%; height: auto; aspect-ratio: 1; border-radius: 8px; }
+  .card[data-big] .art[role='button'] { cursor: zoom-out; }
+  .card[data-big] .progress { margin-top: 10px; }
+  .card[data-big] .controls { margin-top: 6px; }
+  .card[data-big] .controls button { width: 36px; height: 36px; }
+  .card[data-big] .controls svg { width: 18px; height: 18px; }
+  .card[data-big] .controls .toggle svg { width: 22px; height: 22px; }
+}
 /* X's collapsed (icons-only) menu: just the cover and play/pause. */
 @container (max-width: 170px) {
   .card { padding: 6px; }
@@ -228,74 +239,6 @@ button {
   .controls { margin-top: 2px; }
 }
 `;
-
-/** The big cover view: its own element on <body>, over the page, styled like the card. */
-const COVER_CSS = `
-:host {
-  position: fixed;
-  inset: 0;
-  z-index: 2147483000;
-  margin: 0;
-  container-type: normal;
-}
-.scrim {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.72);
-  animation: fade 140ms ease-out;
-}
-.big {
-  position: relative;
-  width: min(440px, 92vw, calc(100vh - 230px));
-  min-width: 240px;
-  padding: 14px;
-  border: 1px solid var(--sp-border);
-  border-radius: 16px;
-  background: var(--sp-bg);
-  color: var(--sp-text);
-  font: 400 12px/1.35 TwitterChirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
-  animation: rise 160ms ease-out;
-}
-.cover {
-  display: block;
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 10px;
-  background: var(--sp-track);
-}
-.caption { margin-top: 10px; min-width: 0; }
-.caption > * { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.caption strong { font-size: 15px; }
-.caption span { color: var(--sp-muted); }
-.big .controls button { width: 36px; height: 36px; }
-.big .controls svg { width: 18px; height: 18px; }
-.big .controls .toggle svg { width: 22px; height: 22px; }
-.close {
-  position: absolute;
-  top: 22px;
-  right: 22px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-}
-.close:hover { background: rgba(0, 0, 0, 0.75); }
-.close:focus-visible { box-shadow: 0 0 0 2px var(--sp-accent); }
-.close svg { width: 16px; height: 16px; }
-@keyframes fade { from { opacity: 0; } }
-@keyframes rise { from { opacity: 0; transform: scale(0.96); } }
-@media (prefers-reduced-motion: reduce) {
-  .scrim, .big { animation: none; }
-}
-`;
-const CLOSE_ICON =
-  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 export const formatTime = (ms: number) => {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -422,103 +365,53 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     seekTo(positionAt(Date.now()) + step);
   });
 
-  // ---- The big cover view (like Vencord's): click the cover to see it large, with the same
-  // live progress bar and controls under it. Those elements are moved into the view while it is
-  // open and put back when it closes, so there is one set of controls and nothing to keep in step.
-  let cover: {
-    host: HTMLElement;
-    image: HTMLImageElement;
-    heading: HTMLElement;
-    sub: HTMLElement;
-    shownArt: string | null;
-    onKey: (event: KeyboardEvent) => void;
-  } | null = null;
-
+  // ---- The big cover, in the card itself: click the cover and it grows to the card's width, with
+  // the progress bar and controls under it; click it again (or press Esc) to shrink it back.
+  // The full-size picture is fetched only when it grows, so the regular polls stay light.
+  let big = false;
+  let largeFor: string | null = null;
   const coverLabel = 'Show the cover larger';
-  art.addEventListener('click', () => openCover());
+
+  function loadLarge() {
+    if (!big || !current) return;
+    const wanted = current.track.artLarge;
+    if (!wanted || !handlers.loadCover || largeFor === wanted) return;
+    largeFor = wanted;
+    void handlers.loadCover(wanted).then((data) => {
+      const image = art.querySelector('img');
+      // Only if it is still big, on the same track.
+      if (big && image && current?.track.artLarge === wanted && data?.startsWith('data:image/'))
+        image.src = data;
+      else if (largeFor === wanted && !data) largeFor = null;
+    });
+  }
+
+  function setBig(next: boolean) {
+    if (next && (!current || !art.querySelector('img'))) return;
+    big = next;
+    if (big) card.dataset.big = '';
+    else delete card.dataset.big;
+    art.setAttribute('aria-expanded', String(big));
+    art.setAttribute('aria-label', big ? 'Show the cover smaller' : coverLabel);
+    if (big) loadLarge();
+    else {
+      // Back to the small picture.
+      largeFor = null;
+      const image = art.querySelector('img');
+      if (image && current?.track.art) image.src = current.track.art;
+    }
+  }
+  const closeCover = () => setBig(false);
+
+  art.addEventListener('click', () => setBig(!big));
   art.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
-    openCover();
+    setBig(!big);
   });
-
-  /** Shows the current cover in the view: the small one at once, the full-size one when it arrives. */
-  function showCoverImage() {
-    if (!cover || !current) return;
-    const track = current.track;
-    if (cover.shownArt === (track.artLarge ?? track.art)) return;
-    cover.shownArt = track.artLarge ?? track.art;
-    if (track.art?.startsWith('data:image/')) cover.image.src = track.art;
-    cover.heading.textContent = track.title;
-    cover.sub.textContent = [track.artists, track.album !== track.title ? track.album : '']
-      .filter(Boolean)
-      .join(' · ');
-    const wanted = track.artLarge;
-    if (wanted && handlers.loadCover)
-      void handlers.loadCover(wanted).then((data) => {
-        // Only if the view is still open on that same track.
-        if (cover && current?.track.artLarge === wanted && data?.startsWith('data:image/'))
-          cover.image.src = data;
-      });
-  }
-
-  function openCover() {
-    if (cover || !current?.track.art) return;
-    const coverHost = doc.createElement('bx-spotify-cover');
-    coverHost.setAttribute('data-theme', host.getAttribute('data-theme') ?? 'dark');
-    const coverShadow = coverHost.attachShadow({ mode: 'open' });
-    const coverStyle = doc.createElement('style');
-    coverStyle.textContent = CSS + COVER_CSS;
-    const scrim = make('div', 'scrim');
-    const big = make('div', 'big');
-    big.setAttribute('role', 'dialog');
-    big.setAttribute('aria-modal', 'true');
-    big.setAttribute('aria-label', 'Spotify cover');
-    const image = doc.createElement('img');
-    image.className = 'cover';
-    image.alt = '';
-    const close = make('button', 'close');
-    close.type = 'button';
-    close.innerHTML = CLOSE_ICON;
-    close.setAttribute('aria-label', 'Close');
-    close.title = 'Close';
-    close.addEventListener('click', () => closeCover());
-    const heading = make('strong');
-    const sub = make('span');
-    const caption = make('div', 'caption');
-    caption.append(heading, sub);
-    big.append(image, close, caption, progress, times, controls);
-    scrim.append(big);
-    coverShadow.append(coverStyle, scrim);
-    scrim.addEventListener('click', (event) => {
-      if (event.target === scrim) closeCover();
-    });
-    containEvents(coverHost);
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      closeCover();
-    };
-    doc.addEventListener('keydown', onKey, true);
-    cover = { host: coverHost, image, heading, sub, shownArt: null, onKey };
-    (doc.body ?? doc.documentElement).append(coverHost);
-    showCoverImage();
-    tick(Date.now());
-    close.focus();
-  }
-
-  function closeCover() {
-    if (!cover) return;
-    doc.removeEventListener('keydown', cover.onKey, true);
-    cover.host.remove();
-    cover = null;
-    // The controls go back to the card, in their place above the note.
-    playing.insertBefore(progress, note);
-    playing.insertBefore(times, note);
-    playing.insertBefore(controls, note);
-    if (art.isConnected) art.focus();
-  }
+  card.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && big) setBig(false);
+  });
 
   function tick(time: number) {
     if (!current) return;
@@ -553,6 +446,7 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
         image.alt = '';
         image.src = track.art;
         art.replaceChildren(image);
+        largeFor = null;
       } else art.innerHTML = ICON.music;
     }
     title.textContent = track.title;
@@ -569,14 +463,17 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     if (track.art?.startsWith('data:image/')) {
       art.setAttribute('role', 'button');
       art.tabIndex = 0;
-      art.setAttribute('aria-label', coverLabel);
-      art.title = `${art.title} (click to enlarge)`;
+      art.setAttribute('aria-label', big ? 'Show the cover smaller' : coverLabel);
+      art.setAttribute('aria-expanded', String(big));
+      art.title = `${art.title} (click to ${big ? 'shrink' : 'enlarge'})`;
     } else {
       art.removeAttribute('role');
       art.removeAttribute('tabindex');
       art.removeAttribute('aria-label');
+      art.removeAttribute('aria-expanded');
+      if (big) setBig(false);
     }
-    showCoverImage();
+    loadLarge();
 
     const timed = track.durationMs > 0;
     progress.hidden = times.hidden = !timed;
@@ -631,7 +528,7 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
 
   function render(state: ViewState) {
     card.dataset.status = state.status;
-    // Nothing playing any more: the big view has nothing to show.
+    // Nothing playing any more: nothing to show big.
     if (state.status !== 'playing') closeCover();
     switch (state.status) {
       case 'playing':
@@ -687,9 +584,8 @@ export function createPlayerView(handlers: PlayerHandlers, doc: Document = docum
     },
     setTheme(theme) {
       if (host.getAttribute('data-theme') !== theme) host.setAttribute('data-theme', theme);
-      cover?.host.setAttribute('data-theme', theme);
     },
-    coverOpen: () => cover !== null,
+    coverOpen: () => big,
     closeCover,
   };
 }
