@@ -11,6 +11,8 @@
     "test": "vitest run",
     "format": "prettier --write \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,css,json,md,html}\" --ignore-path .gitignore",
+    "demo:engine": "node scripts/demo/build-engine.mjs",
+    "demo:serve": "npx --yes serve@14.2.4 demo-site",
     "smoke": "wxt build && node scripts/smoke/run.mjs && node scripts/smoke/restart.mjs && node scripts/smoke/reload.mjs && node scripts/smoke/catalog.mjs && node scripts/smoke/launch.mjs && node scripts/smoke/insights.mjs && node scripts/smoke/theme.mjs && node scripts/smoke/overlay.mjs && node scripts/smoke/drag.mjs && node scripts/smoke/drag-timeline.mjs && node scripts/smoke/plugins.mjs",
     "perf": "wxt build && node scripts/perf/run.mjs"
   },
@@ -24,6 +26,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "0.28.2",
     "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.14.5",
     "prettier": "^3.9.9",
