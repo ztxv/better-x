@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Better X · Keep what you find. Hide what you don’t.</title>
+  <meta name="description" content="Better X is a Chrome extension that saves posts from X into a private local library, downloads their media, and lets you hide, restyle and re-theme X. Try the demo, which runs the extension's real feature engine.">
+  <meta property="og:title" content="Better X: keep what you find, hide what you don’t">
+  <meta property="og:description" content="A private, local-first Chrome extension for X. Save posts, download media, clean up and re-theme the site. Try it in your browser.">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="engine/better-x-engine.js"></script>
+</head>
+<body>
+  <a class="skip" href="#demo">Skip to the demo</a>
+
+  <nav class="nav" aria-label="Site">
+    <div class="wrap nav-inner">
+      <a class="logo" href="#top" aria-label="Better X home"><img src="assets/icon-128.png" alt="" width="26" height="26"><span>Better X</span></a>
+      <div class="nav-links">
+        <a href="#demo">Demo</a>
+        <a href="#themes">Themes</a>
+        <a href="#how">How it works</a>
+        <a href="#privacy">Privacy</a>
+        <a class="gh" href="https://github.com/ztxv/better-x" target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero wrap" id="top">
+    <div class="hero-copy">
+      <p class="eyebrow">Chrome extension · Manifest V3 · No account</p>
+      <h1>Keep what you find.<br><span class="grad">Hide what you don’t.</span></h1>
+      <p class="lede">Better X saves posts from X into a private library in your browser and downloads their photos and videos at full quality. It can also clean up the site itself: <em>Clean</em> turns on 12 switches that hide ads, Grok, Premium upsells and suggested accounts, and turning it off puts everything back.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="#demo">Try the live demo</a>
+        <a class="btn ghost" href="#install">Install it</a>
+      </div>
+      <p class="hero-facts"><span id="fact-count">78</span> settings · <span id="fact-themes">12</span> themes · nothing leaves your browser</p>
+    </div>
+
+    <figure class="stack" aria-labelledby="stack-caption">
+      <div class="stack-frame"><div class="stack-card" id="stack" aria-hidden="true">
+        <div class="stack-head"><span class="stack-dot"></span><span id="stack-mode">Your timeline</span><span class="stack-count" id="stack-count"></span></div>
+        <ul class="stack-rows" id="stack-rows"></ul>
+      </div></div>
+      <figcaption id="stack-caption" class="stack-caption"><span id="stack-label">The Clean quick setup, applied one switch at a time.</span></figcaption>
+    </figure>
+  </header>
+
+  <!-- ============================ DEMO ============================ -->
+  <section class="section wide" id="demo">
+    <div class="wrap"><div class="section-head">
+      <p class="kicker">01 · The demo</p>
+      <h2>A timeline, a panel, and the extension’s real feature engine.</h2>
+      <p>The page on the left is a simulated, X-shaped timeline with made-up accounts. The panel works like Better X’s own: every switch, slider and theme feeds the same feature definitions and CSS the extension injects on x.com, and the Save button runs its real post extractor.</p>
+    </div></div>
+
+    <div class="demo-grid">
+      <div class="browser" aria-label="Simulated browser window">
+        <div class="browser-top">
+          <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="btab" aria-hidden="true"><span class="btab-ico"></span><span id="btab-title">Home / X</span></div>
+        </div>
+        <div class="address">
+          <span class="lock" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+          <span>x.com</span><span class="address-path">/home</span>
+          <span class="sim-tag">Simulated</span>
+          <span class="ext-pin" title="Better X is active on this page"><img src="assets/icon-128.png" alt="" width="16" height="16"></span>
+        </div>
+        <iframe id="page" class="page" src="mock/timeline.html" title="Simulated X-shaped timeline with made-up posts"></iframe>
+      </div>
+
+      <aside class="panel" aria-label="Better X panel (working replica)">
+        <div class="panel-head">
+          <div class="brand"><span class="brand-mark"><img src="assets/icon-128.png" alt="" width="22" height="22"></span><strong>Better</strong><span class="brand-x">X</span></div>
+          <span class="panel-note">Replica</span>
+        </div>
+        <div class="ptabs" role="tablist" aria-label="Panel sections">
+          <button role="tab" id="ptab-customize" aria-controls="pview-customize" aria-selected="true">Customize</button>
+          <button role="tab" id="ptab-themes" aria-controls="pview-themes" aria-selected="false" tabindex="-1">Themes</button>
+          <button role="tab" id="ptab-library" aria-controls="pview-library" aria-selected="false" tabindex="-1">Library <span class="count" id="lib-count">0</span></button>
+        </div>
+
+        <!-- Customize -->
+        <div class="pview" id="pview-customize" role="tabpanel" aria-labelledby="ptab-customize">
+          <div class="setups" role="group" aria-label="Quick setups" id="setups"></div>
+          <p class="undo-bar" id="undo-bar" role="status" hidden><span id="undo-text"></span><button type="button" id="undo">Undo</button></p>
+          <div class="psearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><label class="sr" for="fsearch">Search settings</label><input id="fsearch" type="search" placeholder="Search 78 settings" autocomplete="off"></div>
+          <div class="cats" id="cats" role="group" aria-label="Filter by group"></div>
+          <div class="flist" id="flist"></div>
+          <div class="pfoot"><span id="on-count">0 of 78 on</span><button type="button" id="all-off">Turn everything off</button></div>
+        </div>
+
+        <!-- Themes -->
+        <div class="pview" id="pview-themes" role="tabpanel" aria-labelledby="ptab-themes" hidden>
+          <p class="pnote">Themes recolor x.com while X is set to Lights out, and step aside in X’s light mode. Photos, videos and Better X’s own buttons are never recolored.</p>
+          <div class="tgrid" id="tgrid" role="radiogroup" aria-label="X theme"></div>
+        </div>
+
+        <!-- Library -->
+        <div class="pview" id="pview-library" role="tabpanel" aria-labelledby="ptab-library" hidden>
+          <div class="psearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><label class="sr" for="lsearch">Search your bookmarks</label><input id="lsearch" type="search" placeholder="Search your bookmarks" autocomplete="off"></div>
+          <ul class="lib" id="lib" aria-live="polite"></ul>
+          <p class="pnote small">In this demo, saved posts live in this page only. The extension keeps them in your browser’s IndexedDB, with collections, tags, notes and media downloads.</p>
+        </div>
+      </aside>
+    </div>
+
+    <ul class="wrap try-list" aria-label="Things to try">
+      <li><b>Pick Clean, then Minimal.</b> Watch the ads, Grok, Premium cards and suggestions disappear. Undo puts back exactly what you had.</li>
+      <li><b>Turn on “Simplify post actions”.</b> X’s buttons go, and Better X’s Save button stays, because its rule skips anything Better X added.</li>
+      <li><b>Save a post with the layers icon.</b> The extension’s real extractor reads the post’s markup, and the result shows up in Library.</li>
+      <li><b>Try Dracula or Gruvbox in Themes.</b> The token engine derives 17 colors from three and keeps secondary text readable.</li>
+    </ul>
+  </section>
+
+  <!-- ============================ THEME LAB ============================ -->
+  <section class="section wrap" id="themes">
+    <div class="section-head">
+      <p class="kicker">02 · Theme lab</p>
+      <h2>Pick three colors. Better X works out the rest.</h2>
+      <p>This runs the extension’s <code>deriveTokens</code> and <code>contrastWarnings</code>. Muted text and links are nudged until they reach 4.5:1 on your background, so a theme can look odd but never unreadable.</p>
+    </div>
+    <div class="lab">
+      <div class="lab-controls">
+        <div class="chips" id="lab-presets" role="group" aria-label="Start from a preset"></div>
+        <div class="pickers">
+          <label class="picker"><span>Background</span><span class="pick-row"><input type="color" id="c-bg" value="#15202b"><input type="text" id="t-bg" value="#15202b" spellcheck="false" aria-label="Background hex"></span></label>
+          <label class="picker"><span>Text</span><span class="pick-row"><input type="color" id="c-text" value="#f7f9f9"><input type="text" id="t-text" value="#f7f9f9" spellcheck="false" aria-label="Text hex"></span></label>
+          <label class="picker"><span>Accent</span><span class="pick-row"><input type="color" id="c-accent" value="#1d9bf0"><input type="text" id="t-accent" value="#1d9bf0" spellcheck="false" aria-label="Accent hex"></span></label>
+        </div>
+        <ul class="warn" id="lab-warn" aria-live="polite"></ul>
+        <button type="button" class="btn primary small" id="lab-apply">Use on the demo timeline</button>
+      </div>
+      <div class="lab-out">
+        <div class="lab-preview" id="lab-preview">
+          <div class="lp-post">
+            <div class="lp-av">R</div>
+            <div class="lp-body">
+              <p class="lp-head"><b>River Chen</b> <span>@riverchen · Nov 21</span></p>
+              <p class="lp-text">New map drop: a coastline that only exists at low tide. <span class="lp-mention">#maps</span> with <span class="lp-mention">@noorhaddad</span></p>
+              <div class="lp-actions"><span>12</span><span>48</span><span class="lp-pip">3</span><button type="button" class="lp-btn" tabindex="-1">Follow back</button></div>
+            </div>
+          </div>
+        </div>
+        <ol class="tokens" id="lab-tokens" aria-label="Derived tokens"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ HOW ============================ -->
+  <section class="section wrap" id="how">
+    <div class="section-head">
+      <p class="kicker">03 · How it works</p>
+      <h2>Four parts, each one in its own module.</h2>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <span class="step-n">1</span>
+        <h3>Save</h3>
+        <p>A shared runtime watches X’s timeline as it loads and adds the Save button to each post’s action row. One click reads the post: text, author, date from the post id, photos, videos, the quoted post, the reply and the link card.</p>
+        <span class="file">src/x/selectors.ts</span>
+      </li>
+      <li class="step">
+        <span class="step-n">2</span>
+        <h3>Keep</h3>
+        <p>Bookmarks go into IndexedDB in single transactions, so two tabs saving at once can’t overwrite notes, tags or download history. The side panel searches, filters, tags and exports them.</p>
+        <span class="file">src/storage/repository.ts</span>
+      </li>
+      <li class="step">
+        <span class="step-n">3</span>
+        <h3>Customize</h3>
+        <p>Each setting is a few CSS rules. Every rule that’s on goes into one <code>&lt;style&gt;</code> element, rewritten whenever a switch or slider changes. Nothing is removed from X’s page, so turning a setting off is instant.</p>
+        <span class="file">src/features/host.ts</span>
+      </li>
+      <li class="step">
+        <span class="step-n">4</span>
+        <h3>Theme</h3>
+        <p>Three colors become 17 tokens with contrast guarantees. One table maps them onto X’s surfaces, checked against X’s own stylesheet, so a change on X’s side leaves a patch of black, never unreadable text.</p>
+        <span class="file">src/themes/derive.ts</span>
+      </li>
+    </ol>
+
+    <div class="also">
+      <h3>Also in the extension</h3>
+      <dl class="also-list">
+        <div><dt>Media downloads</dt><dd>Original-resolution photos, GIFs as the MP4 X hosts, and videos where X publishes an MP4. Saved to <code>Downloads/Better-X</code>.</dd></div>
+        <div><dt>Account insights</dt><dd>Optional badges for where X says an account is based and how it connects, from X’s own “About this account” data.</dd></div>
+        <div><dt>Smart filtering</dt><dd>Collapse, hide or highlight posts from accounts X places in countries you choose. Only your own view changes.</dd></div>
+        <div><dt>Plugins</dt><dd>SpotifyControls puts a player above your account switcher, using your own Spotify app.</dd></div>
+        <div><dt>Open it your way</dt><dd>Side panel, an overlay drawn inside the X tab, a compact popup, or a floating window. <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> toggles it.</dd></div>
+        <div><dt>Backups</dt><dd>JSON export and validated import for your library and your settings, including Saved for X backups.</dd></div>
+      </dl>
+    </div>
+
+    <div class="hands-off">
+      <div>
+        <h3>What it never touches</h3>
+        <p>Better X changes what you see, not your account.</p>
+      </div>
+      <ul class="pill-list">
+        <li>Your X password</li><li>Stored cookies or tokens</li><li>X’s API</li><li>Other websites</li><li>Analytics</li><li>Files it downloaded</li><li>Photos and videos’ colors</li><li>Its own Save button</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================ PRIVACY ============================ -->
+  <section class="section wrap" id="privacy">
+    <div class="privacy">
+      <div>
+        <p class="kicker">04 · Privacy</p>
+        <h2>No account. No server. No analytics.</h2>
+        <p>Your library, settings and download history stay in your browser. Exports hold metadata only, never media or file paths. Better X doesn’t store or send any cookie, token or header.</p>
+      </div>
+      <dl class="perms">
+        <div><dt><code>storage</code></dt><dd>Settings, and a small marker that keeps open tabs and the library in sync.</dd></div>
+        <div><dt><code>sidePanel</code>, <code>activeTab</code></dt><dd>Open the library from the toolbar icon, and tell an X tab from another site at the moment you click.</dd></div>
+        <div><dt><code>downloads</code></dt><dd>Save the media you choose. Other downloads are never read.</dd></div>
+        <div><dt>x.com, twitter.com</dt><dd>Add the Save button and read only the post you save.</dd></div>
+        <div><dt>X’s media hosts</dt><dd>Check a file and find a public post’s video, only when you click Download.</dd></div>
+        <div><dt><code>identity</code>, Spotify hosts</dt><dd>Only for the Spotify plugin, while it’s on and connected.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================ INSTALL ============================ -->
+  <section class="section wrap" id="install">
+    <div class="section-head">
+      <p class="kicker">05 · Install</p>
+      <h2>Build it, then load it into Chrome.</h2>
+      <p>Better X isn’t on the Chrome Web Store yet. You need Node.js 20.19+ and Chrome 116+.</p>
+    </div>
+    <ol class="install">
+      <li><span class="step-n">1</span><div><b>Build it</b><pre><code>git clone https://github.com/ztxv/better-x.git
+cd better-x
+npm ci
+npm run build</code></pre></div></li>
+      <li><span class="step-n">2</span><div><b>Turn on Developer mode</b><p>Open <code>chrome://extensions</code> and switch on Developer mode in the top-right corner.</p></div></li>
+      <li><span class="step-n">3</span><div><b>Load unpacked</b><p>Choose <code>.output/chrome-mv3</code>, pin Better X, and refresh any open X tab.</p></div></li>
+    </ol>
+    <a class="btn primary" href="https://github.com/ztxv/better-x" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap foot-inner">
+      <span class="logo small"><img src="assets/icon-128.png" alt="" width="20" height="20"><span>Better X</span></span>
+      <p>An independent project, not affiliated with X Corp. The demo timeline is simulated: its accounts, posts and ads are made up.</p>
+      <a href="https://github.com/ztxv">@ztxv</a>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

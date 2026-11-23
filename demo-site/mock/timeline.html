@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  A SIMULATED, X-shaped home timeline for the Better X demo. It is not x.com and loads nothing
+  from it. The markup copies the structure Better X's selectors expect (data-testid hooks, hrefs,
+  nesting), the same way the extension's own test fixtures do (scripts/smoke/catalog-fixture.mjs),
+  so the real feature CSS from the engine bundle hides and restyles it exactly as written.
+  Every account, post and ad here is made up.
+-->
+<html lang="en" data-bx-route="home" data-bx-layout="wide">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Home / X</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="timeline.css">
+  <script src="../engine/better-x-engine.js"></script>
+</head>
+<body>
+  <div id="layers">
+    <div data-testid="DMDrawer" class="dm-drawer"><span>Messages</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></div>
+    <a data-testid="FloatingActionButtons_Tweet_Button" class="fab" href="/compose/post" aria-label="Post"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></a>
+  </div>
+
+  <div id="app">
+    <header role="banner"><div><div><div class="rail">
+      <div class="rail-top">
+        <a class="mark" href="/home" aria-label="Home"><span></span></a>
+        <nav aria-label="Primary">
+          <a href="/home" class="on"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></div></a>
+          <a href="/explore"><div dir="ltr"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Explore</span></div></a>
+          <a href="/notifications"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg><span>Notifications</span></div><div aria-live="polite" class="pip">3</div></a>
+          <a href="/i/chat"><div dir="ltr"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span>Chat</span></div><div aria-live="polite" class="pip">1</div></a>
+          <a href="/i/grok"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M4 20L20 4M8 4h12v12"/></svg><span>Grok</span></div></a>
+          <a href="/i/bookmarks"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span>Bookmarks</span></div></a>
+          <a href="/demo/lists"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg><span>Lists</span></div></a>
+          <a href="/demo/communities"><div dir="ltr"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M14 20a4 4 0 0 1 7 0"/></svg><span>Communities</span></div></a>
+          <a href="/jobs"><div dir="ltr"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/></svg><span>Jobs</span></div></a>
+          <a href="/i/premium_sign_up"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><span>Premium</span></div></a>
+          <a href="/i/verified-orgs-signup"><div dir="ltr"><svg viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13zM9 21v-6h6v6"/></svg><span>Business</span></div></a>
+          <a href="/i/money"><div dir="ltr"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span>Money</span></div></a>
+          <a href="/demo"><div dir="ltr"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Profile</span></div></a>
+          <div data-testid="AppTabBar_More_Menu"><div dir="ltr"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg><span>More</span></div></div>
+          <a data-testid="SideNav_NewTweet_Button" class="post-btn" href="/compose/post"><span>Post</span></a>
+        </nav>
+      </div>
+      <div class="rail-bottom"><button data-testid="SideNav_AccountSwitcher_Button" type="button" aria-label="Account menu">
+        <div class="av av-you">Y</div>
+        <div class="acct"><b>You</b><span>@you_demo</span></div>
+        <div class="dots">···</div>
+      </button></div>
+    </div></div></div></header>
+
+    <main data-testid="primaryColumn">
+      <div>
+        <div class="col-head">
+          <div class="tabs-wrap"><nav aria-label="Home timelines"><div role="tablist">
+            <div><a role="tab" href="/home" aria-selected="true" id="tab-foryou">For you</a></div>
+            <div><a role="tab" href="/home" aria-selected="false" id="tab-following">Following</a></div>
+          </div></nav></div>
+          <div class="manage" title="Manage timelines"><svg viewBox="0 0 24 24"><path d="M11 11V4h2v7h7v2h-7v7h-2v-7H4v-2h7z"/></svg></div>
+          <div style="transform: translateY(0px)" class="pill">↑ Show 12 posts</div>
+        </div>
+
+        <div class="composer">
+          <div class="av av-you">Y</div>
+          <div class="composer-main">
+            <div data-testid="tweetTextarea_0" class="DraftEditor-root">What’s happening?</div>
+            <div class="composer-foot"><span></span><button type="button" class="btn-accent" disabled>Post</button></div>
+          </div>
+        </div>
+
+        <div id="timeline"></div>
+      </div>
+    </main>
+
+    <aside data-testid="sidebarColumn"><div><div><div><div><div>
+      <div class="side-search"><div role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Search</span></div></div>
+      <div class="side-card"><div data-testid="news_sidebar">
+        <h2>Today’s News</h2>
+        <p class="news"><b>City council approves a four-day trial week for library staff</b><span>Trending now · Local</span></p>
+        <p class="news"><b>A comet you can see without a telescope this weekend</b><span>2 hours ago · Science</span></p>
+      </div></div>
+      <div class="side-card"><section><div aria-label="Timeline: Trending now"><div>
+        <h2>What’s happening</h2>
+        <div data-testid="trend" class="trend"><span>Trending in Technology</span><b>#DarkModeDay</b><span>18.2K posts</span></div>
+        <div data-testid="trend" class="trend"><span>Music · Trending</span><b>Vinyl Week</b><span>6,104 posts</span></div>
+        <div data-testid="trend" class="trend"><span class="promo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.498 3h-15c-1.381 0-2.5 1.12-2.5 2.5v13c0 1.38 1.119 2.5 2.5 2.5h15c1.381 0 2.5-1.12 2.5-2.5v-13c0-1.38-1.119-2.5-2.5-2.5zm-3.502 12h-2v-3.59l-5.293 5.3-1.414-1.42L12.581 10H8.996V8h7v7z"/></svg>Promoted by Orbit Mobile</span><b>#UpgradeYourOrbit</b><span>Switch plans in two minutes</span></div>
+      </div></div></section></div>
+      <div class="side-card"><aside role="complementary">
+        <h2>Who to follow</h2>
+        <div data-testid="UserCell" class="user"><div class="av" style="--h:150">R</div><div><b>River Chen</b><span>@riverchen</span></div><button type="button" class="btn-light">Follow</button></div>
+        <div data-testid="UserCell" class="user"><div class="av" style="--h:20">N</div><div><b>Noor Haddad</b><span>@noorhaddad</span></div><button type="button" class="btn-light">Follow</button></div>
+      </aside></div>
+      <div class="side-card"><aside role="complementary">
+        <h2>Subscribe to Premium</h2>
+        <p>Unlock new features and get a reply boost.</p>
+        <a href="/i/premium_sign_up" class="btn-accent">Subscribe</a>
+      </aside></div>
+      <div class="side-foot"><nav aria-label="Footer"><a href="/tos">Terms of Service</a><a href="/privacy">Privacy Policy</a><a href="/cookies">Cookie Policy</a><a href="/about">About</a><span>© 2026 Demo Corp.</span></nav></div>
+    </div></div></div></div></div></aside>
+  </div>
+
+  <script src="timeline.js"></script>
+</body>
+</html>
