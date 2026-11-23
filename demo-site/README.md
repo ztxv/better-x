@@ -1,6 +1,7 @@
 # Better X demo site
 
-A static page that shows what Better X does. It has no build step and no dependencies. It runs
+A static page that shows what Better X does. Live at
+**[better-x-theta.vercel.app](https://better-x-theta.vercel.app/)**. It has no build step and no dependencies. It runs
 the extension's real feature catalog, quick setups, theme engine and post extractor against a
 **simulated**, X-shaped timeline (`mock/timeline.html`) next to a working replica of the panel.
 
