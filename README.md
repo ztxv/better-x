@@ -15,7 +15,7 @@ A private, local-first Chrome extension for X. Save any post into a searchable l
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![No tracking](https://img.shields.io/badge/tracking-none-1D9BF0)
 
-### [**▶ Try the live demo at better-x-theta.vercel.app**](https://better-x-theta.vercel.app/)
+### [**▶ Try the live demo at better-x-extension.vercel.app**](https://better-x-extension.vercel.app/)
 
 [Install](#install) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Privacy](#privacy-and-permissions) &nbsp;·&nbsp; [Demo site](#demo-site)
 
@@ -236,7 +236,7 @@ The Spotify plugin is the one place a sign-in is kept. Its tokens stay in this b
 
 ## Demo site
 
-[`demo-site/`](demo-site) is a static page that runs Better X’s real feature catalog, quick setups, theme engine and post extractor against a simulated, X-shaped timeline, next to a working replica of the panel. It also has a theme lab where you pick three colors and see the tokens Better X derives. Nothing to install. **[Open the live demo →](https://better-x-theta.vercel.app/)**
+[`demo-site/`](demo-site) is a static page that runs Better X’s real feature catalog, quick setups, theme engine and post extractor against a simulated, X-shaped timeline, next to a working replica of the panel. It also has a theme lab where you pick three colors and see the tokens Better X derives. Nothing to install. **[Open the live demo →](https://better-x-extension.vercel.app/)**
 
 To deploy your own copy, drag the `demo-site` folder onto [vercel.com/drop](https://vercel.com/drop), or use the button:
 
