@@ -10,8 +10,12 @@ the extension's real feature catalog, quick setups, theme engine and post extrac
 **Drag and drop:** go to [vercel.com/drop](https://vercel.com/drop) and drop this whole
 `demo-site` folder. `index.html` is at the top level and nothing needs building.
 
-**From Git:** import the repository in Vercel, set **Root Directory** to `demo-site`, keep
-**Framework Preset** on **Other**, and leave the build command empty. Every push then redeploys it.
+**From Git:** import the repository in Vercel and keep the defaults. The repository's root
+`vercel.json` tells Vercel to install and build nothing and to serve this folder, so every push
+to the production branch redeploys it. (Without it, Vercel would build the extension from the
+root `package.json` and serve the root `public/` folder, which holds only icons: every page is a
+404.) Setting **Root Directory** to `demo-site` in the project settings also works; Vercel then
+ignores the root `vercel.json`.
 
 ## Run it locally
 
@@ -40,13 +44,13 @@ the committed copy is out of date. It also fails if any file here references som
 
 ## What's real and what's simulated
 
-| Real (from the extension's source)                                        | Simulated                                                       |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Every setting's title, description, group and CSS (`src/features/`)       | The timeline, its accounts, posts, ads and trends (all made up) |
+| Real (from the extension's source)                                          | Simulated                                                       |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Every setting's title, description, group and CSS (`src/features/`)         | The timeline, its accounts, posts, ads and trends (all made up) |
 | How settings combine into one stylesheet (same logic as `features/host.ts`) | Hide For You and the Twitter tab title (two small shims)        |
-| Quick setups and Undo (`presetPatch`)                                     | The library: saved posts live in the page, not IndexedDB        |
-| Theme tokens and contrast warnings (`deriveTokens`, `contrastWarnings`)    | Theme colors mapped onto the mock page's own CSS variables      |
-| Post extraction when you click Save (`extractPost`)                       | Downloads, account insights, filtering and plugins (not shown)  |
+| Quick setups and Undo (`presetPatch`)                                       | The library: saved posts live in the page, not IndexedDB        |
+| Theme tokens and contrast warnings (`deriveTokens`, `contrastWarnings`)     | Theme colors mapped onto the mock page's own CSS variables      |
+| Post extraction when you click Save (`extractPost`)                         | Downloads, account insights, filtering and plugins (not shown)  |
 
 Settings that only do something through live x.com behavior (account insights, country
 filtering, photo dragging, the tab icon) are listed with an "x.com only" tag and can't be turned on.
