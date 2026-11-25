@@ -1,0 +1,352 @@
+<!doctype html>
+<!--
+  Source for the link-preview card: demo-site/og-image.png (1200x630).
+
+  Re-render (also regenerates the app icons) from the repo root:
+    node scripts/render-link-preview.cjs
+
+  Needs Playwright with Chromium (it is preinstalled in the Claude Code cloud sandbox; this repo
+  does not depend on it). Fonts are NOT loaded from the network: the card uses the locally
+  installed "Inter Display" / "Inter" (the demo site's display font is Inter Tight, whose closest
+  installed match is Inter Display ExtraBold). If neither is installed the render falls back to a
+  system sans and the headline will be wider, so check the PNG before committing.
+
+  Keep the headline at 70px or larger and the subline at 26px or larger: iMessage shows this card
+  at roughly a third of its size. Colors mirror demo-site/styles.css (:root).
+  The motif is decorative: it uses placeholder bars, not real posts or results.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Better X link preview</title>
+    <style>
+      :root {
+        --black: #000;
+        --surface: #101215;
+        --surface-2: #16191d;
+        --line: #2f3336;
+        --line-soft: #1f2327;
+        --text: #e7e9ea;
+        --muted: #8b98a5;
+        --blue: #1d9bf0;
+        --blue-soft: #8ecdf8;
+        --ok: #2fd18f;
+        --warn: #ffb547;
+        --violet: #a78bfa;
+        --display: 'Inter Display', 'Inter Tight', Inter, 'Helvetica Neue', Arial, sans-serif;
+        --sans: Inter, 'Helvetica Neue', Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: var(--black);
+      }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        color: var(--text);
+        font-family: var(--sans);
+        background:
+          radial-gradient(640px 460px at 86% 18%, rgba(29, 155, 240, 0.3), transparent 70%),
+          radial-gradient(520px 380px at 6% 100%, rgba(142, 205, 248, 0.1), transparent 70%),
+          linear-gradient(160deg, #06121c 0%, #000 55%);
+      }
+      .brand {
+        position: absolute;
+        left: 64px;
+        top: 56px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .brand img {
+        width: 46px;
+        height: 46px;
+        display: block;
+      }
+      .brand span {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+      }
+
+      .copy {
+        position: absolute;
+        left: 64px;
+        top: 156px;
+        width: 640px;
+      }
+      h1 {
+        font-family: var(--display);
+        font-weight: 800;
+        font-size: 72px;
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+        white-space: nowrap;
+      }
+      h1 .grad {
+        background: linear-gradient(92deg, var(--blue) 10%, var(--blue-soft) 95%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .sub {
+        margin-top: 30px;
+        width: 540px;
+        font-size: 27px;
+        line-height: 1.36;
+        color: #c4cbd2;
+        font-weight: 500;
+      }
+
+      .chips {
+        position: absolute;
+        left: 64px;
+        bottom: 64px;
+        display: flex;
+        gap: 12px;
+      }
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 46px;
+        padding: 0 20px 0 16px;
+        border-radius: 999px;
+        font-size: 21px;
+        font-weight: 700;
+        color: var(--c);
+        background: color-mix(in srgb, var(--c) 14%, transparent);
+        border: 1.5px solid color-mix(in srgb, var(--c) 45%, transparent);
+      }
+      .chip i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--c);
+      }
+
+      /* Product motif: the hero's "Clean quick setup" stack, tilted. */
+      .motif {
+        position: absolute;
+        left: 740px;
+        top: 118px;
+        width: 360px;
+        height: 360px;
+        transform: rotate(5deg);
+        transform-origin: 50% 50%;
+      }
+      .layer {
+        position: absolute;
+        border: 1.5px solid var(--line-soft);
+        border-radius: 26px;
+        background: #07090b;
+      }
+      .layer.l3 {
+        inset: 38px -30px -38px 30px;
+        background: #040506;
+      }
+      .layer.l2 {
+        inset: 20px -15px -20px 15px;
+      }
+      .panel {
+        position: absolute;
+        inset: 0 0 20px 0;
+        border: 1.5px solid var(--line);
+        border-radius: 26px;
+        background: var(--surface);
+        overflow: hidden;
+        box-shadow:
+          0 30px 70px rgba(0, 0, 0, 0.6),
+          0 0 80px rgba(29, 155, 240, 0.12);
+      }
+      .ph {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 62px;
+        padding: 0 22px;
+        border-bottom: 1.5px solid var(--line);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .ph .dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 5px rgba(29, 155, 240, 0.2);
+      }
+      .ph b {
+        margin-left: auto;
+        font-family: ui-monospace, 'JetBrains Mono', Menlo, monospace;
+        font-size: 18px;
+        color: var(--blue-soft);
+        font-weight: 600;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 46px 1fr auto;
+        gap: 16px;
+        align-items: center;
+        height: 92px;
+        padding: 0 22px;
+        border-bottom: 1.5px solid var(--line-soft);
+      }
+      .av {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: linear-gradient(
+          140deg,
+          hsl(var(--h) 70% 55%),
+          hsl(calc(var(--h) + 40) 65% 38%)
+        );
+      }
+      .bars i {
+        display: block;
+        height: 11px;
+        border-radius: 6px;
+        background: #2a3036;
+      }
+      .bars i + i {
+        margin-top: 11px;
+        width: 70%;
+        background: #20252a;
+      }
+      .bars i:first-child {
+        width: 48%;
+        background: #3a424a;
+      }
+      .save {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+      }
+      .save svg {
+        width: 30px;
+        height: 30px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .row.saved .save {
+        color: var(--blue);
+      }
+      .row.saved .save svg {
+        fill: rgba(29, 155, 240, 0.3);
+      }
+      .row.clutter {
+        background: rgba(29, 155, 240, 0.07);
+      }
+      .row.clutter .av {
+        opacity: 0.45;
+      }
+      .row.clutter .bars i {
+        opacity: 0.55;
+      }
+      .tag {
+        font-size: 16px;
+        font-weight: 700;
+        padding: 5px 13px;
+        border-radius: 999px;
+        border: 1.5px solid #23415a;
+        color: var(--blue-soft);
+      }
+      .pill {
+        position: absolute;
+        right: -22px;
+        bottom: -14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 56px;
+        padding: 0 24px 0 18px;
+        border-radius: 999px;
+        background: var(--blue);
+        color: #fff;
+        font-size: 22px;
+        font-weight: 800;
+        box-shadow: 0 16px 40px rgba(29, 155, 240, 0.45);
+      }
+      .pill svg {
+        width: 26px;
+        height: 26px;
+        fill: none;
+        stroke: #fff;
+        stroke-width: 2.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="card">
+      <div class="brand">
+        <img src="../demo-site/assets/favicon.svg" alt="" /><span>Better X</span>
+      </div>
+
+      <div class="copy">
+        <h1>Keep what you find.<br /><span class="grad">Hide what you don’t.</span></h1>
+        <p class="sub">
+          Save posts from X to a private library in your browser, and hide the clutter.
+        </p>
+      </div>
+
+      <div class="chips">
+        <div class="chip" style="--c: var(--blue)"><i></i>Private library</div>
+        <div class="chip" style="--c: var(--ok)"><i></i>Media downloads</div>
+        <div class="chip" style="--c: var(--warn)"><i></i>78 settings</div>
+        <div class="chip" style="--c: var(--violet)"><i></i>12 themes</div>
+      </div>
+
+      <div class="motif">
+        <div class="layer l3"></div>
+        <div class="layer l2"></div>
+        <div class="panel">
+          <div class="ph"><span class="dot"></span>With Clean on<b>12 switches</b></div>
+          <div class="row saved">
+            <span class="av" style="--h: 265"></span>
+            <div class="bars"><i></i><i></i></div>
+            <span class="save"
+              ><svg viewBox="0 0 24 24">
+                <path d="M12 3 3 8l9 5 9-5-9-5Z" />
+                <path d="m3 13 9 5 9-5" /></svg
+            ></span>
+          </div>
+          <div class="row clutter">
+            <span class="av" style="--h: 30"></span>
+            <div class="bars"><i></i><i></i></div>
+            <span class="tag">Hidden</span>
+          </div>
+          <div class="row">
+            <span class="av" style="--h: 340"></span>
+            <div class="bars"><i></i><i></i></div>
+            <span class="save"
+              ><svg viewBox="0 0 24 24">
+                <path d="M12 3 3 8l9 5 9-5-9-5Z" />
+                <path d="m3 13 9 5 9-5" /></svg
+            ></span>
+          </div>
+        </div>
+        <div class="pill">
+          <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>Saved
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

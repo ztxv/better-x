@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <title>Better X</title>
+  <defs>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128">
+      <rect width="128" height="128" fill="#fff"/>
+      <path d="M64 13 116 40 64 67 12 40Z" fill="#000" stroke="#000" stroke-width="31" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M64 13 116 40 64 67 12 40Z" fill="#1d9bf0" stroke="#1d9bf0" stroke-width="24" stroke-linejoin="round"/>
+  <path d="M64 49.5 122.5 86 64 122.5 5.5 86Z" stroke="#1d9bf0" stroke-width="11" stroke-linejoin="round" mask="url(#gap)"/>
+</svg>
