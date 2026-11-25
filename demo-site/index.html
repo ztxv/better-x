@@ -3,12 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Better X · Keep what you find. Hide what you don’t.</title>
-  <meta name="description" content="Better X is a Chrome extension that saves posts from X into a private local library, downloads their media, and lets you hide, restyle and re-theme X. Try the demo, which runs the extension's real feature engine.">
-  <meta property="og:title" content="Better X: keep what you find, hide what you don’t">
-  <meta property="og:description" content="A private, local-first Chrome extension for X. Save posts, download media, clean up and re-theme the site. Try it in your browser.">
+  <title>Better X — Save posts from X, hide the clutter</title>
+  <meta name="description" content="A private, local-first Chrome extension for X. Save posts to a library in your browser, download their media, and hide ads, Grok and Premium upsells.">
+  <link rel="canonical" href="https://better-x-extension.vercel.app/">
   <meta name="theme-color" content="#000000">
-  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <meta name="apple-mobile-web-app-title" content="Better X">
+
+  <!-- Link preview. Crawlers don't run JS, so these must stay in the served HTML, and the
+       og:image / og:url / twitter:image / canonical URLs must stay absolute (see README, "Link previews"). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Better X">
+  <meta property="og:title" content="Better X: keep what you find, hide what you don’t">
+  <meta property="og:description" content="A private, local-first Chrome extension for X. Save posts to a library in your browser, download their media, and hide ads, Grok and Premium upsells.">
+  <meta property="og:url" content="https://better-x-extension.vercel.app/">
+  <meta property="og:image" content="https://better-x-extension.vercel.app/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Better X: Keep what you find. Hide what you don’t. A tilted Better X panel with a Clean setup hiding one post, above chips for Private library, Media downloads, 78 settings and 12 themes.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Better X: keep what you find, hide what you don’t">
+  <meta name="twitter:description" content="A private, local-first Chrome extension for X. Save posts to a library in your browser, download their media, and hide ads, Grok and Premium upsells.">
+  <meta name="twitter:image" content="https://better-x-extension.vercel.app/og-image.png">
+  <meta name="twitter:image:alt" content="Better X: Keep what you find. Hide what you don’t. A tilted Better X panel with a Clean setup hiding one post, above chips for Private library, Media downloads, 78 settings and 12 themes.">
+
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@700;800&family=JetBrains+Mono:wght@400;500&display=swap">

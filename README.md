@@ -251,6 +251,14 @@ To deploy your own copy, drag the `demo-site` folder onto [vercel.com/drop](http
 
 The demo loads `demo-site/engine/better-x-engine.js`, which is bundled from `src/` by `npm run demo:engine`. The unit tests fail if that file falls out of date. Details are in [`demo-site/README.md`](demo-site/README.md).
 
+### Link previews
+
+The card shown when the demo's URL is pasted into iMessage, Slack, Discord, X or LinkedIn comes from tags in the `<head>` of [`demo-site/index.html`](demo-site/index.html) (Open Graph, Twitter card, canonical, icons and `manifest.webmanifest`). Crawlers don't run JavaScript, so keep them in the served HTML, not in `app.js`.
+
+- **Absolute URLs.** `og:image`, `og:url`, `twitter:image` and the canonical link must be absolute `https` URLs; iMessage ignores relative ones. They point at `https://better-x-extension.vercel.app`. If the domain changes, search `demo-site/index.html` for that host and replace every occurrence.
+- **The image.** [`scripts/og-image.html`](scripts/og-image.html) is the source of `demo-site/og-image.png` (1200×630). Edit it, then run `node scripts/render-link-preview.cjs`, which also regenerates `apple-touch-icon.png` and `assets/icon-192.png` / `icon-512.png` from `assets/favicon.svg`. It needs Playwright with Chromium (not a dependency of this repo) and the locally installed Inter fonts. Look at the PNG before committing.
+- **Caching.** Messaging apps cache a preview per URL. After deploying a change, paste the link with a throwaway ending such as `?v=2` to see the new card, or use the Slack, Discord, X or LinkedIn link-preview refresh tools.
+
 ## Development
 
 ```sh
